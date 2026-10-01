@@ -1,0 +1,246 @@
+{
+    "terms": [
+        {
+            "code": "2025-1",
+            "name": "Fall 2025",
+            "academic_year": "2025-2026",
+            "sequence": 1,
+            "starts_on": "2025-08-24",
+            "ends_on": "2025-12-18",
+            "grades_due_on": "2025-12-28"
+        },
+        {
+            "code": "2025-2",
+            "name": "Spring 2026",
+            "academic_year": "2025-2026",
+            "sequence": 2,
+            "starts_on": "2026-01-11",
+            "ends_on": "2026-05-14",
+            "grades_due_on": "2026-05-24"
+        },
+        {
+            "code": "2026-1",
+            "name": "Fall 2026",
+            "academic_year": "2026-2027",
+            "sequence": 3,
+            "starts_on": "2026-08-23",
+            "ends_on": "2026-12-17",
+            "grades_due_on": "2026-12-27"
+        },
+        {
+            "code": "2026-2",
+            "name": "Spring 2027",
+            "academic_year": "2026-2027",
+            "sequence": 4,
+            "starts_on": "2027-01-10",
+            "ends_on": "2027-05-13",
+            "grades_due_on": "2027-05-23"
+        }
+    ],
+    "assignments": {
+        "2025-1": [
+            {
+                "course": "CIS 443",
+                "instructor": "YU-F1021",
+                "sections": 2,
+                "enrolled": 30
+            },
+            {
+                "course": "SWE 401",
+                "instructor": "YU-F1034",
+                "sections": 2,
+                "enrolled": 30
+            },
+            {
+                "course": "SWE 302",
+                "instructor": "YU-F1021",
+                "sections": 1,
+                "enrolled": 28
+            },
+            {
+                "course": "CIS 491",
+                "instructor": "YU-F1009",
+                "sections": 1,
+                "enrolled": 24
+            },
+            {
+                "course": "CNE 307",
+                "instructor": "YU-F1052",
+                "sections": 1,
+                "enrolled": 26
+            },
+            {
+                "course": "ACC 311",
+                "instructor": "YU-F2011",
+                "sections": 2,
+                "enrolled": 32
+            },
+            {
+                "course": "MIS 327",
+                "instructor": "YU-F2024",
+                "sections": 1,
+                "enrolled": 25
+            }
+        ],
+        "2025-2": [
+            {
+                "course": "CIS 443",
+                "instructor": "YU-F1021",
+                "sections": 2,
+                "enrolled": 32
+            },
+            {
+                "course": "SWE 401",
+                "instructor": "YU-F1034",
+                "sections": 2,
+                "enrolled": 30
+            },
+            {
+                "course": "SWE 302",
+                "instructor": "YU-F1021",
+                "sections": 2,
+                "enrolled": 30
+            },
+            {
+                "course": "SWE 412",
+                "instructor": "YU-F1034",
+                "sections": 1,
+                "enrolled": 25
+            },
+            {
+                "course": "CNE 307",
+                "instructor": "YU-F1052",
+                "sections": 1,
+                "enrolled": 27
+            },
+            {
+                "course": "ACC 311",
+                "instructor": "YU-F2011",
+                "sections": 2,
+                "enrolled": 30
+            },
+            {
+                "course": "MIS 327",
+                "instructor": "YU-F2024",
+                "sections": 1,
+                "enrolled": 26
+            }
+        ],
+        "2026-1": [
+            {
+                "course": "CIS 443",
+                "instructor": "YU-F1021",
+                "sections": 2,
+                "enrolled": 31
+            },
+            {
+                "course": "SWE 401",
+                "instructor": "YU-F1034",
+                "sections": 2,
+                "enrolled": 29
+            },
+            {
+                "course": "SWE 302",
+                "instructor": "YU-F1021",
+                "sections": 2,
+                "enrolled": 30
+            },
+            {
+                "course": "SWE 412",
+                "instructor": "YU-F1047",
+                "sections": 1,
+                "enrolled": 27
+            },
+            {
+                "course": "CIS 491",
+                "instructor": "YU-F1009",
+                "sections": 1,
+                "enrolled": 22
+            },
+            {
+                "course": "SWE 411",
+                "instructor": "YU-F1009",
+                "sections": 1,
+                "enrolled": 28
+            },
+            {
+                "course": "CNE 307",
+                "instructor": "YU-F1052",
+                "sections": 1,
+                "enrolled": 25
+            },
+            {
+                "course": "ACC 311",
+                "instructor": "YU-F2011",
+                "sections": 2,
+                "enrolled": 33
+            },
+            {
+                "course": "MIS 327",
+                "instructor": "YU-F2024",
+                "sections": 1,
+                "enrolled": 24
+            }
+        ],
+        "2026-2": [
+            {
+                "course": "CIS 443",
+                "instructor": "YU-F1021",
+                "sections": 2,
+                "enrolled": 30
+            },
+            {
+                "course": "SWE 401",
+                "instructor": "YU-F1034",
+                "sections": 2,
+                "enrolled": 30
+            },
+            {
+                "course": "SWE 302",
+                "instructor": "YU-F1047",
+                "sections": 1,
+                "enrolled": 28
+            },
+            {
+                "course": "SWE 412",
+                "instructor": "YU-F1047",
+                "sections": 1,
+                "enrolled": 26
+            },
+            {
+                "course": "CIS 492",
+                "instructor": "YU-F1009",
+                "sections": 1,
+                "enrolled": 22
+            },
+            {
+                "course": "CNE 307",
+                "instructor": "YU-F1052",
+                "sections": 1,
+                "enrolled": 26
+            },
+            {
+                "course": "ACC 311",
+                "instructor": "YU-F2011",
+                "sections": 2,
+                "enrolled": 31
+            },
+            {
+                "course": "MIS 327",
+                "instructor": "YU-F2024",
+                "sections": 1,
+                "enrolled": 25
+            }
+        ]
+    },
+    "pending_assignments": [
+        {
+            "term": "2026-1",
+            "course": "SWE 413",
+            "instructor": "YU-F1047",
+            "sections": 1,
+            "enrolled": 18,
+            "label": "SIS assigns SWE 413 Design Patterns (elective) to Dr. Faisal Al-Dosari"
+        }
+    ]
+}
