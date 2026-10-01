@@ -8,15 +8,21 @@ use Saqf\Core\Clock;
 use Saqf\Core\Config;
 use Saqf\Core\Csrf;
 use Saqf\Core\Db;
+use Saqf\Core\Mailer;
+use Saqf\Core\Migrations;
 use Saqf\Core\Policy;
 use Saqf\Core\Request;
 use Saqf\Core\Session;
+use Saqf\Integration\FileSisSource;
 use Saqf\Integration\Integrations;
+use Saqf\Integration\SeededSisSource;
 use Saqf\Integration\Sync;
 use Saqf\Quality\Achievement;
 use Saqf\Quality\Scheduler;
 use Saqf\Quality\Workspaces;
 use Saqf\Security\Auth;
+use Saqf\Security\Oidc;
+use Saqf\Security\Users;
 use Saqf\Web\View as V;
 
 $user = saqf_page(['admin']);
@@ -37,6 +43,17 @@ if ($tab === 'audit' && ($_GET['export'] ?? '') === 'csv') {
     exit;
 }
 
+// ---------------------------------------------------------------- user import template
+if ($tab === 'users' && ($_GET['template'] ?? '') === 'csv') {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="saqf-users-template.csv"');
+    $out = fopen('php://output', 'w');
+    fputcsv($out, Users::CSV_COLUMNS);
+    fputcsv($out, ['n.alsaud', 'Dr. Noura Al-Saud', 'n.alsaud@yu.edu.sa', 'faculty', 'CED', '', 'YU-F2001', 'Assistant Professor']);
+    fputcsv($out, ['hod.cis', 'Dr. Khalid Al-Otaibi', 'k.alotaibi@yu.edu.sa', 'hod', 'CIS', '', 'YU-F2002', 'Associate Professor']);
+    exit;
+}
+
 // ---------------------------------------------------------------- actions
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     saqf_require_post();
@@ -46,6 +63,41 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $target = $targetId ? Db::one('SELECT * FROM users WHERE id = ?', [$targetId]) : null;
     try {
         switch ($op) {
+            case 'create_user':
+            case 'edit_user':
+                $data = [];
+                foreach (Users::CSV_COLUMNS as $k) {
+                    $data[$k] = trim((string) ($_POST[$k] ?? ''));
+                }
+                if ($op === 'edit_user') {
+                    if (!$target) {
+                        throw new DomainException('Unknown account.');
+                    }
+                    $data['username'] = $target['username'];
+                    if ($targetId === $user['id'] && $data['role'] !== $user['role']) {
+                        throw new DomainException('You cannot change your own role.');
+                    }
+                } elseif (Db::val('SELECT 1 FROM users WHERE username = ?', [mb_strtolower($data['username'])])) {
+                    throw new DomainException('That username already exists — use Manage → Edit details.');
+                }
+                $r = Users::save($data, 'admin', $reason ?: null);
+                Mailer::flush(5);
+                Session::flash('success', $op === 'edit_user' ? ($r['changed'] ? 'Account updated.' : 'No changes.')
+                    : ('Account created.' . ($r['temp_password'] ? " Temporary password for {$data['username']}: {$r['temp_password']} — share it through a secure channel; it is not shown again." : ($r['invited'] ? ' An invitation to choose a password was e-mailed.' : (Oidc::enabled() ? ' The person signs in with their university account.' : '')))));
+                break;
+            case 'import_users':
+                $f = $_FILES['users'] ?? null;
+                if (!$f || $f['error'] !== UPLOAD_ERR_OK || $f['size'] > 2 * 1024 * 1024) {
+                    throw new DomainException('Upload a CSV file under 2 MB.');
+                }
+                if (mb_strlen($reason) < 5) {
+                    throw new DomainException('Give a reason for the import (e.g. HR reference).');
+                }
+                $r = Users::importCsv($f['tmp_name'], $reason);
+                Mailer::flush(50);
+                $_SESSION['import_result'] = $r;
+                Session::flash($r['errors'] ? 'error' : 'success', "User import: {$r['created']} created, {$r['updated']} updated, {$r['unchanged']} unchanged" . ($r['invited'] ? ", {$r['invited']} invitation(s) e-mailed" : '') . ($r['errors'] ? ', ' . count($r['errors']) . ' row(s) rejected — see below.' : '.'));
+                break;
             case 'unlock':
                 Db::update('users', ['status' => 'active', 'locked_until' => null, 'failed_logins' => 0], 'id = ?', [$targetId]);
                 Audit::record('admin.user_unlocked', 'user', $targetId, "Account {$target['username']} unlocked", null, null, $reason ?: null);
@@ -67,7 +119,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 if ($targetId === $user['id']) {
                     throw new DomainException('Use Account & security to change your own password.');
                 }
-                $temp = 'Tmp' . substr(strtr(base64_encode(random_bytes(9)), '+/', 'xy'), 0, 10) . random_int(10, 99);
+                $temp = Users::tempPassword();
                 Db::update('users', ['password_hash' => password_hash($temp, PASSWORD_DEFAULT), 'must_change_password' => 1, 'status' => 'active', 'locked_until' => null, 'failed_logins' => 0], 'id = ?', [$targetId]);
                 Audit::record('admin.password_reset', 'user', $targetId, "Temporary password issued for {$target['username']} (must change at next sign-in)", null, null, $reason ?: null);
                 Session::flash('success', "Temporary password for {$target['username']}: $temp — share it through a secure channel; it is not stored or shown again.");
@@ -108,9 +160,21 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 Session::flash('success', 'Scheduler ran: ' . (int) ($s['lms_batches'] ?? 0) . ' LMS batch(es) imported, ' . (int) ($s['offerings_checked'] ?? 0) . ' offerings re-checked.');
                 break;
             case 'sis_assignments':
+                $terms = Sync::terms();
                 $term = Db::one('SELECT * FROM terms WHERE status = "active" LIMIT 1');
                 $s = $term ? Sync::assignments($term['code']) : ['created' => 0, 'assignments' => 0];
-                Session::flash('success', "SIS assignments pulled: {$s['assignments']} rows, {$s['created']} new workspace(s).");
+                Session::flash('success', "SIS synchronised: $terms term(s); {$s['assignments']} assignment rows" . ($term ? " for {$term['name']}" : ' (no active term)') . ", {$s['created']} new workspace(s).");
+                break;
+            case 'check':
+                $msgs = [];
+                $allOk = true;
+                foreach (['SIS' => Integrations::sis(), 'LMS' => Integrations::lms()] as $label => $source) {
+                    $r = $source->check();
+                    $allOk = $allOk && $r['ok'];
+                    $msgs[] = "$label: " . ($r['ok'] ? 'OK — ' : 'PROBLEM — ') . $r['message'];
+                }
+                Audit::record('integration.checked', 'integration', null, 'Connection test: ' . implode(' | ', $msgs));
+                Session::flash($allOk ? 'success' : 'error', implode(' · ', $msgs));
                 break;
             case 'sim_lms':
                 if (!Config::demoMode()) {
@@ -130,6 +194,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     throw new DomainException('The simulator is available in demo mode only.');
                 }
                 $i = (int) ($_POST['index'] ?? -1);
+                if (!Integrations::sis() instanceof SeededSisSource) {
+                    throw new DomainException('The simulator needs the demo SIS feed (SAQF_SIS_SOURCE=demo).');
+                }
                 $pending = Integrations::sis()->pendingAssignments();
                 if (!isset($pending[$i])) {
                     throw new DomainException('Unknown simulated assignment.');
@@ -138,6 +205,36 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 Db::exec('INSERT INTO system_settings (setting_key, value, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)', ['sis.assignment.' . $i, json_encode($a), Clock::stamp()]);
                 $s = Sync::assignments($a['term']);
                 Session::flash('success', "SIS published the assignment; {$s['created']} workspace(s) initialised automatically.");
+                break;
+            case 'term_add':
+                $t = FileSisSource::term([
+                    'code' => trim((string) ($_POST['code'] ?? '')), 'name' => trim((string) ($_POST['name'] ?? '')), 'academic_year' => trim((string) ($_POST['academic_year'] ?? '')),
+                    'sequence' => (int) ($_POST['sequence'] ?? 0), 'starts_on' => (string) ($_POST['starts_on'] ?? ''), 'ends_on' => (string) ($_POST['ends_on'] ?? ''), 'grades_due_on' => (string) ($_POST['grades_due_on'] ?? ''),
+                ]);
+                if (!preg_match('/^[A-Za-z0-9\-]{2,12}$/', $t['code']) || $t['name'] === '' || $t['academic_year'] === '' || $t['sequence'] < 1) {
+                    throw new DomainException('Give the term a code (e.g. 2026-1), a name, an academic year and a sequence number.');
+                }
+                if ($t['ends_on'] <= $t['starts_on']) {
+                    throw new DomainException('The term must end after it starts.');
+                }
+                if (Db::val('SELECT 1 FROM terms WHERE code = ?', [$t['code']])) {
+                    throw new DomainException('A term with that code exists already.');
+                }
+                $tid = Db::insert('terms', $t + ['status' => 'upcoming']);
+                Audit::record('term.created', 'term', $tid, "{$t['name']} ({$t['code']}) added to the academic calendar", null, $t, $reason ?: null);
+                Session::flash('success', "{$t['name']} added. It starts automatically on " . V::date($t['starts_on']) . ' (policy permitting), or start it now below.');
+                break;
+            case 'term_activate':
+                $next = Db::one('SELECT * FROM terms WHERE id = ? AND status = "upcoming"', [(int) ($_POST['term'] ?? 0)]);
+                if (!$next) {
+                    throw new DomainException('Choose an upcoming term.');
+                }
+                if (mb_strlen($reason) < 5) {
+                    throw new DomainException('Starting a term early needs a reason (audited).');
+                }
+                $s = Workspaces::activateTerm((int) $next['id']);
+                Audit::record('term.started_manually', 'term', $next['id'], "{$next['name']} started by an administrator", null, null, $reason);
+                Session::flash('success', "{$next['name']} activated: previous term closed and frozen; {$s['created']} workspaces created, {$s['inherited']} inherited an approved specification.");
                 break;
             case 'sim_rollover':
                 if (!Config::demoMode()) {
@@ -153,7 +250,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             default:
                 throw new DomainException('Unknown operation.');
         }
-    } catch (DomainException | InvalidArgumentException $e) {
+    } catch (DomainException | InvalidArgumentException | RuntimeException $e) {
         Session::flash('error', $e->getMessage());
     }
     saqf_redirect('admin.php?tab=' . $tab);
@@ -172,6 +269,15 @@ if ($tab === 'health'):
     $errors24 = (int) Db::val('SELECT COUNT(*) FROM system_errors WHERE occurred_at >= ?', [Clock::now()->modify('-1 day')->format('Y-m-d H:i:s')]);
     $failed24 = (int) Db::val('SELECT COUNT(*) FROM login_attempts WHERE success = 0 AND created_at >= ?', [Clock::now()->modify('-1 day')->format('Y-m-d H:i:s')]);
     $locked = (int) Db::val('SELECT COUNT(*) FROM users WHERE status = "locked" AND locked_until > ?', [Clock::stamp()]);
+    $mailFailing = (int) Db::val('SELECT COUNT(*) FROM mail_outbox WHERE sent_at IS NULL AND attempts > 0');
+    try {
+        $connectors = 'SIS: ' . Integrations::sisKind() . ' · LMS: ' . Integrations::lmsKind() . ' (Integrations → Test connections)';
+        $connectorsOk = Config::env() === 'production' && (Integrations::sisKind() === 'demo' || Integrations::lmsKind() === 'demo') ? false : null;
+    } catch (InvalidArgumentException $e) {
+        $connectors = 'Configuration error: ' . $e->getMessage();
+        $connectorsOk = false;
+    }
+    $pendingMigrations = Migrations::pending();
     $counts = Db::one('SELECT (SELECT COUNT(*) FROM users) users, (SELECT COUNT(*) FROM courses) courses, (SELECT COUNT(*) FROM course_offerings) offerings, (SELECT COUNT(*) FROM audit_log) audit, (SELECT COUNT(*) FROM events) events');
     $checks = [
         ['Database', $dbVersion ? 'Connected (' . $dbVersion . ')' : 'Unavailable', (bool) $dbVersion],
@@ -185,6 +291,10 @@ if ($tab === 'health'):
         ['Errors (24 h)', (string) $errors24, $errors24 === 0],
         ['Failed sign-ins (24 h) · locked accounts', $failed24 . ' · ' . $locked, $locked === 0],
         ['PHP', PHP_VERSION . ' · SAQF ' . SAQF_VERSION, version_compare(PHP_VERSION, '8.1', '>=')],
+        ['Connectors', $connectors, $connectorsOk],
+        ['University sign-in (SSO)', Oidc::enabled() ? 'Configured (' . parse_url((string) Config::get('SAQF_OIDC_ISSUER'), PHP_URL_HOST) . ') · password sign-in: ' . Auth::passwordLoginMode() : 'Not configured — password sign-in only', Oidc::enabled() ? true : (Config::env() === 'production' ? false : null)],
+        ['E-mail', Mailer::enabled() ? Mailer::transport() . ' · ' . $mailFailing . ' message(s) waiting to retry' . (Mailer::baseUrl() === '' ? ' · SAQF_BASE_URL not set (no links)' : '') : 'Not configured — notifications appear in SAQF only', Mailer::enabled() ? ($mailFailing === 0 && Mailer::baseUrl() !== '') : null],
+        ['Database migrations', $pendingMigrations ? count($pendingMigrations) . ' pending — run php bin/migrate.php' : 'Up to date', !$pendingMigrations],
     ];
 ?>
 <div class="split"><section class="card"><div class="card-h"><h2>Health checks</h2></div><div class="card-b tight"><table><tbody>
@@ -203,10 +313,58 @@ if ($tab === 'health'):
     $q = trim((string) ($_GET['q'] ?? ''));
     $users = Db::all('SELECT u.*, COALESCE(d.name, c.name) AS dept FROM users u LEFT JOIN departments d ON d.id = u.department_id LEFT JOIN colleges c ON c.id = u.college_id' . ($q !== '' ? ' WHERE u.username LIKE ? OR u.full_name LIKE ?' : '') . ' ORDER BY FIELD(u.role,"admin","leadership","dean","qa","hod","faculty"), u.full_name', $q !== '' ? ["%$q%", "%$q%"] : []);
 ?>
-<section class="card"><div class="card-h"><form class="row" method="get"><input type="hidden" name="tab" value="users"><input type="search" name="q" value="<?= V::h($q) ?>" placeholder="Find user" style="width:260px"><button class="btn btn-sm">Search</button></form><span class="right muted small">In production, accounts and roles are provisioned from SSO / HR; manual changes here are audited.</span></div>
+<?php
+    $import = $_SESSION['import_result'] ?? null;
+    unset($_SESSION['import_result']);
+    $depts = Db::all('SELECT code, name FROM departments ORDER BY name');
+    $colleges = Db::all('SELECT code, name FROM colleges ORDER BY name');
+    $fieldsFor = static function (?array $u) use ($depts, $colleges): string {
+        $dept = $u && $u['department_id'] ? (string) Db::val('SELECT code FROM departments WHERE id = ?', [$u['department_id']]) : '';
+        $col = $u && $u['college_id'] ? (string) Db::val('SELECT code FROM colleges WHERE id = ?', [$u['college_id']]) : '';
+        $h = '<div class="grid g2" style="gap:8px">';
+        if (!$u) {
+            $h .= '<input type="text" name="username" placeholder="Username (e.g. n.alsaud)" required>';
+        }
+        $h .= '<input type="text" name="full_name" placeholder="Full name" required value="' . V::h($u['full_name'] ?? '') . '">';
+        $h .= '<input type="email" name="email" placeholder="E-mail" value="' . V::h($u['email'] ?? '') . '">';
+        $h .= '<input type="text" name="title" placeholder="Title (e.g. Assistant Professor)" value="' . V::h($u['title'] ?? '') . '">';
+        $h .= '<input type="text" name="external_id" placeholder="SIS / HR identifier" value="' . V::h($u['external_id'] ?? '') . '">';
+        $h .= '<select name="role" required>';
+        foreach (Auth::ROLES as $k => $l) {
+            $h .= '<option value="' . $k . '"' . (($u['role'] ?? 'faculty') === $k ? ' selected' : '') . '>' . V::h($l) . '</option>';
+        }
+        $h .= '</select><select name="department"><option value="">Department (faculty, HoD)</option>';
+        foreach ($depts as $d) {
+            $h .= '<option value="' . V::h($d['code']) . '"' . ($dept === $d['code'] ? ' selected' : '') . '>' . V::h($d['name']) . '</option>';
+        }
+        $h .= '</select><select name="college"><option value="">College (dean)</option>';
+        foreach ($colleges as $c) {
+            $h .= '<option value="' . V::h($c['code']) . '"' . ($col === $c['code'] ? ' selected' : '') . '>' . V::h($c['name']) . '</option>';
+        }
+        return $h . '</select><input type="text" name="reason" placeholder="Reason / ticket (audited)"></div>';
+    };
+?>
+<?php if ($import && ($import['errors'] || $import['credentials'])): ?>
+<section class="card" style="border-color:#F6DFC3"><div class="card-h"><h2>Import result</h2><span class="muted small right">Shown once</span></div><div class="card-b small">
+  <?php if ($import['errors']): ?><p><strong>Rejected rows</strong></p><ul><?php foreach ($import['errors'] as $e): ?><li><?= V::h($e) ?></li><?php endforeach; ?></ul><?php endif; ?>
+  <?php if ($import['credentials']): ?><p><strong>Temporary passwords</strong> — share each through a secure channel; people must change them at first sign-in. They are not stored or shown again.</p>
+  <table><tbody><?php foreach ($import['credentials'] as [$un, $pw]): ?><tr><td class="mono"><?= V::h($un) ?></td><td class="mono"><?= V::h($pw) ?></td></tr><?php endforeach; ?></tbody></table><?php endif; ?>
+</div></section>
+<?php endif; ?>
+<div class="grid g2">
+<section class="card"><div class="card-h"><h2>Add a user</h2></div><div class="card-b small">
+  <form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="create_user"><?= $fieldsFor(null) ?><button class="btn btn-sm btn-primary" style="margin-top:8px">Create account</button></form>
+  <p class="tiny muted" style="margin-top:8px"><?= Oidc::enabled() ? 'People sign in with their university account; no password is created.' : (Mailer::enabled() && Mailer::baseUrl() !== '' ? 'People with an e-mail address receive an invitation to choose their password.' : 'A temporary password is shown once after creation.') ?> New instructors in the SIS feed get accounts automatically.</p></div></section>
+<section class="card"><div class="card-h"><h2>Import users (CSV)</h2><a class="btn btn-sm right" href="admin.php?tab=users&amp;template=csv">Template</a></div><div class="card-b small">
+  <form method="post" enctype="multipart/form-data"><?= Csrf::field() ?><input type="hidden" name="op" value="import_users">
+    <input type="file" name="users" accept=".csv,text/csv" required><input type="text" name="reason" placeholder="Reason / HR reference (audited)" required style="margin-top:8px">
+    <button class="btn btn-sm" style="margin-top:8px">Import</button></form>
+  <p class="tiny muted" style="margin-top:8px">Columns: <span class="mono"><?= V::h(implode(', ', Users::CSV_COLUMNS)) ?></span>. Existing usernames are updated; invalid rows are reported and skipped. Department and college are codes.</p></div></section>
+</div>
+<section class="card"><div class="card-h"><form class="row" method="get"><input type="hidden" name="tab" value="users"><input type="search" name="q" value="<?= V::h($q) ?>" placeholder="Find user" style="width:260px"><button class="btn btn-sm">Search</button></form><span class="right muted small">Accounts come from SSO, the SIS feed, imports or this page; every change is audited.</span></div>
 <div class="card-b tight"><div class="table-wrap"><table><thead><tr><th>User</th><th>Role & scope</th><th>Status</th><th>Last sign-in</th><th>Actions</th></tr></thead><tbody>
 <?php foreach ($users as $u): $isLocked = $u['status'] === 'locked' && $u['locked_until'] > Clock::stamp(); ?>
-  <tr><td><strong><?= V::h($u['full_name']) ?></strong><div class="tiny muted"><?= V::h($u['username']) ?> · <?= V::h($u['external_id'] ?? '') ?></div></td>
+  <tr><td><strong><?= V::h($u['full_name']) ?></strong><div class="tiny muted"><?= V::h($u['username']) ?> · <?= V::h($u['external_id'] ?? '') ?><?= $u['email'] ? ' · ' . V::h($u['email']) : '' ?></div><?= ($u['auth_source'] ?? 'local') === 'sso' ? V::pill('SSO', 'blue') : '' ?><?= ($u['provisioned_by'] ?? 'admin') === 'sis' ? ' ' . V::pill('from SIS', 'grey') : '' ?></td>
     <td class="small"><?= V::h(Auth::ROLES[$u['role']] ?? $u['role']) ?><div class="muted"><?= V::h($u['dept'] ?? '') ?></div></td>
     <td><?= $u['status'] === 'disabled' ? V::pill('disabled', 'grey') : ($isLocked ? V::pill('locked until ' . date('H:i', strtotime($u['locked_until'])), 'red') : V::pill('active', 'green')) ?><?= $u['must_change_password'] ? ' ' . V::pill('must change password', 'amber') : '' ?></td>
     <td class="small"><?= V::h(V::ago($u['last_login_at'])) ?><div class="tiny muted mono"><?= V::h($u['last_login_ip'] ?? '') ?></div></td>
@@ -215,7 +373,8 @@ if ($tab === 'health'):
         <?php if ($isLocked): ?><button class="btn btn-sm" name="op" value="unlock">Unlock</button><?php endif; ?>
         <button class="btn btn-sm" name="op" value="reset">Reset password</button>
         <button class="btn btn-sm <?= $u['status'] === 'disabled' ? '' : 'btn-red' ?>" name="op" value="<?= $u['status'] === 'disabled' ? 'enable' : 'disable' ?>"><?= $u['status'] === 'disabled' ? 'Enable' : 'Disable' ?></button>
-        <select name="role" style="width:auto"><?php foreach (Auth::ROLES as $k => $l): ?><option value="<?= $k ?>" <?= $u['role'] === $k ? 'selected' : '' ?>><?= V::h($l) ?></option><?php endforeach; ?></select><button class="btn btn-sm" name="op" value="role">Change role</button></form></div></details><?php else: ?><span class="tiny muted">your account</span><?php endif; ?></td></tr>
+        <select name="role" style="width:auto"><?php foreach (Auth::ROLES as $k => $l): ?><option value="<?= $k ?>" <?= $u['role'] === $k ? 'selected' : '' ?>><?= V::h($l) ?></option><?php endforeach; ?></select><button class="btn btn-sm" name="op" value="role">Change role</button></form>
+      <details style="margin-top:8px"><summary class="small">Edit details</summary><form method="post" style="margin-top:6px"><?= Csrf::field() ?><input type="hidden" name="op" value="edit_user"><input type="hidden" name="user" value="<?= (int) $u['id'] ?>"><?= $fieldsFor($u) ?><button class="btn btn-sm" style="margin-top:6px">Save details</button></form></details></div></details><?php else: ?><span class="tiny muted">your account</span><?php endif; ?></td></tr>
 <?php endforeach; ?></tbody></table></div></div></section>
 
 <?php elseif ($tab === 'security'):
@@ -270,7 +429,7 @@ if ($tab === 'health'):
 <?php else:
     $runs = Db::all('SELECT * FROM sync_runs ORDER BY id DESC LIMIT 15');
     $pendingLms = Integrations::lms()->pending();
-    $pendingSis = Integrations::sis()->pendingAssignments();
+    $pendingSis = Integrations::sis() instanceof SeededSisSource ? Integrations::sis()->pendingAssignments() : [];
     $released = Db::col('SELECT setting_key FROM system_settings WHERE setting_key LIKE "sis.assignment.%"');
     $next = Db::one('SELECT * FROM terms WHERE status = "upcoming" ORDER BY sequence LIMIT 1');
     $events = Db::all('SELECT * FROM events ORDER BY id DESC LIMIT 25');
@@ -280,13 +439,27 @@ if ($tab === 'health'):
     <p><?= V::source('institution') ?> <strong>Registrar / study plans:</strong> <?= V::h(Integrations::institution()->label()) ?></p>
     <p><?= V::source('sis') ?> <strong>SIS:</strong> <?= V::h(Integrations::sis()->label()) ?></p>
     <p><?= V::source('lms') ?> <strong>LMS:</strong> <?= V::h(Integrations::lms()->label()) ?></p>
-    <p class="muted">Production: implement <span class="mono">InstitutionSource</span>, <span class="mono">SisSource</span> and <span class="mono">LmsSource</span> (src/Integration/Sources.php) against the university systems; nothing else changes.</p>
-    <div class="row"><form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="sync"><button class="btn btn-sm">Sync institutional data now</button></form>
-      <form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="sis_assignments"><button class="btn btn-sm">Pull SIS assignments</button></form>
+    <p class="muted">Connectors are chosen in the server configuration (<span class="mono">SAQF_SIS_SOURCE</span> = <?= V::h(implode(' | ', Integrations::SIS_KINDS)) ?>; <span class="mono">SAQF_LMS_SOURCE</span> = <?= V::h(implode(' | ', Integrations::LMS_KINDS)) ?>). Setup for each system: docs/INTEGRATIONS.md. The scheduler runs them automatically; these buttons run them now.</p>
+    <div class="row"><form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="check"><button class="btn btn-sm">Test connections</button></form>
+      <form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="sync"><button class="btn btn-sm">Sync institutional data now</button></form>
+      <form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="sis_assignments"><button class="btn btn-sm">Sync SIS now</button></form>
       <form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="tick"><button class="btn btn-sm">Run scheduler now</button></form></div></div></section>
   <section class="card"><div class="card-h"><h2>Recent integration runs</h2></div><div class="card-b tight"><table><tbody><?php foreach ($runs as $r): ?><tr><td class="small"><?= V::h($r['source']) ?></td><td><?= V::pill($r['status'], $r['status'] === 'ok' ? 'green' : 'red') ?></td><td class="small nowrap"><?= V::h(V::date($r['started_at'], 'j M Y H:i')) ?></td><td class="tiny muted"><?php $st = json_decode((string) $r['stats'], true); echo is_array($st) ? V::h(implode(' · ', array_map(static fn($k, $v) => str_replace('_', ' ', (string) $k) . ' ' . (is_scalar($v) ? $v : json_encode($v)), array_keys($st), $st))) : V::h(mb_strimwidth((string) $r['stats'], 0, 140, '…')); ?></td></tr><?php endforeach; ?></tbody></table></div></section>
   <section class="card"><div class="card-h"><h2>Event log</h2><span class="muted small right">Every automated reaction is traceable</span></div><div class="card-b tight"><table><tbody><?php foreach ($events as $e): ?><tr><td class="mono tiny nowrap"><?= V::h($e['type']) ?></td><td class="small nowrap"><?= V::h(V::date($e['created_at'], 'j M H:i')) ?></td><td class="small"><?= V::h($e['outcome']) ?></td></tr><?php endforeach; ?></tbody></table></div></section>
 </div><aside class="stack">
+  <?php $allTerms = Db::all('SELECT * FROM terms ORDER BY sequence DESC LIMIT 8'); $upcoming = array_reverse(array_filter($allTerms, static fn($t) => $t['status'] === 'upcoming')); ?>
+  <section class="card"><div class="card-h"><h2>Academic calendar</h2></div><div class="card-b small">
+    <table><tbody><?php foreach ($allTerms as $t): ?><tr><td><?= V::h($t['name']) ?> <span class="tiny muted mono"><?= V::h($t['code']) ?></span></td><td class="small nowrap"><?= V::h(V::date($t['starts_on'])) ?></td><td><?= V::pill($t['status'], ['active' => 'green', 'upcoming' => 'blue'][$t['status']] ?? 'grey') ?></td></tr><?php endforeach; ?><?= $allTerms ? '' : '<tr><td class="muted">No terms yet.</td></tr>' ?></tbody></table>
+    <p class="tiny muted" style="margin-top:8px"><?= Policy::get('term.auto_activate') ? 'Terms start automatically on their start date.' : 'Automatic term start is off (policy).' ?> Terms normally come from the SIS calendar.</p>
+    <?php if ($upcoming): ?><form method="post" class="fieldset" onsubmit="return confirm('Close the current term (freeze its reports) and start the selected term now?')"><?= Csrf::field() ?><input type="hidden" name="op" value="term_activate">
+      <strong>Start a term now</strong><select name="term" style="margin-top:6px"><?php foreach ($upcoming as $t): ?><option value="<?= (int) $t['id'] ?>"><?= V::h($t['name']) ?></option><?php endforeach; ?></select>
+      <input type="text" name="reason" placeholder="Reason (audited)" required style="margin-top:6px"><button class="btn btn-sm" style="margin-top:6px">Start term</button></form><?php endif; ?>
+    <details style="margin-top:8px"><summary class="small">Add a term (when the SIS does not provide it)</summary><form method="post" style="margin-top:6px"><?= Csrf::field() ?><input type="hidden" name="op" value="term_add">
+      <div class="grid g2" style="gap:6px"><input type="text" name="code" placeholder="Code, e.g. 2027-1" required><input type="text" name="name" placeholder="Name, e.g. Fall 2027" required>
+      <input type="text" name="academic_year" placeholder="Academic year, e.g. 2027-2028" required><input type="number" name="sequence" placeholder="Sequence" min="1" required value="<?= (int) Db::val('SELECT COALESCE(MAX(sequence), 0) + 1 FROM terms') ?>">
+      <label class="tiny">Starts<input type="date" name="starts_on" required></label><label class="tiny">Ends<input type="date" name="ends_on" required></label><label class="tiny">Grades due<input type="date" name="grades_due_on" required></label></div>
+      <input type="text" name="reason" placeholder="Reason (audited)" style="margin-top:6px"><button class="btn btn-sm" style="margin-top:6px">Add term</button></form></details>
+  </div></section>
   <?php if (Config::demoMode()): ?>
   <section class="card" style="border-color:#F6DFC3"><div class="card-h"><h2>Integration simulator</h2><?= V::pill('demo only', 'amber') ?></div><div class="card-b small">
     <p class="muted">Plays the role of the university systems so the event-driven automation can be demonstrated. Disabled outside demo mode.</p>
