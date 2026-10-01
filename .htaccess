@@ -1,0 +1,9 @@
+Options -Indexes
+
+<FilesMatch "^(config|config\.example|config\.local|db)\.php$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "\.(env|sql|log|bak)$">
+    Require all denied
+</FilesMatch>

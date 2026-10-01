@@ -1,0 +1,11 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+config.local.php
+database/*.sql
+*.zip
+*.log
+README.md
+DEPLOYMENT.md

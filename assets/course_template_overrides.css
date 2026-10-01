@@ -1,0 +1,20 @@
+.clo-section-title {
+    background: #1A1A1A !important;
+    color: #fff !important;
+}
+.clo-section-title .btn-outline {
+    border-color: #fff !important;
+    color: #fff !important;
+}
+.clo-section-title .btn-outline:hover {
+    background: #E87722 !important;
+    border-color: #E87722 !important;
+}
+.clo-domain-row td {
+    background: #1A1A1A !important;
+    color: #fff !important;
+}
+.quality-selects select + select,
+.quality-selects input {
+    margin-top: 8px;
+}
