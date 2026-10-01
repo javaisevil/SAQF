@@ -18,6 +18,7 @@ use Saqf\Core\Audit;
 use Saqf\Core\Clock;
 use Saqf\Core\Config;
 use Saqf\Core\Db;
+use Saqf\Core\Migrations;
 use Saqf\Core\Policy;
 use Saqf\Demo\Seeder;
 use Saqf\Integration\Sync;
@@ -80,6 +81,8 @@ foreach (['UPDATE', 'DELETE'] as $op) {
 }
 echo 'Schema applied' . ($guarded ? ' (audit log protected as append-only)' : '') . "\n";
 
+$migrated = Migrations::run();
+echo count($migrated) . " migration(s) applied\n";
 Policy::seedDefaults();
 Db::exec('INSERT INTO system_settings (setting_key, value, updated_at) VALUES ("installed_at", ?, ?)', [date('Y-m-d H:i:s'), date('Y-m-d H:i:s')]);
 
