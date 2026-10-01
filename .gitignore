@@ -1,0 +1,14 @@
+# secrets and local configuration
+.env
+.env.*
+!.env.example
+config.local.php
+# runtime / OS noise
+*.log
+*.bak
+*.zip
+.DS_Store
+Thumbs.db
+docker-compose.override.yml
+/vendor/
+/node_modules/

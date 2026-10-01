@@ -1,0 +1,44 @@
+# Local / demo stack:   cp .env.example .env   (edit passwords)   then   docker compose up --build
+# Open http://localhost:8080  — demo accounts are listed on the sign-in page while SAQF_DEMO is on.
+services:
+  app:
+    build: .
+    ports:
+      - "${SAQF_PORT:-8080}:80"
+    environment:
+      APP_ENV: ${APP_ENV:-demo}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      SAQF_DEMO: ${SAQF_DEMO:-true}
+      SAQF_AUTO_INSTALL: ${SAQF_AUTO_INSTALL:-demo}
+      SAQF_DB_HOST: db
+      SAQF_DB_PORT: 3306
+      SAQF_DB_NAME: ${SAQF_DB_NAME:-saqf}
+      SAQF_DB_USER: ${SAQF_DB_USER:-saqf}
+      SAQF_DB_PASS: ${SAQF_DB_PASS:-change-me-local}
+      SAQF_TRUST_PROXY: ${SAQF_TRUST_PROXY:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    # Triggers that make the audit log append-only need this flag when binary logging is on (MySQL 8 default).
+    command: ["--log-bin-trust-function-creators=1", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    environment:
+      MYSQL_DATABASE: ${SAQF_DB_NAME:-saqf}
+      MYSQL_USER: ${SAQF_DB_USER:-saqf}
+      MYSQL_PASSWORD: ${SAQF_DB_PASS:-change-me-local}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-root}
+      TZ: Asia/Riyadh
+    volumes:
+      - saqf_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+volumes:
+  saqf_mysql:
