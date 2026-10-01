@@ -1,0 +1,13 @@
+# Preferred: point the web server's document root at public/ (see README). This file is only a
+# safety net for hosts where that is impossible: it hides everything outside public/.
+Options -Indexes
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(src|data|bin|database|tests|docs|docker)(/|$) - [F,L]
+    RewriteRule ^(config\.local\.php|config\.example\.php|\.env.*|Dockerfile|docker-compose\.yml)$ - [F,L]
+    RewriteCond %{REQUEST_URI} !/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>
