@@ -27,13 +27,27 @@ final class Achievement
         if (!$o || !$o['spec_version_id']) {
             return 0;
         }
+        // Real gradebooks carry extra columns (attendance, bonus, totals): only columns named like an
+        // assessment in the approved specification are imported; the rest are noted, never guessed.
+        $known = [];
+        foreach (Db::col('SELECT name FROM assessments WHERE spec_version_id = ?', [$o['spec_version_id']]) as $name) {
+            $known[mb_strtolower(trim((string) $name))] = true;
+        }
         $n = 0;
         foreach (Integrations::lms()->batches($o['term_code'], $o['course_code']) as $batch) {
             if (Db::val('SELECT 1 FROM result_batches WHERE offering_id = ? AND external_ref = ?', [$offeringId, $batch['ref']])) {
                 continue;
             }
-            Audit::asSystem(static function () use ($offeringId, $batch, &$n) {
-                self::import($offeringId, $batch['results'], 'lms', $batch['ref']);
+            $results = array_filter($batch['results'], static fn($name) => isset($known[mb_strtolower(trim((string) $name))]), ARRAY_FILTER_USE_KEY);
+            $ignored = array_diff(array_keys($batch['results']), array_keys($results));
+            if (!$results) {
+                continue;
+            }
+            Audit::asSystem(static function () use ($offeringId, $batch, $results, $ignored, $o, &$n) {
+                self::import($offeringId, $results, 'lms', $batch['ref']);
+                if ($ignored) {
+                    Audit::record('results.columns_ignored', 'offering', $offeringId, "{$o['course_code']}: LMS gradebook columns not in the course specification were not imported: " . mb_strimwidth(implode(', ', $ignored), 0, 250, '…'));
+                }
                 $n++;
             }, 'integration', 'LMS integration');
         }

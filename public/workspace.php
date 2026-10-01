@@ -7,6 +7,7 @@ use Saqf\Core\Csrf;
 use Saqf\Core\Db;
 use Saqf\Core\Policy;
 use Saqf\Core\Session;
+use Saqf\Integration\Gradebook;
 use Saqf\Integration\Integrations;
 use Saqf\Quality\Achievement;
 use Saqf\Quality\Catalog;
@@ -36,33 +37,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_FILES['results']
         if ($f['error'] !== UPLOAD_ERR_OK || $f['size'] > 2 * 1024 * 1024) {
             throw new InvalidArgumentException('Upload a CSV file under 2 MB.');
         }
-        $fh = fopen($f['tmp_name'], 'r');
-        $header = fgetcsv($fh);
-        if (!$header || mb_strtolower(trim((string) $header[0])) !== 'student') {
-            throw new InvalidArgumentException('The first column must be "student" (a pseudonymous student key), followed by one column per assessment name.');
-        }
-        $results = [];
-        $line = 1;
-        while (($row = fgetcsv($fh)) !== false) {
-            $line++;
-            if (count($row) < 2 || trim((string) $row[0]) === '') {
-                continue;
-            }
-            foreach (array_slice($header, 1) as $i => $name) {
-                $v = trim((string) ($row[$i + 1] ?? ''));
-                if ($v === '') {
-                    continue;
-                }
-                if (!is_numeric($v) || (float) $v < 0 || (float) $v > 100) {
-                    throw new InvalidArgumentException("Line $line: score for \"$name\" must be a percentage between 0 and 100.");
-                }
-                $results[trim((string) $name)][trim((string) $row[0])] = (float) $v;
-            }
-            if ($line > 5000) {
-                throw new InvalidArgumentException('Too many rows.');
-            }
-        }
-        fclose($fh);
+        $results = Gradebook::parseCsv($f['tmp_name']);
         $r = Achievement::import($oid, $results, 'upload');
         Session::flash('success', "{$r['rows']} results imported; achievement recalculated automatically.");
     } catch (InvalidArgumentException $e) {
