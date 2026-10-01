@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+config.local.php
+vendor/
+*.log
+*.bak
+.DS_Store
+Thumbs.db
+docker-compose.override.yml
