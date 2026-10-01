@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    name: Tests (PHP 8.3, MySQL 8.0)
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"
+          --health-interval 5s --health-timeout 5s --health-retries 30
+    env:
+      APP_ENV: local
+      SAQF_DEMO: "true"
+      SAQF_DB_HOST: 127.0.0.1
+      SAQF_DB_PORT: "3306"
+      SAQF_DB_NAME: saqf
+      SAQF_DB_USER: root
+      SAQF_DB_PASS: root
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_mysql, mbstring, curl, openssl
+          coverage: none
+      - name: Allow the append-only audit triggers (binary logging is on)
+        run: mysql --protocol=tcp -h 127.0.0.1 -uroot -proot -e "SET GLOBAL log_bin_trust_function_creators = 1;"
+      - name: Lint
+        run: find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l > /dev/null
+      - name: Automation scenarios
+        run: php bin/install.php --demo --fresh && php tests/automation_test.php
+      - name: Connectors, semester cycle, accounts, e-mail, SSO tokens
+        run: php bin/install.php --demo --fresh && php tests/production_test.php
+      - name: HTTP, authorization and security
+        run: |
+          php bin/install.php --demo --fresh
+          php -S 127.0.0.1:8080 -t public > /tmp/saqf-server.log 2>&1 &
+          php tests/http_smoke.php http://127.0.0.1:8080
+      - name: University sign-in end to end
+        run: php bin/install.php --demo --fresh && php tests/sso_test.php
+      - name: Upgrade path (migrations are idempotent)
+        run: php bin/migrate.php && php bin/migrate.php --status
+
+  docker:
+    name: Docker stack
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start (demo)
+        run: docker compose up -d --build
+      - name: Wait until healthy
+        run: |
+          for i in $(seq 1 60); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q app)")" = healthy ] && exit 0
+            sleep 5
+          done
+          docker compose logs app
+          exit 1
+      - name: HTTP and security tests against Apache
+        run: docker compose exec -T app php tests/http_smoke.php http://127.0.0.1
+      - name: Backup
+        run: |
+          docker compose exec -T backup sh /usr/local/bin/saqf-backup
+          ls -l backups/
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs
