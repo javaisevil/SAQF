@@ -1,0 +1,1141 @@
+{
+ "code": "SWE",
+ "name": "Bachelor of Science in Software Engineering",
+ "short_name": "Software Engineering",
+ "degree": "BSc",
+ "level": "Undergraduate",
+ "department": "CED",
+ "total_credits": 142,
+ "plan_version": "V9.8",
+ "plan_date": "2026-08-05",
+ "source_url": "https://yu.edu.sa/wp-content/uploads/2026/08/SP-Software-Engineering-Study-Plan-V9.8-05Aug2026.pdf",
+ "accreditation_note": "Program page states ABET (CAC) accreditation.",
+ "plos": [
+  {
+   "code": "SO1",
+   "domain": "Skills",
+   "text": "Analyze a complex computing problem and apply principles of computing and other relevant disciplines to identify solutions."
+  },
+  {
+   "code": "SO2",
+   "domain": "Skills",
+   "text": "Design, implement, and evaluate a computing-based solution to meet a given set of computing requirements in the context of the program's discipline."
+  },
+  {
+   "code": "SO3",
+   "domain": "Skills",
+   "text": "Communicate effectively in a variety of professional contexts."
+  },
+  {
+   "code": "SO4",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Recognize professional responsibilities and make informed judgments in computing practice based on legal and ethical principles."
+  },
+  {
+   "code": "SO5",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Function effectively as a member or leader of a team engaged in activities appropriate to the program's discipline."
+  }
+ ],
+ "plo_source": "ABET CAC general student outcomes, as published by YU for its computing programs. Confirm SWE-approved PLO statements on integration.",
+ "elective_rules": [
+  {
+   "group": "SWE Electives",
+   "courses": 3,
+   "credits": 9
+  },
+  {
+   "group": "Humanities / Social Science Electives",
+   "courses": 2,
+   "credits": 6
+  }
+ ],
+ "courses": [
+  {
+   "code": "CIS 103",
+   "title": "Programming Fundamentals I",
+   "credits": 4,
+   "year": 1,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 03C",
+    "ORN 03R"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 106",
+   "title": "Discrete Mathematics",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Core Mathematics",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04C",
+    "ORN 04R"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CHM 101",
+   "title": "General Chemistry",
+   "credits": 4,
+   "year": 1,
+   "semester": 1,
+   "group": "Core Science",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 101",
+   "title": "English Essay Writing",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 101",
+   "title": "Foundation of Islamic Culture",
+   "credits": 2,
+   "year": 1,
+   "semester": 1,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 102",
+   "title": "Communication Skills in Arabic",
+   "credits": 2,
+   "year": 1,
+   "semester": 1,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Humanities / Social Science Elective I",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 104",
+   "title": "Programming Fundamentals II",
+   "credits": 4,
+   "year": 1,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 103"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 104",
+   "title": "Calculus I",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Core Mathematics",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PHY 103",
+   "title": "Physics I",
+   "credits": 4,
+   "year": 1,
+   "semester": 2,
+   "group": "Core Science",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "STT 103",
+   "title": "Probability and Statistics",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04C",
+    "ORN 04R"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 201",
+   "title": "Technical Report Writing",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ENG 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Humanities / Social Science Elective II",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 201",
+   "title": "Fundamentals of Web Design",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 103"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 202",
+   "title": "Data Structures",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 104"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 201",
+   "title": "Introduction to Information Systems",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05C",
+    "ORN 05R"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 202",
+   "title": "Introduction to Software Engineering",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Software Engineering",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 104"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 204",
+   "title": "Calculus II",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Core Mathematics",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 104"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "PHY 203",
+   "title": "Physics II",
+   "credits": 4,
+   "year": 2,
+   "semester": 1,
+   "group": "Core Science",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "PHY 103"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 221",
+   "title": "Introduction to Database Systems",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 104"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "NES 212",
+   "title": "Data Communications & Computer Networks",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 304",
+   "title": "Differential Equations",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Core Mathematics",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 204"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 202",
+   "title": "Financial Awareness",
+   "credits": 2,
+   "year": 2,
+   "semester": 2,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 202",
+   "title": "Writing Skills in Arabic",
+   "credits": 2,
+   "year": 2,
+   "semester": 2,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 304",
+   "title": "Computer Architecture",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 202"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 383",
+   "title": "Cyber Security and Cryptography",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "NES 212"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 386",
+   "title": "Project Management",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Software Engineering",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "SWE 202"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 300",
+   "title": "Software Process & Modelling",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Software Engineering",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "SWE 202"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 301",
+   "title": "Software Requirements Engineering",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Software Engineering",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "SWE 202"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 301",
+   "title": "Linear Algebra",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Core Mathematics",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 104"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 321",
+   "title": "Operating Systems",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 304"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 316",
+   "title": "Introduction to Artificial Intelligence",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "SWE 202"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 381",
+   "title": "Computer Ethics",
+   "credits": 2,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "SWE 202"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 302",
+   "title": "Software Architecture & Design",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Software Engineering",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "SWE 202"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 312",
+   "title": "Software Construction & User Interface",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Software Engineering",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "SWE 202"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 322",
+   "title": "Advanced Web Programming",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Software Engineering",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 201",
+    "CIS 221"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 491",
+   "title": "Graduation Project I",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Software Engineering",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "SWE 300",
+    "SWE 301",
+    "SWE 302"
+   ],
+   "credit_threshold": 90,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 443",
+   "title": "Cloud Computing",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "NES 212"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 321",
+   "title": "Advanced User Interface Design",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Software Engineering",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "SWE 301"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 411",
+   "title": "Software Verification & Validation",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Software Engineering",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "SWE 312"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "SWE Elective I",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 492",
+   "title": "Graduation Project II",
+   "credits": 3,
+   "year": 4,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 491"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 401",
+   "title": "Software Quality Assurance",
+   "credits": 3,
+   "year": 4,
+   "semester": 2,
+   "group": "Software Engineering",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "SWE 301"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "SWE Elective II",
+   "credits": 3,
+   "year": 4,
+   "semester": 2,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "SWE Elective III",
+   "credits": 3,
+   "year": 4,
+   "semester": 2,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CSK 001",
+   "title": "Career Skills",
+   "credits": 0,
+   "year": 4,
+   "semester": 2,
+   "group": "Software Engineering",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 410",
+   "title": "Exit Exam Preparation",
+   "credits": 1,
+   "year": 4,
+   "semester": 2,
+   "group": "Software Engineering",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "SWE 300",
+    "SWE 301",
+    "SWE 302"
+   ],
+   "credit_threshold": 90,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 490",
+   "title": "Cooperative Assignment",
+   "credits": 6,
+   "year": 4,
+   "semester": 3,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "SWE 410"
+   ],
+   "credit_threshold": 90,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 402",
+   "title": "Software Maintenance and Evolution",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "SWE 312"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 412",
+   "title": "Mobile Application Development",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "SWE 312"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 413",
+   "title": "Design Patterns",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "SWE 302"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 414",
+   "title": "Formal Methods in Software Engineering",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "SWE 202"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 415",
+   "title": "Software Usability Engineering",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "SWE 301"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 421",
+   "title": "Game Development",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "SWE 312"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SWE 429",
+   "title": "Selected Topics in Software Engineering",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "SWE 312"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 222",
+   "title": "Interactive Media",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CIS 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 416",
+   "title": "Introduction to Machine Learning",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MTH 301",
+    "STT 103",
+    "CIS 316"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "NES 424",
+   "title": "IoT Architectures, Protocols and Security",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "NES 212"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "NES 481",
+   "title": "Security Policies and Procedures",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "NES 212"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 432",
+   "title": "Enterprise Systems",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "SWE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CIS 221"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 102",
+   "title": "Introduction to Social Science",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PHL 101",
+   "title": "Critical Thinking",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PSY 101",
+   "title": "Principle of Psychology",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 101",
+   "title": "Saudi Heritage",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "FRE 106",
+   "title": "Conversational French 1",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CHI 107",
+   "title": "Chinese Language",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 103",
+   "title": "Introduction to English Literature",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  }
+ ]
+}

@@ -1,0 +1,396 @@
+{
+ "code": "MBA",
+ "name": "Master of Business Administration",
+ "short_name": "MBA",
+ "degree": "MBA",
+ "level": "Postgraduate",
+ "department": "MMD",
+ "total_credits": 42,
+ "plan_version": "1.6",
+ "plan_date": "2025-02-01",
+ "source_url": "https://yu.edu.sa/wp-content/uploads/2025/02/1.6-MBA-Study-Plan.pdf",
+ "accreditation_note": "",
+ "plos": [
+  {
+   "code": "PLO1",
+   "domain": "Knowledge and Understanding",
+   "text": "Demonstrate knowledge and understanding of concepts, theories, tools, and practices of business administration."
+  },
+  {
+   "code": "PLO2",
+   "domain": "Skills",
+   "text": "Use integrative business knowledge to solve complex business problems."
+  },
+  {
+   "code": "PLO3",
+   "domain": "Skills",
+   "text": "Apply qualitative and quantitative reasoning to problem-solving models."
+  },
+  {
+   "code": "PLO4",
+   "domain": "Skills",
+   "text": "Apply core business principles in business decision-making."
+  },
+  {
+   "code": "PLO5",
+   "domain": "Skills",
+   "text": "Demonstrate a professional level of communication in verbal and written forms."
+  },
+  {
+   "code": "PLO6",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Demonstrate the interpersonal skills needed to be effective leaders and team members."
+  },
+  {
+   "code": "PLO7",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Incorporate knowledge of ethics and corporate social responsibility into decision-making."
+  }
+ ],
+ "plo_source": "Learning objectives as published on the YU MBA page (condensed wording).",
+ "elective_rules": [
+  {
+   "group": "MBA Electives",
+   "courses": 4,
+   "credits": 12
+  }
+ ],
+ "courses": [
+  {
+   "code": "PGRD 495",
+   "title": "Fundamentals of Accounting and Finance",
+   "credits": 3,
+   "year": 0,
+   "semester": 0,
+   "group": "Pre-MBA Foundation",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "PGRD 496",
+   "title": "Fundamentals of Business Statistics",
+   "credits": 3,
+   "year": 0,
+   "semester": 0,
+   "group": "Pre-MBA Foundation",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 502",
+   "title": "Foundations of Leadership",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 504",
+   "title": "Information Systems",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ECO 506",
+   "title": "Managerial Economics",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ACC 503",
+   "title": "Financial Accounting",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "PGRD 495"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 506",
+   "title": "Marketing Management",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 508",
+   "title": "Organizational Theory and Behavior",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "STT 503",
+   "title": "Quantitative Business Analysis",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "PGRD 496"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "FIN 503",
+   "title": "Managerial Finance",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ACC 503"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 555",
+   "title": "Research Project",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": 18,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "MBA Elective I",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "MBA Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 512",
+   "title": "Strategic Management",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": 21,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "MBA Elective II",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "MBA Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "MBA Elective III",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "MBA Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "MBA Elective IV",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "MBA Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "PMT 554",
+   "title": "Project Management Strategies",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MBA Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MGT 502"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 521",
+   "title": "Human Resources Management",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MBA Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MGT 502"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 535",
+   "title": "International Business",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MBA Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 553",
+   "title": "Consumer Behavior",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MBA Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MKT 506"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 531",
+   "title": "Business Ethics",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MBA Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MGT 508"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 541",
+   "title": "International Management",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MBA Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ENT 554",
+   "title": "Entrepreneurship – Corporate Ventures and Startups",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MBA Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  }
+ ]
+}

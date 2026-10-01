@@ -1,0 +1,960 @@
+{
+ "code": "MKT",
+ "name": "Bachelor of Science in Business Administration – Marketing",
+ "short_name": "Marketing",
+ "degree": "BSBA",
+ "level": "Undergraduate",
+ "department": "MMD",
+ "total_credits": 127,
+ "plan_version": "5.2",
+ "plan_date": "2026-08-01",
+ "source_url": "https://yu.edu.sa/wp-content/uploads/2026/08/5.2-Marketing-Program.pdf",
+ "accreditation_note": "",
+ "plos": [
+  {
+   "code": "PLO1",
+   "domain": "Knowledge and Understanding",
+   "text": "Graduates will be able to understand the key marketing concepts, principles, tools, and theories related to the marketing field and the modern practices of marketing."
+  },
+  {
+   "code": "PLO2",
+   "domain": "Knowledge and Understanding",
+   "text": "Graduates will be able to describe marketing strategy, operation, and process in different marketing activities."
+  },
+  {
+   "code": "PLO3",
+   "domain": "Skills",
+   "text": "Graduates will be able to apply marketing concepts, principles, and theories to solving related marketing problems."
+  },
+  {
+   "code": "PLO4",
+   "domain": "Skills",
+   "text": "Graduates will be able to develop sound marketing strategies using key marketing concepts, such as segmentation, targeting, positioning, and differentiation."
+  },
+  {
+   "code": "PLO5",
+   "domain": "Skills",
+   "text": "Graduates will be able to make informed decisions using critical thinking, marketing analytical tools, concepts, and theories."
+  },
+  {
+   "code": "PLO6",
+   "domain": "Skills",
+   "text": "Graduates are expected to produce clear, concise business reports and communicate their work effectively in both oral and written forms."
+  },
+  {
+   "code": "PLO7",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Graduates are committed life-long learners who work independently and/or in a team and demonstrate competent leadership."
+  },
+  {
+   "code": "PLO8",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Graduates will demonstrate ethically and socially responsible behavior and make ethical marketing decisions."
+  }
+ ],
+ "plo_source": "Program Learning Outcomes as published on the YU program page.",
+ "elective_rules": [
+  {
+   "group": "Marketing Major Electives",
+   "courses": 2,
+   "credits": 6
+  },
+  {
+   "group": "College Electives",
+   "courses": 4,
+   "credits": 12
+  },
+  {
+   "group": "Humanities / Social Science Electives",
+   "courses": 2,
+   "credits": 6
+  }
+ ],
+ "courses": [
+  {
+   "code": "ECO 101",
+   "title": "Principles of Microeconomics",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 101",
+   "title": "Introduction to Management",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 100",
+   "title": "Mathematics for Business",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 101",
+   "title": "Foundation of Islamic Culture",
+   "credits": 2,
+   "year": 1,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 102",
+   "title": "Communication Skills in Arabic",
+   "credits": 2,
+   "year": 1,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Social Sciences / Humanity Elective I",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 101",
+   "title": "English Essay Writing",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ECO 105",
+   "title": "Principles of Macroeconomics",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ECO 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 110",
+   "title": "Business Calculus",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 100"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 110",
+   "title": "Business Computing",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ACC 201",
+   "title": "Financial Accounting",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ECO 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Natural Science Elective",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Natural Science Elective",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 201",
+   "title": "Introduction to Marketing",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ECO 105"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 220",
+   "title": "Organizational Behavior",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 101",
+    "ECO 105"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 201",
+   "title": "Introduction to MIS",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MIS 110"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "FIN 202",
+   "title": "Introduction to Finance",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ACC 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 210",
+   "title": "Business Communication",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ACC 202",
+   "title": "Management Accounting",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ACC 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 202",
+   "title": "Writing Skills in Arabic",
+   "credits": 2,
+   "year": 2,
+   "semester": 2,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 202",
+   "title": "Tech Report and Business Writing",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ENG 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 314",
+   "title": "Business Ethics and Social Responsibility",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 220",
+    "ENG 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "STT 201",
+   "title": "Business Statistics and Analysis",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 110"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Social Sciences / Humanity Elective II",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 306",
+   "title": "Legal Environment of Business",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 220",
+    "ENG 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 304",
+   "title": "Quantitative Methods for Business",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "STT 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 202",
+   "title": "Financial Awareness",
+   "credits": 2,
+   "year": 3,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 310",
+   "title": "Executive Seminar Series",
+   "credits": 1,
+   "year": 3,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": 70,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 308",
+   "title": "Entrepreneurship and Innovation",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 220",
+    "ENG 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 330",
+   "title": "Operations Management",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 304",
+    "ENG 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 495",
+   "title": "Strategic Management",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 330"
+   ],
+   "credit_threshold": 100,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 311",
+   "title": "Consumer Behavior",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Marketing Major",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MKT 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 318",
+   "title": "International Marketing",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Marketing Major",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MKT 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 324",
+   "title": "Services Marketing",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Marketing Major",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MKT 311"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 326",
+   "title": "Digital Marketing",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Marketing Major",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MKT 311"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 411",
+   "title": "Marketing Strategies",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Marketing Major",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MKT 324"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Major Elective I",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Marketing Major Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 420",
+   "title": "Marketing Research",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Marketing Major",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MKT 411",
+    "MGT 304"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Major Elective II",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Marketing Major Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 498",
+   "title": "Co-op Training Internship",
+   "credits": 6,
+   "year": 4,
+   "semester": 2,
+   "group": "Internship",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": 120,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 315",
+   "title": "Branding Strategy",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Marketing Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MKT 201",
+    "ECO 105"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 316",
+   "title": "Sales Management",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Marketing Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MKT 201",
+    "ECO 105"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 370",
+   "title": "Integrated Marketing Communications",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Marketing Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MKT 324"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 414",
+   "title": "Promotion and Advertising",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Marketing Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MKT 318"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 417",
+   "title": "Retail Management",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Marketing Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MKT 311"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "College Elective I",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "College Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "College Elective II",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "College Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "College Elective III",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "College Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "College Elective IV",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "College Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 102",
+   "title": "Introduction to Social Science",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PHL 101",
+   "title": "Critical Thinking",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PSY 101",
+   "title": "Principle of Psychology",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 101",
+   "title": "Saudi Heritage",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "FRE 106",
+   "title": "Conversational French 1",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CHI 107",
+   "title": "Chinese Language",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 103",
+   "title": "Introduction to English Literature",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  }
+ ]
+}

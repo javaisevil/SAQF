@@ -1,0 +1,332 @@
+{
+ "institution": {
+  "code": "YU",
+  "name": "Al Yamamah University",
+  "name_ar": "جامعة اليمامة",
+  "city": "Riyadh",
+  "website": "https://yu.edu.sa/"
+ },
+ "snapshot": {
+  "captured_on": "2026-10-01",
+  "method": "Public study-plan PDFs on yu.edu.sa, transcribed into a structured snapshot",
+  "status": "SEEDED — replace with Registrar/SIS feed in production"
+ },
+ "colleges": [
+  {
+   "code": "COE",
+   "name": "College of Engineering",
+   "name_ar": "كلية الهندسة"
+  },
+  {
+   "code": "COB",
+   "name": "College of Business",
+   "name_ar": "كلية إدارة الأعمال"
+  },
+  {
+   "code": "COL",
+   "name": "College of Law",
+   "name_ar": "كلية القانون"
+  },
+  {
+   "code": "DAS",
+   "name": "Deanship of Arts & Sciences",
+   "name_ar": "عمادة الآداب والعلوم"
+  }
+ ],
+ "departments": [
+  {
+   "code": "CED",
+   "college": "COE",
+   "name": "Computer Engineering Department"
+  },
+  {
+   "code": "IED",
+   "college": "COE",
+   "name": "Industrial Engineering Department"
+  },
+  {
+   "code": "ARD",
+   "college": "COE",
+   "name": "Architecture Department"
+  },
+  {
+   "code": "MNS",
+   "college": "COE",
+   "name": "Department of Mathematics & Natural Sciences"
+  },
+  {
+   "code": "AFD",
+   "college": "COB",
+   "name": "Accounting & Finance Department"
+  },
+  {
+   "code": "MMD",
+   "college": "COB",
+   "name": "Management and Marketing Department"
+  },
+  {
+   "code": "MISD",
+   "college": "COB",
+   "name": "Management Information Systems Department"
+  },
+  {
+   "code": "LAWD",
+   "college": "COL",
+   "name": "Law Department"
+  },
+  {
+   "code": "HUM",
+   "college": "COL",
+   "name": "Humanities Department"
+  },
+  {
+   "code": "ASU",
+   "college": "DAS",
+   "name": "Arts & Sciences Unit"
+  }
+ ],
+ "ownership": [
+  {
+   "prefix": "CIS",
+   "department": "CED"
+  },
+  {
+   "prefix": "SWE",
+   "department": "CED"
+  },
+  {
+   "prefix": "NES",
+   "department": "CED"
+  },
+  {
+   "prefix": "CNE",
+   "department": "CED"
+  },
+  {
+   "prefix": "CYB",
+   "department": "CED"
+  },
+  {
+   "prefix": "PRQ",
+   "department": "CED"
+  },
+  {
+   "prefix": "IEG",
+   "department": "IED"
+  },
+  {
+   "prefix": "ENR",
+   "department": "IED"
+  },
+  {
+   "prefix": "MEG",
+   "department": "IED"
+  },
+  {
+   "prefix": "ARCH",
+   "department": "ARD"
+  },
+  {
+   "prefix": "MEC",
+   "department": "ARD"
+  },
+  {
+   "prefix": "MTH 1",
+   "department": "MNS"
+  },
+  {
+   "prefix": "MTH 2",
+   "department": "MNS"
+  },
+  {
+   "prefix": "MTH 3",
+   "department": "MNS"
+  },
+  {
+   "prefix": "MTH 100",
+   "department": "MMD"
+  },
+  {
+   "prefix": "MTH 110",
+   "department": "MMD"
+  },
+  {
+   "prefix": "PHY",
+   "department": "MNS"
+  },
+  {
+   "prefix": "CHM",
+   "department": "MNS"
+  },
+  {
+   "prefix": "STT 103",
+   "department": "MNS"
+  },
+  {
+   "prefix": "ACC",
+   "department": "AFD"
+  },
+  {
+   "prefix": "FIN",
+   "department": "AFD"
+  },
+  {
+   "prefix": "PGRD 495",
+   "department": "AFD"
+  },
+  {
+   "prefix": "MGT",
+   "department": "MMD"
+  },
+  {
+   "prefix": "MKT",
+   "department": "MMD"
+  },
+  {
+   "prefix": "ECO",
+   "department": "MMD"
+  },
+  {
+   "prefix": "STT",
+   "department": "MMD"
+  },
+  {
+   "prefix": "BUS",
+   "department": "MMD"
+  },
+  {
+   "prefix": "HRM",
+   "department": "MMD"
+  },
+  {
+   "prefix": "ENT",
+   "department": "MMD"
+  },
+  {
+   "prefix": "PMT",
+   "department": "MMD"
+  },
+  {
+   "prefix": "PGRD",
+   "department": "MMD"
+  },
+  {
+   "prefix": "MIS",
+   "department": "MISD"
+  },
+  {
+   "prefix": "LAW",
+   "department": "LAWD"
+  },
+  {
+   "prefix": "ISL",
+   "department": "HUM"
+  },
+  {
+   "prefix": "ARB",
+   "department": "HUM"
+  },
+  {
+   "prefix": "ENG",
+   "department": "HUM"
+  },
+  {
+   "prefix": "SOS",
+   "department": "HUM"
+  },
+  {
+   "prefix": "PHL",
+   "department": "HUM"
+  },
+  {
+   "prefix": "PSY",
+   "department": "HUM"
+  },
+  {
+   "prefix": "FRE",
+   "department": "HUM"
+  },
+  {
+   "prefix": "CHI",
+   "department": "HUM"
+  },
+  {
+   "prefix": "CSK",
+   "department": "ASU"
+  }
+ ],
+ "descriptions": {
+  "SWE 401": {
+   "text": "Quality assurance as an activity that runs through the entire development process: understanding the needs of clients and users, analyzing and documenting requirements, quality planning, reviews, and quality models such as CMM and ISO 9000.",
+   "source": "YU course descriptions PDF (condensed)"
+  },
+  "SWE 302": {
+   "text": "Introduction to software architecture and design including design patterns, multilayer architecture, client-server, and Model-View-Controller, with focus on patterns, frameworks, and component-based engineering.",
+   "source": "YU course descriptions PDF (condensed)"
+  },
+  "SWE 301": {
+   "text": "Functional and non-functional requirements; use case modeling; specifying functional requirements using use cases; translating business requirements into specification documents.",
+   "source": "YU course descriptions PDF (condensed)"
+  },
+  "SWE 300": {
+   "text": "Object-oriented modelling techniques for analysis and design using the Unified Modelling Language (UML), the standard notation for object-oriented analysis and design.",
+   "source": "YU course descriptions PDF (condensed)"
+  },
+  "SWE 202": {
+   "text": "Introduces software engineering through the key development processes, including life cycles, requirements analysis, architectural design, and testing.",
+   "source": "YU course descriptions PDF (condensed)"
+  },
+  "SWE 312": {
+   "text": "Construction of working, meaningful software through a combination of coding and rapid system prototyping, including event-driven simulation and user-interface evaluation.",
+   "source": "YU course descriptions PDF (condensed)"
+  },
+  "SWE 411": {
+   "text": "Strategies of software testing, covering state-of-the-art techniques to prepare students as proficient testers.",
+   "source": "YU course descriptions PDF (condensed)"
+  },
+  "SWE 322": {
+   "text": "Design and development of dynamic, database-driven web sites using a PHP framework with hands-on exercises in web application development.",
+   "source": "YU course descriptions PDF (condensed)"
+  },
+  "CIS 491": {
+   "text": "First capstone course in which students submit their project/research proposal during the first semester of the fourth year.",
+   "source": "YU course descriptions PDF (condensed)"
+  },
+  "CIS 492": {
+   "text": "Second capstone course in which students complete the projects started in CIS 491.",
+   "source": "YU course descriptions PDF (condensed)"
+  },
+  "SWE 413": {
+   "text": "Concepts and principles of object-oriented design through design patterns, covering creational, structural, and behavioral patterns with refactoring examples.",
+   "source": "YU course descriptions PDF (condensed)"
+  },
+  "SWE 321": {
+   "text": "User interface design techniques for web and mobile applications, including wireframing.",
+   "source": "YU course descriptions PDF (condensed)"
+  },
+  "CIS 443": {
+   "text": "Cloud service and deployment models, virtualization, cloud storage and networking, and the design and operation of applications on cloud platforms.",
+   "source": "PROTOTYPE SEED — not in the published description PDF; replace from registrar catalog"
+  },
+  "SWE 412": {
+   "text": "Design and development of mobile applications, covering platform architecture, user interface patterns, data persistence, networking, and testing and publishing of mobile apps.",
+   "source": "PROTOTYPE SEED — not in the published description PDF; replace from registrar catalog"
+  }
+ },
+ "programs": [
+  "SWE",
+  "CNE",
+  "IE",
+  "ARCH",
+  "ACC",
+  "FIN",
+  "MGT",
+  "MKT",
+  "MIS",
+  "MBA",
+  "EMBA",
+  "MCS",
+  "LLB",
+  "LLM"
+ ]
+}

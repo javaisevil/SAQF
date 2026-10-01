@@ -1,0 +1,858 @@
+{
+ "code": "ARCH",
+ "name": "Bachelor of Architecture",
+ "short_name": "Architecture",
+ "degree": "BArch",
+ "level": "Undergraduate",
+ "department": "ARD",
+ "total_credits": null,
+ "plan_version": "Study plan starting 2023",
+ "plan_date": "2023-09-01",
+ "source_url": "https://yu.edu.sa/wp-content/uploads/2024/11/Architecture_StudyPlan_2023.pdf",
+ "accreditation_note": "",
+ "plos": [],
+ "plo_source": "No PLO statements found on the public program page.",
+ "elective_rules": [],
+ "courses": [
+  {
+   "code": "ARCH 101",
+   "title": "Basic Design Studio I",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02C",
+    "ORN 02R"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 102",
+   "title": "Architectural Drawing I",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02C",
+    "ORN 02R"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 111",
+   "title": "Basic Design Studio II",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 101",
+    "ARCH 102"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 112",
+   "title": "Architectural Drawing II",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 101",
+    "ARCH 102"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 113",
+   "title": "Computer-Aided Design I",
+   "credits": 2,
+   "year": 1,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 102"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 201",
+   "title": "Architectural Design I",
+   "credits": 5,
+   "year": 2,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 111"
+   ],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05C",
+    "ORN 05R"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 202",
+   "title": "History of Architecture",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 111"
+   ],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05C",
+    "ORN 05R"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 203",
+   "title": "Computer-Aided Design II",
+   "credits": 2,
+   "year": 2,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 113"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 204",
+   "title": "Building Construction I",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 112"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 211",
+   "title": "Architectural Design II",
+   "credits": 5,
+   "year": 2,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 212",
+   "title": "Theory of Architecture",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 202"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 213",
+   "title": "Introduction to Environmental Control",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 214",
+   "title": "Building Materials and Components",
+   "credits": 2,
+   "year": 2,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 204"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 301",
+   "title": "Architectural Design III",
+   "credits": 5,
+   "year": 3,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 211"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 302",
+   "title": "Building Construction II",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 214"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 303",
+   "title": "Landscape and Site Planning",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 211"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 304",
+   "title": "Structure I",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 211",
+    "MEC 103"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 311",
+   "title": "Architectural Design IV",
+   "credits": 5,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 301"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 312",
+   "title": "Urban Planning & Design",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 303"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 313",
+   "title": "Contemporary Issues in Architecture",
+   "credits": 2,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 212"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 314",
+   "title": "Structure II",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 304"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 315",
+   "title": "Technical Installations",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 302"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 401",
+   "title": "Architectural Design V",
+   "credits": 5,
+   "year": 4,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 311"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 402",
+   "title": "Working Drawings",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 302",
+    "ARCH 311"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 403",
+   "title": "Lighting and Acoustics",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 315"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 404",
+   "title": "Housing and Human Settlements",
+   "credits": 2,
+   "year": 4,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 312"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 405",
+   "title": "Humanities in Architecture",
+   "credits": 2,
+   "year": 4,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 311"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 411",
+   "title": "Architectural Design VI",
+   "credits": 5,
+   "year": 4,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 401"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 412",
+   "title": "Contract Documents",
+   "credits": 3,
+   "year": 4,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 402"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 413",
+   "title": "Engineering Project Management",
+   "credits": 3,
+   "year": 4,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 401"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 501",
+   "title": "Architectural Design VII",
+   "credits": 5,
+   "year": 5,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 411"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 502",
+   "title": "Professional Practice I",
+   "credits": 2,
+   "year": 5,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 411"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 503",
+   "title": "Graduation Project Research and Programming",
+   "credits": 3,
+   "year": 5,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 411"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 511",
+   "title": "Graduation Project",
+   "credits": 6,
+   "year": 5,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 501",
+    "ARCH 503"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARCH 512",
+   "title": "Professional Practice II",
+   "credits": 2,
+   "year": 5,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ARCH 502"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MEC 103",
+   "title": "Engineering Mechanics",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "College Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "PHY 103"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "PHY 103",
+   "title": "Physics I",
+   "credits": 4,
+   "year": 1,
+   "semester": 2,
+   "group": "College Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 101",
+   "title": "English Essay Writing",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 201",
+   "title": "Technical Report Writing",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ENG 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 101",
+   "title": "Foundation of Islamic Culture",
+   "credits": 2,
+   "year": 1,
+   "semester": 1,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 202",
+   "title": "Financial Awareness",
+   "credits": 2,
+   "year": 2,
+   "semester": 2,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 102",
+   "title": "Communication Skills in Arabic",
+   "credits": 2,
+   "year": 2,
+   "semester": 2,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 202",
+   "title": "Writing Skills in Arabic",
+   "credits": 2,
+   "year": 3,
+   "semester": 2,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CSK 001",
+   "title": "Career Skills",
+   "credits": 0,
+   "year": 4,
+   "semester": 2,
+   "group": "General Education",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 102",
+   "title": "Introduction to Social Science",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PHL 101",
+   "title": "Critical Thinking",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PSY 101",
+   "title": "Principle of Psychology",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 101",
+   "title": "Saudi Heritage",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "FRE 106",
+   "title": "Conversational French 1",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CHI 107",
+   "title": "Chinese Language",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 103",
+   "title": "Introduction to English Literature",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  }
+ ]
+}

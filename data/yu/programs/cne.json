@@ -1,0 +1,1275 @@
+{
+ "code": "CNE",
+ "name": "Bachelor of Science in Computer Network Engineering",
+ "short_name": "Computer Network Engineering",
+ "degree": "BSc",
+ "level": "Undergraduate",
+ "department": "CED",
+ "total_credits": 141,
+ "plan_version": "V1.0",
+ "plan_date": "2025-08-16",
+ "source_url": "https://yu.edu.sa/wp-content/uploads/2025/08/SP-Network-Engineering-Study-Plan-V1.0-16-August-2025.pdf",
+ "accreditation_note": "Program page states ABET (EAC) accreditation.",
+ "plos": [
+  {
+   "code": "SO1",
+   "domain": "Knowledge and Understanding",
+   "text": "Identify, formulate, and solve complex engineering problems by applying principles of engineering, science, and mathematics."
+  },
+  {
+   "code": "SO2",
+   "domain": "Skills",
+   "text": "Apply engineering design to produce solutions that meet specified needs with consideration of public health, safety, and welfare, as well as global, cultural, social, environmental, and economic factors."
+  },
+  {
+   "code": "SO3",
+   "domain": "Skills",
+   "text": "Communicate effectively with a range of audiences."
+  },
+  {
+   "code": "SO4",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Recognize ethical and professional responsibilities in engineering situations and make informed judgments that consider the impact of engineering solutions in global, economic, environmental, and societal contexts."
+  },
+  {
+   "code": "SO5",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Function effectively on a team whose members together provide leadership, create a collaborative environment, establish goals, plan tasks, and meet objectives."
+  },
+  {
+   "code": "SO6",
+   "domain": "Skills",
+   "text": "Develop and conduct appropriate experimentation, analyze and interpret data, and use engineering judgment to draw conclusions."
+  },
+  {
+   "code": "SO7",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Acquire and apply new knowledge as needed, using appropriate learning strategies."
+  }
+ ],
+ "plo_source": "ABET EAC general student outcomes (public criteria). Placeholder until CNE-approved PLOs are synced.",
+ "elective_rules": [
+  {
+   "group": "CNE Electives",
+   "courses": 3,
+   "credits": 9
+  },
+  {
+   "group": "Humanities / Social Science Electives",
+   "courses": 2,
+   "credits": 6
+  }
+ ],
+ "courses": [
+  {
+   "code": "CIS 103",
+   "title": "Programming Fundamentals I",
+   "credits": 4,
+   "year": 1,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 03C",
+    "ORN 03R"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CHM 101",
+   "title": "General Chemistry",
+   "credits": 4,
+   "year": 1,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 106",
+   "title": "Discrete Mathematics",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04C",
+    "ORN 04R"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 104",
+   "title": "Calculus I",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 03C",
+    "ORN 03R"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 101",
+   "title": "English Essay Writing",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PHY 103",
+   "title": "Physics I",
+   "credits": 4,
+   "year": 1,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 101",
+   "title": "Foundation of Islamic Culture",
+   "credits": 2,
+   "year": 1,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Humanities / Social Science Elective I",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Humanities / Social Science Elective II",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 104",
+   "title": "Programming Fundamentals II",
+   "credits": 4,
+   "year": 1,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 103"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 100",
+   "title": "Data Communications and Computer Networks",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 103"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 102",
+   "title": "Communication Skills in Arabic",
+   "credits": 2,
+   "year": 1,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 202",
+   "title": "Data Structures",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 104"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 200",
+   "title": "Network Protocols & Architecture",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CNE 100"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 204",
+   "title": "Calculus II",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 104"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "PHY 203",
+   "title": "Physics II",
+   "credits": 4,
+   "year": 2,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "PHY 103"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 201",
+   "title": "Technical Report Writing",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ENG 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "STT 103",
+   "title": "Probability and Statistics",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 03C",
+    "ORN 03R"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 202",
+   "title": "Financial Awareness",
+   "credits": 2,
+   "year": 2,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 221",
+   "title": "Introduction to Database Systems",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 104"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 300",
+   "title": "Switching and Routing",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CNE 200"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 221",
+   "title": "Digital Logic and Design",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 106"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 301",
+   "title": "Linear Algebra",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 104"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 202",
+   "title": "Writing Skills in Arabic",
+   "credits": 2,
+   "year": 2,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 304",
+   "title": "Computer Architecture",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CNE 221"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 383",
+   "title": "Cyber Security and Cryptography",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CNE 100"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 386",
+   "title": "Project Management",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 221"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 303",
+   "title": "Wireless Networks",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CNE 200"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 305",
+   "title": "Internet of Things",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CNE 200"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 304",
+   "title": "Differential Equations",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 204"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "CNE Elective I",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 306",
+   "title": "Embedded Systems",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 304"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 321",
+   "title": "Operating Systems",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 304"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 307",
+   "title": "Network Security",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 383",
+    "CNE 200"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 308",
+   "title": "Network Design and Modelling",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 310",
+   "title": "Network Programming",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CNE 200"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "CNE Elective II",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 405",
+   "title": "Cloud Infrastructure Design",
+   "credits": 2,
+   "year": 4,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 406",
+   "title": "Computer Network Management",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 416",
+   "title": "Introduction to Machine Learning",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 301"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 491",
+   "title": "Graduation Project I",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CNE 308",
+    "CIS 386"
+   ],
+   "credit_threshold": 90,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CSK 001",
+   "title": "Career Skills",
+   "credits": 0,
+   "year": 4,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "CNE Elective III",
+   "credits": 3,
+   "year": 4,
+   "semester": 2,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 411",
+   "title": "Datacenters and System Administration",
+   "credits": 3,
+   "year": 4,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 321",
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 412",
+   "title": "Virtual Network Design and Implementation",
+   "credits": 3,
+   "year": 4,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 492",
+   "title": "Graduation Project II",
+   "credits": 3,
+   "year": 4,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CIS 491"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CIS 490",
+   "title": "Cooperative Assignment",
+   "credits": 6,
+   "year": 4,
+   "semester": 3,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CNE 308"
+   ],
+   "credit_threshold": 90,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 450",
+   "title": "Signals and System Analysis",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MTH 304"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 451",
+   "title": "Network Troubleshooting",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 452",
+   "title": "Network Simulation and Modeling",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 453",
+   "title": "Advanced Topics of Switching and Routing",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 454",
+   "title": "Enterprise Networking",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 455",
+   "title": "IT Technical Support",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 456",
+   "title": "Optical Networks",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 457",
+   "title": "Broadband Networks",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 458",
+   "title": "Fault-Tolerant Systems",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 470",
+   "title": "Selected Topics in Computer Network Engineering",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 471",
+   "title": "Smart Cities and IoT Applications",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 305"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 472",
+   "title": "Mobile Edge Computing (MEC)",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 303"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 473",
+   "title": "5G Technologies and Beyond",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 303"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 474",
+   "title": "Mobile Network Architecture and Protocols",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 303"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 475",
+   "title": "Virtual Networking and Software Defined Networking",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 303"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 480",
+   "title": "Cyber Threats",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CIS 383"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 481",
+   "title": "Ethical Hacking",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CIS 383",
+    "CNE 300"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 482",
+   "title": "Digital Forensics and Incident Response",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CIS 383"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 483",
+   "title": "Cloud Services and Security",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CIS 383"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 484",
+   "title": "Critical Infrastructure Protection",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 307"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CNE 485",
+   "title": "Intrusion Detection/Prevention Systems",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "CNE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CNE 307"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 102",
+   "title": "Introduction to Social Science",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PHL 101",
+   "title": "Critical Thinking",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PSY 101",
+   "title": "Principle of Psychology",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 101",
+   "title": "Saudi Heritage",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "FRE 106",
+   "title": "Conversational French 1",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CHI 107",
+   "title": "Chinese Language",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 103",
+   "title": "Introduction to English Literature",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  }
+ ]
+}

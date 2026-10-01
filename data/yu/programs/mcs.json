@@ -1,0 +1,370 @@
+{
+ "code": "MCS",
+ "name": "Master in Cyber Security",
+ "short_name": "Cyber Security (MCS)",
+ "degree": "MSc",
+ "level": "Postgraduate",
+ "department": "CED",
+ "total_credits": 30,
+ "plan_version": "2026",
+ "plan_date": "2026-07-01",
+ "source_url": "https://yu.edu.sa/wp-content/uploads/2026/07/MCS-Study-Plan.pdf",
+ "accreditation_note": "",
+ "plos": [
+  {
+   "code": "K1",
+   "domain": "Knowledge and Understanding",
+   "text": "Identify solutions of broadly-defined cybersecurity problems."
+  },
+  {
+   "code": "K2",
+   "domain": "Knowledge and Understanding",
+   "text": "Monitor web-based systems through widely accepted standards, procedures and policies."
+  },
+  {
+   "code": "K3",
+   "domain": "Knowledge and Understanding",
+   "text": "Maintain web-based systems through widely accepted standards, procedures and policies."
+  },
+  {
+   "code": "S1",
+   "domain": "Skills",
+   "text": "Analyze a broadly-defined cybersecurity problem."
+  },
+  {
+   "code": "S2",
+   "domain": "Skills",
+   "text": "Apply the principles of cybersecurity and other relevant disciplines."
+  },
+  {
+   "code": "S3",
+   "domain": "Skills",
+   "text": "Apply cybersecurity principles and practices to maintain operations in the presence of risks and threats."
+  },
+  {
+   "code": "S4",
+   "domain": "Skills",
+   "text": "Enhance the protection of web-based systems through widely accepted standards, procedures and policies."
+  },
+  {
+   "code": "S5",
+   "domain": "Skills",
+   "text": "Conduct risk and vulnerability assessments of existing and proposed systems."
+  },
+  {
+   "code": "S6",
+   "domain": "Skills",
+   "text": "Communicate effectively in a variety of professional contexts."
+  },
+  {
+   "code": "V1",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Recognize professional responsibilities and make informed judgments in cybersecurity practice based on legal and ethical principles."
+  },
+  {
+   "code": "V2",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Function effectively as a member or leader of a team engaged in cybersecurity activities."
+  }
+ ],
+ "plo_source": "PLOs as published on the YU MCS page.",
+ "elective_rules": [
+  {
+   "group": "MCS Electives",
+   "courses": 2,
+   "credits": 6
+  }
+ ],
+ "courses": [
+  {
+   "code": "PRQ 401",
+   "title": "Comprehensive Cybersecurity – Foundations and Threats",
+   "credits": 3,
+   "year": 0,
+   "semester": 0,
+   "group": "Foundation (if required)",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "PRQ 402",
+   "title": "Foundations of Computer Networking and Security",
+   "credits": 3,
+   "year": 0,
+   "semester": 0,
+   "group": "Foundation (if required)",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "PRQ 403",
+   "title": "Operating Systems Concepts",
+   "credits": 3,
+   "year": 0,
+   "semester": 0,
+   "group": "Foundation (if required)",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 511",
+   "title": "Cybersecurity Planning and Management",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "PRQ 401"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 512",
+   "title": "Digital Forensics and Incident Management",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "PRQ 403"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 513",
+   "title": "Information Assurance Architectures and Standards",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "PRQ 402"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 514",
+   "title": "Penetration Testing and Ethical Hacking",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CYB 513"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 515",
+   "title": "Vulnerability Assessment",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CYB 512"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 516",
+   "title": "Advanced Cryptography",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": 6,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 530",
+   "title": "Project I",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": 12,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "MCS Elective I",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "MCS Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 531",
+   "title": "Project II",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "CYB 530"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "MCS Elective II",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "MCS Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 520",
+   "title": "Selected Topics in Cybersecurity",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MCS Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CYB 516"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 521",
+   "title": "Software Security",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MCS Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CYB 513"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 522",
+   "title": "Cybersecurity Policies and Procedures",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MCS Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CYB 513"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 523",
+   "title": "Cloud Security",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MCS Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CYB 516"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 524",
+   "title": "Security Risk Analysis",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MCS Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CYB 511"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CYB 525",
+   "title": "Cybersecurity Design Principles",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MCS Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CYB 513"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  }
+ ]
+}
