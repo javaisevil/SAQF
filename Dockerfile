@@ -26,6 +26,6 @@ ENV APP_ENV=production \
 
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD php -r 'exit(@file_get_contents("http://127.0.0.1/login.php") === false ? 1 : 0);'
+    CMD php -r 'exit(@file_get_contents("http://127.0.0.1/health.php") === false ? 1 : 0);'
 ENTRYPOINT ["saqf-entrypoint"]
 CMD ["apache2-foreground"]

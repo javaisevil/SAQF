@@ -1,5 +1,7 @@
 # Local / demo stack:   cp .env.example .env   (edit passwords)   then   docker compose up --build
 # Open http://localhost:8080  — demo accounts are listed on the sign-in page while SAQF_DEMO is on.
+# Production: set APP_ENV=production, SAQF_AUTO_INSTALL=production and the connector, SSO and mail
+# settings in .env (see .env.example and docs/INTEGRATIONS.md), and put HTTPS in front.
 services:
   app:
     build: .
@@ -9,6 +11,7 @@ services:
       APP_ENV: ${APP_ENV:-demo}
       APP_DEBUG: ${APP_DEBUG:-false}
       SAQF_DEMO: ${SAQF_DEMO:-true}
+      SAQF_DEMO_CLOCK: ${SAQF_DEMO_CLOCK:-}
       SAQF_AUTO_INSTALL: ${SAQF_AUTO_INSTALL:-demo}
       SAQF_DB_HOST: db
       SAQF_DB_PORT: 3306
@@ -16,6 +19,49 @@ services:
       SAQF_DB_USER: ${SAQF_DB_USER:-saqf}
       SAQF_DB_PASS: ${SAQF_DB_PASS:-change-me-local}
       SAQF_TRUST_PROXY: ${SAQF_TRUST_PROXY:-false}
+      SAQF_BASE_URL: ${SAQF_BASE_URL:-}
+      SAQF_APP_KEY: ${SAQF_APP_KEY:-}
+      # University systems (docs/INTEGRATIONS.md)
+      SAQF_INSTITUTION_DIR: ${SAQF_INSTITUTION_DIR:-}
+      SAQF_SIS_SOURCE: ${SAQF_SIS_SOURCE:-}
+      SAQF_SIS_URL: ${SAQF_SIS_URL:-}
+      SAQF_SIS_TOKEN: ${SAQF_SIS_TOKEN:-}
+      SAQF_LMS_SOURCE: ${SAQF_LMS_SOURCE:-}
+      SAQF_LMS_COURSE_KEY: ${SAQF_LMS_COURSE_KEY:-}
+      SAQF_LMS_PSEUDONYMIZE: ${SAQF_LMS_PSEUDONYMIZE:-}
+      SAQF_LMS_POLL_MINUTES: ${SAQF_LMS_POLL_MINUTES:-}
+      SAQF_MOODLE_URL: ${SAQF_MOODLE_URL:-}
+      SAQF_MOODLE_TOKEN: ${SAQF_MOODLE_TOKEN:-}
+      SAQF_MOODLE_COURSE_FIELD: ${SAQF_MOODLE_COURSE_FIELD:-}
+      SAQF_BLACKBOARD_URL: ${SAQF_BLACKBOARD_URL:-}
+      SAQF_BLACKBOARD_KEY: ${SAQF_BLACKBOARD_KEY:-}
+      SAQF_BLACKBOARD_SECRET: ${SAQF_BLACKBOARD_SECRET:-}
+      # University sign-in (OpenID Connect)
+      SAQF_OIDC_ISSUER: ${SAQF_OIDC_ISSUER:-}
+      SAQF_OIDC_CLIENT_ID: ${SAQF_OIDC_CLIENT_ID:-}
+      SAQF_OIDC_CLIENT_SECRET: ${SAQF_OIDC_CLIENT_SECRET:-}
+      SAQF_OIDC_REDIRECT_URI: ${SAQF_OIDC_REDIRECT_URI:-}
+      SAQF_OIDC_SCOPES: ${SAQF_OIDC_SCOPES:-}
+      SAQF_OIDC_USERNAME_CLAIM: ${SAQF_OIDC_USERNAME_CLAIM:-}
+      SAQF_OIDC_ROLE_CLAIM: ${SAQF_OIDC_ROLE_CLAIM:-}
+      SAQF_OIDC_ROLE_MAP: ${SAQF_OIDC_ROLE_MAP:-}
+      SAQF_OIDC_AUTO_PROVISION: ${SAQF_OIDC_AUTO_PROVISION:-}
+      SAQF_OIDC_DEFAULT_ROLE: ${SAQF_OIDC_DEFAULT_ROLE:-}
+      SAQF_OIDC_CLIENT_AUTH: ${SAQF_OIDC_CLIENT_AUTH:-}
+      SAQF_OIDC_BUTTON_LABEL: ${SAQF_OIDC_BUTTON_LABEL:-}
+      SAQF_PASSWORD_LOGIN: ${SAQF_PASSWORD_LOGIN:-}
+      # E-mail
+      SAQF_MAIL_TRANSPORT: ${SAQF_MAIL_TRANSPORT:-}
+      SAQF_MAIL_HOST: ${SAQF_MAIL_HOST:-}
+      SAQF_MAIL_PORT: ${SAQF_MAIL_PORT:-}
+      SAQF_MAIL_ENCRYPTION: ${SAQF_MAIL_ENCRYPTION:-}
+      SAQF_MAIL_USERNAME: ${SAQF_MAIL_USERNAME:-}
+      SAQF_MAIL_PASSWORD: ${SAQF_MAIL_PASSWORD:-}
+      SAQF_MAIL_FROM: ${SAQF_MAIL_FROM:-}
+      SAQF_MAIL_FROM_NAME: ${SAQF_MAIL_FROM_NAME:-}
+    volumes:
+      # SIS / LMS export drop folders (read-only for SAQF)
+      - ./storage/inbox:/var/www/saqf/storage/inbox:ro
     depends_on:
       db:
         condition: service_healthy
@@ -38,6 +84,26 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
+    restart: unless-stopped
+
+  # Nightly compressed backups into ./backups (kept SAQF_BACKUP_KEEP_DAYS days). Copy them off the server.
+  backup:
+    image: mysql:8.0
+    entrypoint: ["sh", "/usr/local/bin/saqf-backup", "--loop"]
+    environment:
+      SAQF_DB_HOST: db
+      SAQF_DB_NAME: ${SAQF_DB_NAME:-saqf}
+      SAQF_DB_USER: ${SAQF_DB_USER:-saqf}
+      SAQF_DB_PASS: ${SAQF_DB_PASS:-change-me-local}
+      SAQF_BACKUP_KEEP_DAYS: ${SAQF_BACKUP_KEEP_DAYS:-14}
+      SAQF_BACKUP_INTERVAL_HOURS: ${SAQF_BACKUP_INTERVAL_HOURS:-24}
+      TZ: Asia/Riyadh
+    volumes:
+      - ./docker/backup.sh:/usr/local/bin/saqf-backup:ro
+      - ./backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

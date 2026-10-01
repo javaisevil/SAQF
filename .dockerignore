@@ -6,3 +6,7 @@
 config.local.php
 *.zip
 *.log
+backups
+storage/inbox/sis/*
+storage/inbox/lms/*
+!storage/inbox/*/.gitkeep
