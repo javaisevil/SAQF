@@ -7,13 +7,17 @@ use Saqf\Core\Config;
 use Saqf\Core\Csrf;
 use Saqf\Demo\Story;
 use Saqf\Security\Auth;
+use Saqf\Security\Oidc;
+use Saqf\Security\PasswordReset;
 use Saqf\Web\View as V;
 
 if (Auth::user()) {
     saqf_redirect('index.php');
 }
 $error = '';
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+$sso = Oidc::enabled();
+$mode = Auth::passwordLoginMode();
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $mode !== 'off') {
     if (!Csrf::valid()) {
         $error = 'The sign-in form expired. Please try again.';
     } else {
@@ -42,20 +46,26 @@ $flash = V::flash();
         <li><b>04</b> People spend their time on academic judgement, exceptions and improvement.</li>
       </ul>
     </div>
-    <p class="tiny">Supports NCAAA-oriented academic quality workflows. Prototype: integrations with the Registrar, SIS and LMS are simulated adapters over structured data.</p>
+    <p class="tiny">Supports NCAAA-oriented academic quality workflows.<?= Config::demoMode() ? ' Demo mode: people, teaching assignments and student results are fictional, delivered through simulated SIS and LMS feeds.' : ' Institutional data is synchronised from the university Registrar, SIS and LMS.' ?></p>
   </section>
   <section class="login-form">
     <h2>Sign in</h2>
     <p class="muted">Use your university account.</p>
     <?= $flash ?>
     <?php if ($error): ?><div class="alert alert-error" role="alert"><?= V::h($error) ?></div><?php endif; ?>
+    <?php if ($sso): ?><a class="btn btn-primary" href="sso.php?start=1" style="width:100%;justify-content:center;padding:10px;margin-bottom:14px"><?= V::h(Oidc::buttonLabel()) ?></a><?php endif; ?>
+    <?php if ($mode !== 'off'): ?>
+    <?php if ($sso && $mode === 'admins'): ?><details<?= $error ? ' open' : '' ?>><summary class="small muted">Administrator sign-in (break-glass)</summary><?php endif; ?>
     <form method="post" autocomplete="on" id="loginForm">
       <?= Csrf::field() ?>
-      <div class="field"><label for="username">Username</label><input type="text" id="username" name="username" required autofocus autocomplete="username" value="<?= V::h($_POST['username'] ?? '') ?>"></div>
+      <div class="field"><label for="username">Username</label><input type="text" id="username" name="username" required <?= $sso ? '' : 'autofocus' ?> autocomplete="username" value="<?= V::h($_POST['username'] ?? '') ?>"></div>
       <div class="field"><label for="password">Password</label><input type="password" id="password" name="password" required autocomplete="current-password"></div>
-      <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center;padding:10px">Sign in</button>
+      <button class="btn <?= $sso ? '' : 'btn-primary' ?>" type="submit" style="width:100%;justify-content:center;padding:10px">Sign in<?= $sso ? ' with password' : '' ?></button>
     </form>
-    <p class="tiny muted" style="margin-top:12px">Accounts lock temporarily after repeated failed attempts. Sessions expire after inactivity. In production, sign-in is delegated to the university SSO.</p>
+    <?php if (PasswordReset::available()): ?><p class="small" style="margin-top:10px"><a href="forgot.php">Forgot your password?</a></p><?php endif; ?>
+    <?php if ($sso && $mode === 'admins'): ?></details><?php endif; ?>
+    <?php endif; ?>
+    <p class="tiny muted" style="margin-top:12px">Accounts lock temporarily after repeated failed attempts. Sessions expire after inactivity.<?= $sso ? ' Sign-in is handled by the university identity provider.' : '' ?></p>
     <?php if (Config::demoMode()): ?>
     <div class="demo-accounts">
       <strong>Demo accounts</strong> (fictional people · password <code><?= V::h(Story::PASSWORD) ?></code>)
