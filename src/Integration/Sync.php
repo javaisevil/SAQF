@@ -11,6 +11,7 @@ use Saqf\Core\Ledger;
 use Saqf\Quality\Catalog;
 use Saqf\Quality\Engine;
 use Saqf\Quality\Findings;
+use Saqf\Security\Users;
 
 /**
  * Synchronises institutional master data into SAQF (one-way: the university's
@@ -247,7 +248,7 @@ final class Sync
     {
         $sis = $sis ?? Integrations::sis();
         $term = Db::one('SELECT * FROM terms WHERE code = ?', [$termCode]);
-        $stats = ['assignments' => 0, 'created' => 0, 'inherited' => 0, 'unknown_courses' => 0];
+        $stats = ['assignments' => 0, 'created' => 0, 'inherited' => 0, 'unknown_courses' => 0, 'instructors_provisioned' => 0, 'unknown_instructors' => 0];
         if (!$term) {
             return $stats;
         }
@@ -260,6 +261,13 @@ final class Sync
                     continue;
                 }
                 $instructor = $a['instructor'] ? Db::val('SELECT id FROM users WHERE external_id = ?', [$a['instructor']]) : null;
+                if ($a['instructor'] && !$instructor) {
+                    // New instructor: link an existing account by e-mail, or create one so the workspace has an owner.
+                    $dept = !empty($a['department']) ? Db::val('SELECT id FROM departments WHERE code = ?', [strtoupper((string) $a['department'])]) : null;
+                    $dept = $dept ?: Db::val('SELECT owner_department_id FROM courses WHERE id = ?', [$courseId]);
+                    $instructor = Users::provisionInstructor((string) $a['instructor'], $a['instructor_name'] ?? null, $a['instructor_email'] ?? null, $dept ? (int) $dept : null);
+                    $stats[$instructor ? 'instructors_provisioned' : 'unknown_instructors']++;
+                }
                 $before = (int) Db::val('SELECT COUNT(*) FROM course_offerings WHERE term_id = ?', [$term['id']]);
                 Events::emit('offering.assigned', ['course_id' => (int) $courseId, 'term_id' => (int) $term['id'], 'instructor_id' => $instructor ? (int) $instructor : null, 'sections' => $a['sections'] ?? 1, 'enrolled' => $a['enrolled'] ?? 0, 'source' => 'sis']);
                 $after = (int) Db::val('SELECT COUNT(*) FROM course_offerings WHERE term_id = ?', [$term['id']]);

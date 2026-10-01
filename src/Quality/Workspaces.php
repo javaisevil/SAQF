@@ -37,6 +37,9 @@ final class Workspaces
                 Audit::record('workspace.updated', 'offering', $existing['id'], "{$course['code']} {$term['name']}: assignment updated from SIS", array_intersect_key($existing, $changes), $changes);
                 if (isset($changes['instructor_id']) && $instructorId) {
                     Notify::user($instructorId, 'info', "{$course['code']} {$term['name']} is now assigned to you", 'Your course quality workspace is ready; previous structure and history are already loaded.', 'workspace.php?id=' . $existing['id'], 'assigned:' . $existing['id'] . ':' . $instructorId);
+                    if (!$existing['spec_version_id'] && $term['status'] !== 'closed') {
+                        Notify::user($instructorId, 'action', "{$course['code']}: one academic task needs your input", 'This course has no approved specification yet. Define its outcomes and assessment plan once; SAQF reuses them every term.', 'workspace.php?id=' . $existing['id'], 'first-spec:' . $existing['id'] . ':' . $instructorId);
+                    }
                 }
                 Engine::evaluateOffering((int) $existing['id']);
             }

@@ -36,11 +36,14 @@ function saqf_redirect(string $to): void
     exit;
 }
 
-/** Opportunistic background heartbeat (guarded to run at most every 5 minutes). */
+/**
+ * Safety-net heartbeat: in production the scheduler runs from the container loop or cron, so a page
+ * request only runs it when that has stopped for 15 minutes (demo: at most every 5 minutes).
+ */
 function saqf_heartbeat(): void
 {
     try {
-        Scheduler::tick();
+        Scheduler::tick(false, \Saqf\Core\Config::demoMode() ? 300 : 900);
     } catch (Throwable $e) {
         ErrorLog::record($e, 'warning');
     }

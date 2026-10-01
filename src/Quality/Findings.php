@@ -113,7 +113,8 @@ final class Findings
         $link = 'exceptions.php?finding=' . $f['id'];
         switch ($f['owner_role']) {
             case 'faculty':
-                if ($f['offering_id']) {
+                // A missing first specification is announced once, with guidance, when the workspace is created.
+                if ($f['offering_id'] && $f['rule_code'] !== 'OFFERING_NO_SPEC') {
                     $instructor = Db::val('SELECT instructor_id FROM course_offerings WHERE id = ? AND status <> "closed"', [$f['offering_id']]);
                     if ($instructor) {
                         Notify::user((int) $instructor, 'action', $f['title'], 'SAQF found something that needs your academic input.', 'workspace.php?id=' . $f['offering_id'], 'finding:' . $f['id'] . ':' . $f['first_detected_at']);
