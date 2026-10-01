@@ -17,11 +17,22 @@ $type = in_array($_GET['type'] ?? '', ['course', 'program', 'spec'], true) ? $_G
 $id = (int) ($_GET['id'] ?? 0);
 $snapshotView = isset($_GET['snapshot']);
 
+// Authorise before any output, so a denial is a real HTTP 403.
+if ($type === 'course') {
+    $o = Authz::offering($user, $id);
+} elseif ($type === 'program') {
+    $p = Authz::program($user, $id);
+} else {
+    $v = Specs::version($id);
+    if (!$v || !Authz::canViewCourse($user, (int) $v['course_id'])) {
+        Authz::deny('specification report');
+    }
+}
+
 V::header('Generated report', $user, ['subtitle' => 'Assembled from structured data — not a separately written document']);
 echo '<div class="row noprint" style="margin-bottom:12px"><button class="btn btn-sm" onclick="window.print()">Print / save as PDF</button><span class="muted small">Supports NCAAA-oriented reporting; field structure should be confirmed against the current official templates.</span></div>';
 
 if ($type === 'course') {
-    $o = Authz::offering($user, $id);
     $snap = Db::one('SELECT * FROM snapshots WHERE kind = "course_report" AND scope_id = ?', [$id]);
     $r = ($snapshotView && $snap) ? json_decode($snap['payload'], true) : Reports::courseReport($id);
     $of = $r['offering'];
@@ -61,7 +72,6 @@ if ($type === 'course') {
     </div></article>
     <?php
 } elseif ($type === 'program') {
-    $p = Authz::program($user, $id);
     $r = Reports::program($id);
     $target = Policy::get('plo.target_pct');
     ?>
@@ -78,10 +88,6 @@ if ($type === 'course') {
     </div></article>
     <?php
 } else {
-    $v = Specs::version($id);
-    if (!$v || !Authz::canViewCourse($user, (int) $v['course_id'])) {
-        Authz::deny('specification report');
-    }
     $s = Specs::load($id);
     $c = $s['course'];
     ?>
