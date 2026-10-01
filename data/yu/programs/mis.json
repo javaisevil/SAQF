@@ -1,0 +1,1051 @@
+{
+ "code": "MIS",
+ "name": "Bachelor of Science in Business Administration – Management Information Systems",
+ "short_name": "Management Information Systems",
+ "degree": "BSBA",
+ "level": "Undergraduate",
+ "department": "MISD",
+ "total_credits": 127,
+ "plan_version": "5.2",
+ "plan_date": "2026-08-01",
+ "source_url": "https://yu.edu.sa/wp-content/uploads/2026/08/5.2-MIS-Program.pdf",
+ "accreditation_note": "",
+ "plos": [
+  {
+   "code": "SO1",
+   "domain": "Skills",
+   "text": "Analyze a complex computing problem and apply principles of computing and other relevant disciplines to identify solutions."
+  },
+  {
+   "code": "SO2",
+   "domain": "Skills",
+   "text": "Design, implement, and evaluate a computing-based solution to meet a given set of computing requirements in the context of the program's discipline."
+  },
+  {
+   "code": "SO3",
+   "domain": "Skills",
+   "text": "Communicate effectively in a variety of professional contexts."
+  },
+  {
+   "code": "SO4",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Recognize professional responsibilities and make informed judgments in computing practice based on legal and ethical principles."
+  },
+  {
+   "code": "SO5",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Function effectively as a member or leader of a team engaged in activities appropriate to the program's discipline."
+  },
+  {
+   "code": "SO6",
+   "domain": "Skills",
+   "text": "Support the delivery, use, and management of information systems within an information systems environment."
+  }
+ ],
+ "plo_source": "Program Learning Outcomes as published on the YU program page.",
+ "elective_rules": [
+  {
+   "group": "MIS Major Electives",
+   "courses": 2,
+   "credits": 6
+  },
+  {
+   "group": "Humanities / Social Science Electives",
+   "courses": 2,
+   "credits": 6
+  }
+ ],
+ "courses": [
+  {
+   "code": "ECO 101",
+   "title": "Principles of Microeconomics",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 101",
+   "title": "Introduction to Management",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 100",
+   "title": "Mathematics for Business",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 101",
+   "title": "Foundation of Islamic Culture",
+   "credits": 2,
+   "year": 1,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 102",
+   "title": "Communication Skills in Arabic",
+   "credits": 2,
+   "year": 1,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Social Sciences / Humanity Elective I",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 101",
+   "title": "English Essay Writing",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ECO 105",
+   "title": "Principles of Macroeconomics",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ECO 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 110",
+   "title": "Business Calculus",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 100"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 110",
+   "title": "Business Computing",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ACC 201",
+   "title": "Financial Accounting",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ECO 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Natural Science Elective",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Natural Science Elective",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MKT 201",
+   "title": "Introduction to Marketing",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ECO 105"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 220",
+   "title": "Organizational Behavior",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 101",
+    "ECO 105"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 201",
+   "title": "Introduction to MIS",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MIS 110"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "FIN 202",
+   "title": "Introduction to Finance",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ACC 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 210",
+   "title": "Business Communication",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ACC 202",
+   "title": "Management Accounting",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ACC 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 202",
+   "title": "Writing Skills in Arabic",
+   "credits": 2,
+   "year": 2,
+   "semester": 2,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 202",
+   "title": "Tech Report and Business Writing",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ENG 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 314",
+   "title": "Business Ethics and Social Responsibility",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 220",
+    "ENG 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "STT 201",
+   "title": "Business Statistics and Analysis",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 110"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Social Sciences / Humanity Elective II",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 306",
+   "title": "Legal Environment of Business",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 220",
+    "ENG 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 304",
+   "title": "Quantitative Methods for Business",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "STT 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 202",
+   "title": "Financial Awareness",
+   "credits": 2,
+   "year": 3,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 310",
+   "title": "Executive Seminar Series",
+   "credits": 1,
+   "year": 3,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": 70,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 308",
+   "title": "Entrepreneurship and Innovation",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 220",
+    "ENG 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 330",
+   "title": "Operations Management",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 304",
+    "ENG 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 495",
+   "title": "Strategic Management",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MGT 330"
+   ],
+   "credit_threshold": 100,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 401",
+   "title": "National Exam Review",
+   "credits": 1,
+   "year": 4,
+   "semester": 1,
+   "group": "Business Core",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": 100,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 316",
+   "title": "Fundamentals of Programming I",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "MIS Major Required",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MIS 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 328",
+   "title": "Business Telecommunications",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "MIS Major Required",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MIS 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 317",
+   "title": "Fundamentals of Web Design",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "MIS Major Required",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MIS 316"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 326",
+   "title": "System Analysis and Design",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "MIS Major Required",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MIS 316"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 327",
+   "title": "Database Management and Design",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "MIS Major Required",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MIS 316"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 329",
+   "title": "Decision Support and Business Intelligence",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "MIS Major Required",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MIS 327"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 423",
+   "title": "Web Based Application",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "MIS Major Required",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MIS 327",
+    "MIS 317"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 431",
+   "title": "Project Management",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "MIS Major Required",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MIS 326"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 427",
+   "title": "Information Security Risk Management",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "MIS Major Required",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MIS 328"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 492",
+   "title": "MIS Senior Project",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "MIS Major Required",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": 100,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Major Elective I",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "MIS Major Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Major Elective II",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "MIS Major Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 498",
+   "title": "Co-op Training Internship",
+   "credits": 6,
+   "year": 4,
+   "semester": 2,
+   "group": "Internship",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": 120,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 308",
+   "title": "Artificial Intelligence for Business",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MIS Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MIS 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 318",
+   "title": "Data Analytics",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MIS Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MIS 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 428",
+   "title": "Healthcare Information System",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MIS Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MIS 327"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 429",
+   "title": "Data Mining and Analysis",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MIS Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MIS 329"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 430",
+   "title": "Advanced Topics of Information Systems",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MIS Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MIS 327"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 432",
+   "title": "Enterprise Systems",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MIS Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MIS 327"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 433",
+   "title": "Int. B. and Web Applications Development",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MIS Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MIS 316"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 434",
+   "title": "Human Resource Information Systems",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MIS Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MIS 327"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 435",
+   "title": "Knowledge Management Systems",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MIS Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MIS 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 436",
+   "title": "Mobile Computing",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "MIS Major Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "MIS 327"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 102",
+   "title": "Introduction to Social Science",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PHL 101",
+   "title": "Critical Thinking",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PSY 101",
+   "title": "Principle of Psychology",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 101",
+   "title": "Saudi Heritage",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "FRE 106",
+   "title": "Conversational French 1",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CHI 107",
+   "title": "Chinese Language",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 103",
+   "title": "Introduction to English Literature",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  }
+ ],
+ "source_variants": [
+  {
+   "code": "MIS 316",
+   "field": "credits",
+   "value": 4,
+   "where": "'Major Required and Elective Courses' list in the same published plan"
+  }
+ ]
+}

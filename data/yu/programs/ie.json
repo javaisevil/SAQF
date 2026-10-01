@@ -1,0 +1,1076 @@
+{
+ "code": "IE",
+ "name": "Bachelor of Science in Industrial Engineering",
+ "short_name": "Industrial Engineering",
+ "degree": "BSc",
+ "level": "Undergraduate",
+ "department": "IED",
+ "total_credits": 134,
+ "plan_version": "V2.0",
+ "plan_date": "2026-07-01",
+ "source_url": "https://yu.edu.sa/wp-content/uploads/2026/08/SP-Industrial-Engineering_Y.2026-July-2026-V-2.0-134-CR.pdf",
+ "accreditation_note": "Program page states ABET (EAC) accreditation.",
+ "plos": [
+  {
+   "code": "SO1",
+   "domain": "Knowledge and Understanding",
+   "text": "Identify, formulate, and solve complex engineering problems by applying principles of engineering, science, and mathematics."
+  },
+  {
+   "code": "SO2",
+   "domain": "Skills",
+   "text": "Apply engineering design to produce solutions that meet specified needs with consideration of public health, safety, and welfare, as well as global, cultural, social, environmental, and economic factors."
+  },
+  {
+   "code": "SO3",
+   "domain": "Skills",
+   "text": "Communicate effectively with a range of audiences."
+  },
+  {
+   "code": "SO4",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Recognize ethical and professional responsibilities in engineering situations and make informed judgments that consider the impact of engineering solutions in global, economic, environmental, and societal contexts."
+  },
+  {
+   "code": "SO5",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Function effectively on a team whose members together provide leadership, create a collaborative environment, establish goals, plan tasks, and meet objectives."
+  },
+  {
+   "code": "SO6",
+   "domain": "Skills",
+   "text": "Develop and conduct appropriate experimentation, analyze and interpret data, and use engineering judgment to draw conclusions."
+  },
+  {
+   "code": "SO7",
+   "domain": "Values, Autonomy, and Responsibility",
+   "text": "Acquire and apply new knowledge as needed, using appropriate learning strategies."
+  }
+ ],
+ "plo_source": "ABET EAC general student outcomes (public criteria). Placeholder until IE-approved PLOs are synced.",
+ "elective_rules": [
+  {
+   "group": "IE Electives",
+   "courses": 2,
+   "credits": 6
+  },
+  {
+   "group": "Humanities / Social Science Electives",
+   "courses": 2,
+   "credits": 6
+  }
+ ],
+ "courses": [
+  {
+   "code": "CIS 103",
+   "title": "Programming Fundamentals I",
+   "credits": 4,
+   "year": 1,
+   "semester": 1,
+   "group": "First Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 104",
+   "title": "Calculus I",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "First Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "STT 103",
+   "title": "Probability and Statistics",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "First Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CHM 101",
+   "title": "General Chemistry",
+   "credits": 4,
+   "year": 1,
+   "semester": 1,
+   "group": "First Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 102",
+   "title": "Communication Skills in Arabic",
+   "credits": 2,
+   "year": 1,
+   "semester": 1,
+   "group": "First Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Humanities / Social Science Elective I",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 101",
+   "title": "English Essay Writing",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "First Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 106",
+   "title": "Discrete Mathematics",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "First Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PHY 103",
+   "title": "Physics I",
+   "credits": 4,
+   "year": 1,
+   "semester": 2,
+   "group": "First Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENR 201",
+   "title": "Engineering Drawing and CAD",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "First Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 101",
+   "title": "Foundation of Islamic Culture",
+   "credits": 2,
+   "year": 1,
+   "semester": 2,
+   "group": "First Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Humanities / Social Science Elective II",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 204",
+   "title": "Calculus II",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Second Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 104"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 301",
+   "title": "Linear Algebra",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Second Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 104"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 201",
+   "title": "Introduction to Engineering Design",
+   "credits": 2,
+   "year": 2,
+   "semester": 1,
+   "group": "Second Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "ENR 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MEG 211",
+   "title": "Fundamentals of Materials Engineering",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Second Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "PHY 103",
+    "CHM 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 301",
+   "title": "Design of Experiments",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Second Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "STT 103"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 202",
+   "title": "Financial Awareness",
+   "credits": 2,
+   "year": 2,
+   "semester": 1,
+   "group": "Second Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 202",
+   "title": "Writing Skills in Arabic",
+   "credits": 2,
+   "year": 2,
+   "semester": 1,
+   "group": "Second Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PHY 203",
+   "title": "Physics II",
+   "credits": 4,
+   "year": 2,
+   "semester": 2,
+   "group": "Second Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "PHY 103"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 202",
+   "title": "Social and Ethical Aspects in Engineering",
+   "credits": 2,
+   "year": 2,
+   "semester": 2,
+   "group": "Second Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 321",
+   "title": "Operations Research I",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Second Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 301",
+    "CIS 103"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 303",
+   "title": "Quality Control",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Second Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 301"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 341",
+   "title": "Manufacturing Processes I",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Second Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MEG 211"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": [
+    "IEG 332"
+   ]
+  },
+  {
+   "code": "IEG 332",
+   "title": "Work Design and Analysis",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Second Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MTH 304",
+   "title": "Differential Equations",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Third Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "MTH 204"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 304",
+   "title": "Engineering Economy and Costing",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Third Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 311",
+   "title": "Production and Inventory Systems",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Third Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 301"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 323",
+   "title": "Systems Simulation",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Third Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 321"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 400",
+   "title": "Product Development and Innovation",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Third Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 201",
+    "IEG 303"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 312",
+   "title": "Operations Management",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Third Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 311",
+    "IEG 304"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 322",
+   "title": "Operations Research II",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Third Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 321",
+    "MTH 304"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 342",
+   "title": "Manufacturing Processes II",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Third Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 341",
+    "IEG 400"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 431",
+   "title": "Ergonomics",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Third Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 332"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 450",
+   "title": "Industrial Facility Design and Material Handling",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Third Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 332"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 302",
+   "title": "Engineering Reliability",
+   "credits": 2,
+   "year": 4,
+   "semester": 1,
+   "group": "Fourth Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 312"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 345",
+   "title": "Industrial Control Systems and Automation",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Fourth Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "PHY 203",
+    "MTH 304",
+    "IEG 342"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 411",
+   "title": "Project Management",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Fourth Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 312"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 430",
+   "title": "Safety Engineering",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Fourth Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 431"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 410",
+   "title": "Exit Exam Preparation",
+   "credits": 1,
+   "year": 4,
+   "semester": 1,
+   "group": "Fourth Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": [
+    "IEG 411"
+   ]
+  },
+  {
+   "code": "IEG 490",
+   "title": "Graduation Design Project I",
+   "credits": 2,
+   "year": 4,
+   "semester": 1,
+   "group": "Fourth Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 431",
+    "IEG 450"
+   ],
+   "credit_threshold": 85,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 351",
+   "title": "Manufacturing Systems",
+   "credits": 3,
+   "year": 4,
+   "semester": 2,
+   "group": "Fourth Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 302",
+    "IEG 342"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "IE Elective I",
+   "credits": 3,
+   "year": 4,
+   "semester": 2,
+   "group": "IE Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "IE Elective II",
+   "credits": 3,
+   "year": 4,
+   "semester": 2,
+   "group": "IE Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "CSK 001",
+   "title": "Career Skills",
+   "credits": 0,
+   "year": 4,
+   "semester": 2,
+   "group": "Fourth Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 491",
+   "title": "Graduation Design Project II",
+   "credits": 2,
+   "year": 4,
+   "semester": 2,
+   "group": "Fourth Year",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "IEG 490"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 497",
+   "title": "Co-op Practical Training",
+   "credits": 6,
+   "year": 4,
+   "semester": 3,
+   "group": "Co-op",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": 90,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 403",
+   "title": "Six Sigma and Lean Operations",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "IE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "IEG 303"
+   ],
+   "credit_threshold": 100,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 413",
+   "title": "Supply Chain",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "IE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "IEG 312"
+   ],
+   "credit_threshold": 100,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 414",
+   "title": "Production System Operations",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "IE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "IEG 312"
+   ],
+   "credit_threshold": 100,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 415",
+   "title": "Scheduling of Industrial Operations",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "IE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "IEG 322",
+    "IEG 411"
+   ],
+   "credit_threshold": 100,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 446",
+   "title": "Direct Digital Manufacturing",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "IE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "IEG 342"
+   ],
+   "credit_threshold": 100,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 447",
+   "title": "Computer Integrated Manufacturing",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "IE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "IEG 345"
+   ],
+   "credit_threshold": 100,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "MIS 327",
+   "title": "Database Management and Design",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "IE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CIS 103"
+   ],
+   "credit_threshold": 100,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "IEG 404",
+   "title": "Data Science for Engineers",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "IE Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [
+    "CIS 103",
+    "IEG 301"
+   ],
+   "credit_threshold": 100,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 102",
+   "title": "Introduction to Social Science",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PHL 101",
+   "title": "Critical Thinking",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PSY 101",
+   "title": "Principle of Psychology",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 101",
+   "title": "Saudi Heritage",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "FRE 106",
+   "title": "Conversational French 1",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CHI 107",
+   "title": "Chinese Language",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 103",
+   "title": "Introduction to English Literature",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  }
+ ]
+}

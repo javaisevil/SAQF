@@ -1,0 +1,877 @@
+{
+ "code": "LLB",
+ "name": "Bachelor of Laws",
+ "short_name": "Law (LL.B)",
+ "degree": "LLB",
+ "level": "Undergraduate",
+ "department": "LAWD",
+ "total_credits": 131,
+ "plan_version": "2024",
+ "plan_date": "2024-12-01",
+ "source_url": "https://yu.edu.sa/wp-content/uploads/2024/12/LLB-YU.pdf",
+ "accreditation_note": "",
+ "plos": [],
+ "plo_source": "No PLO statements found on the public program page.",
+ "elective_rules": [
+  {
+   "group": "Law Electives",
+   "courses": 2,
+   "credits": 6
+  },
+  {
+   "group": "Humanities / Social Science Electives",
+   "courses": 2,
+   "credits": 6
+  }
+ ],
+ "courses": [
+  {
+   "code": "LAW 101",
+   "title": "Introduction to Law",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 101",
+   "title": "English Essay Writing",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 101",
+   "title": "Foundation of Islamic Culture",
+   "credits": 2,
+   "year": 1,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 102",
+   "title": "Communication Skills in Arabic",
+   "credits": 2,
+   "year": 1,
+   "semester": 1,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "MGT 101",
+   "title": "Introduction to Management",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "College Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Humanities / Social Science Elective I",
+   "credits": 3,
+   "year": 1,
+   "semester": 1,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 116",
+   "title": "Legal Writing",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 117",
+   "title": "Usul Al-Fiqh (Jurisprudential Principles)",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 118",
+   "title": "Constitutional Law",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 119",
+   "title": "Professional Responsibilities",
+   "credits": 2,
+   "year": 1,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "ISL 201",
+   "title": "Foundation of Islamic Economy",
+   "credits": 2,
+   "year": 1,
+   "semester": 2,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ARB 202",
+   "title": "Writing Skills in Arabic",
+   "credits": 2,
+   "year": 1,
+   "semester": 2,
+   "group": "University Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 02R",
+    "ORN 02C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 115",
+   "title": "Family Law",
+   "credits": 2,
+   "year": 1,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 03R",
+    "ORN 03C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Humanities / Social Science Elective II",
+   "credits": 3,
+   "year": 1,
+   "semester": 2,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 201",
+   "title": "Sources of Obligations",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 202",
+   "title": "Administrative Law (1)",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 203",
+   "title": "Public International Law (1)",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 204",
+   "title": "Juristic Rules in Islamic Jurisprudence",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 117"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 205",
+   "title": "Criminal Law (1)",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 101"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Law Elective I",
+   "credits": 3,
+   "year": 2,
+   "semester": 1,
+   "group": "Law Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 218",
+   "title": "Administrative Law (2)",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 202"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 229",
+   "title": "Public International Law (2)",
+   "credits": 2,
+   "year": 2,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 203"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 230",
+   "title": "Criminal Law (2)",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 205"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 231",
+   "title": "Effects of Obligations",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 201"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 235",
+   "title": "Property Law",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 101"
+   ],
+   "credit_threshold": 30,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": null,
+   "title": "Law Elective II",
+   "credits": 3,
+   "year": 2,
+   "semester": 2,
+   "group": "Law Electives",
+   "type": "elective",
+   "slot": true,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 301",
+   "title": "Commercial Law",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 116"
+   ],
+   "credit_threshold": 30,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 302",
+   "title": "Labor Law & Social Security",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 101"
+   ],
+   "credit_threshold": 30,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 303",
+   "title": "Civil Contracts",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 231"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 304",
+   "title": "Civil & Commercial Procedures",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 116"
+   ],
+   "credit_threshold": 30,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 308",
+   "title": "Real Estate & Personal Guarantees",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 235"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 309",
+   "title": "Islamic Regulations of Inheritance, Endowments & Wills",
+   "credits": 3,
+   "year": 3,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 115"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 314",
+   "title": "Evidence",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 304"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 316",
+   "title": "Company Law",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 301"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 317",
+   "title": "Commercial Contracts & Banking Operations",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 301"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 326",
+   "title": "Criminal Procedure Law",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 230"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 327",
+   "title": "Administrative Judiciary",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 218"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 328",
+   "title": "Alternative Dispute Resolution",
+   "credits": 3,
+   "year": 3,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 304"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 422",
+   "title": "Maritime & Air Law",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 301"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 424",
+   "title": "Private International Law",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 101"
+   ],
+   "credit_threshold": 60,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 425",
+   "title": "Commercial Papers & Bankruptcy",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 301"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 427",
+   "title": "Law of Execution",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 314"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 429",
+   "title": "Intellectual Property",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": 70,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 430",
+   "title": "Zakat & Taxation Law",
+   "credits": 3,
+   "year": 4,
+   "semester": 1,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [
+    "LAW 316"
+   ],
+   "credit_threshold": null,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "LAW 411",
+   "title": "Training and Research",
+   "credits": 6,
+   "year": 4,
+   "semester": 2,
+   "group": "Major Requirements",
+   "type": "required",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": 90,
+   "preparatory": [],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 102",
+   "title": "Introduction to Social Science",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PHL 101",
+   "title": "Critical Thinking",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "PSY 101",
+   "title": "Principle of Psychology",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "SOS 101",
+   "title": "Saudi Heritage",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "FRE 106",
+   "title": "Conversational French 1",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "CHI 107",
+   "title": "Chinese Language",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 04R",
+    "ORN 04C"
+   ],
+   "corequisites": []
+  },
+  {
+   "code": "ENG 103",
+   "title": "Introduction to English Literature",
+   "credits": 3,
+   "year": null,
+   "semester": null,
+   "group": "Humanities / Social Science Electives",
+   "type": "elective",
+   "slot": false,
+   "prerequisites": [],
+   "credit_threshold": null,
+   "preparatory": [
+    "ORN 05R",
+    "ORN 05C"
+   ],
+   "corequisites": []
+  }
+ ]
+}
