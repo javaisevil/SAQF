@@ -12,3 +12,14 @@ Thumbs.db
 docker-compose.override.yml
 /vendor/
 /node_modules/
+# runtime data (university exports, backups)
+/storage/*
+!/storage/README.md
+!/storage/inbox/
+/storage/inbox/*
+!/storage/inbox/sis/
+!/storage/inbox/lms/
+/storage/inbox/sis/*
+/storage/inbox/lms/*
+!/storage/inbox/*/.gitkeep
+/backups/

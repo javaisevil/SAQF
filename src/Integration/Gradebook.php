@@ -1,0 +1,67 @@
+<?php
+declare(strict_types=1);
+
+namespace Saqf\Integration;
+
+use InvalidArgumentException;
+use Saqf\Core\Secrets;
+
+/**
+ * Gradebook CSV format shared by the manual upload and the LMS export drop folder:
+ *   student,<assessment name>,<assessment name>,…   (one row per student, scores in %)
+ * Validated strictly; nothing in the file is trusted.
+ */
+final class Gradebook
+{
+    public const MAX_ROWS = 5000;
+
+    /**
+     * @param string|null $pseudonymize system name: student identifiers are replaced by keyed
+     *                                  pseudonyms (real LMS exports carry student numbers)
+     * @return array<string,array<string,float>> assessment name => [student key => score %]
+     */
+    public static function parseCsv(string $path, ?string $pseudonymize = null): array
+    {
+        $fh = @fopen($path, 'r');
+        if (!$fh) {
+            throw new InvalidArgumentException('The gradebook file could not be read.');
+        }
+        try {
+            $header = fgetcsv($fh);
+            if ($header && isset($header[0])) {
+                $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $header[0]); // Excel UTF-8 BOM
+            }
+            if (!$header || mb_strtolower(trim((string) $header[0])) !== 'student') {
+                throw new InvalidArgumentException('The first column must be "student" (a pseudonymous student key), followed by one column per assessment name.');
+            }
+            $results = [];
+            $line = 1;
+            while (($row = fgetcsv($fh)) !== false) {
+                $line++;
+                if (count($row) < 2 || trim((string) $row[0]) === '') {
+                    continue;
+                }
+                $student = trim((string) $row[0]);
+                if ($pseudonymize !== null) {
+                    $student = Secrets::pseudonym($pseudonymize, $student);
+                }
+                foreach (array_slice($header, 1) as $i => $name) {
+                    $v = trim((string) ($row[$i + 1] ?? ''));
+                    if ($v === '') {
+                        continue;
+                    }
+                    if (!is_numeric($v) || (float) $v < 0 || (float) $v > 100) {
+                        throw new InvalidArgumentException("Line $line: score for \"$name\" must be a percentage between 0 and 100.");
+                    }
+                    $results[trim((string) $name)][$student] = (float) $v;
+                }
+                if ($line > self::MAX_ROWS) {
+                    throw new InvalidArgumentException('Too many rows.');
+                }
+            }
+            return $results;
+        } finally {
+            fclose($fh);
+        }
+    }
+}

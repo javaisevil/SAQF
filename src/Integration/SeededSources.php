@@ -7,23 +7,34 @@ use Saqf\Core\Clock;
 use Saqf\Core\Db;
 
 /**
- * Seeded institution source: a structured snapshot of Al Yamamah University's
- * PUBLIC study plans (yu.edu.sa PDFs). It is not a live connection.
+ * Institutional catalogue (colleges, departments, programs, study plans, courses, PLOs) read from
+ * structured JSON files. The default directory, data/yu, is a snapshot of Al Yamamah University's
+ * PUBLIC study plans; point SAQF_INSTITUTION_DIR at a Registrar export in the same format to
+ * replace it (see docs/INTEGRATIONS.md). The scheduler re-syncs it daily.
  */
-final class SeededInstitutionSource implements InstitutionSource
+final class CatalogFileSource implements InstitutionSource
 {
-    public function __construct(private string $dir = SAQF_ROOT . '/data/yu')
+    private string $dir;
+
+    public function __construct(?string $dir = null)
     {
+        $this->dir = rtrim($dir ?? (string) (\Saqf\Core\Config::get('SAQF_INSTITUTION_DIR') ?: SAQF_ROOT . '/data/yu'), '/');
     }
 
     public function label(): string
     {
-        return 'Seeded snapshot of YU public study plans (data/yu) — not a live Registrar connection';
+        return $this->dir === SAQF_ROOT . '/data/yu'
+            ? 'YU study-plan catalogue (data/yu) — structured from the published study plans; replace with a Registrar export via SAQF_INSTITUTION_DIR'
+            : 'Registrar catalogue export (' . $this->dir . ')';
     }
 
     public function snapshot(): array
     {
-        $base = json_decode((string) file_get_contents($this->dir . '/institution.json'), true, 512, JSON_THROW_ON_ERROR);
+        $file = $this->dir . '/institution.json';
+        if (!is_file($file)) {
+            throw new \RuntimeException("Institution catalogue not found: $file");
+        }
+        $base = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
         $programs = [];
         foreach ($base['programs'] as $code) {
             $programs[] = json_decode((string) file_get_contents($this->dir . '/programs/' . strtolower($code) . '.json'), true, 512, JSON_THROW_ON_ERROR);
@@ -58,6 +69,11 @@ final class SeededSisSource implements SisSource
     public function terms(): array
     {
         return $this->data()['terms'];
+    }
+
+    public function check(): array
+    {
+        return ['ok' => is_file($this->file), 'message' => 'Demo feed: ' . count($this->terms()) . ' terms (simulated SIS)'];
     }
 
     public function assignments(string $termCode): array
@@ -127,6 +143,11 @@ final class SeededLmsSource implements LmsSource
         return $out;
     }
 
+    public function check(): array
+    {
+        return ['ok' => is_dir($this->dir), 'message' => 'Demo feed: ' . count(glob($this->dir . '/*/*.json') ?: []) . ' gradebook files (simulated LMS)'];
+    }
+
     public function pending(): array
     {
         $now = Clock::stamp();
@@ -144,35 +165,5 @@ final class SeededLmsSource implements LmsSource
             }
         }
         return $out;
-    }
-}
-
-/** Registry so the rest of SAQF never instantiates a concrete adapter directly. */
-final class Integrations
-{
-    private static ?InstitutionSource $institution = null;
-    private static ?SisSource $sis = null;
-    private static ?LmsSource $lms = null;
-
-    public static function institution(): InstitutionSource
-    {
-        return self::$institution ??= new SeededInstitutionSource();
-    }
-
-    public static function sis(): SisSource
-    {
-        return self::$sis ??= new SeededSisSource();
-    }
-
-    public static function lms(): LmsSource
-    {
-        return self::$lms ??= new SeededLmsSource();
-    }
-
-    public static function use(?InstitutionSource $i = null, ?SisSource $s = null, ?LmsSource $l = null): void
-    {
-        self::$institution = $i ?? self::$institution;
-        self::$sis = $s ?? self::$sis;
-        self::$lms = $l ?? self::$lms;
     }
 }

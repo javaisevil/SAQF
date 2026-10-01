@@ -3,7 +3,7 @@
 Options -Indexes
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteRule ^(src|data|bin|database|tests|docs|docker)(/|$) - [F,L]
+    RewriteRule ^(src|data|bin|database|tests|docs|docker|storage|backups)(/|$) - [F,L]
     RewriteRule ^(config\.local\.php|config\.example\.php|\.env.*|Dockerfile|docker-compose\.yml)$ - [F,L]
     RewriteCond %{REQUEST_URI} !/public/
     RewriteRule ^(.*)$ public/$1 [L]

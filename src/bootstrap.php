@@ -18,10 +18,15 @@ spl_autoload_register(static function (string $class): void {
         'Saqf\\Integration\\InstitutionSource' => 'Integration/Sources.php',
         'Saqf\\Integration\\SisSource' => 'Integration/Sources.php',
         'Saqf\\Integration\\LmsSource' => 'Integration/Sources.php',
-        'Saqf\\Integration\\SeededInstitutionSource' => 'Integration/SeededSources.php',
+        'Saqf\\Integration\\CatalogFileSource' => 'Integration/SeededSources.php',
         'Saqf\\Integration\\SeededSisSource' => 'Integration/SeededSources.php',
         'Saqf\\Integration\\SeededLmsSource' => 'Integration/SeededSources.php',
-        'Saqf\\Integration\\Integrations' => 'Integration/SeededSources.php',
+        'Saqf\\Integration\\FileSisSource' => 'Integration/FileSources.php',
+        'Saqf\\Integration\\FileLmsSource' => 'Integration/FileSources.php',
+        'Saqf\\Integration\\Csv' => 'Integration/FileSources.php',
+        'Saqf\\Integration\\NullSisSource' => 'Integration/NullSources.php',
+        'Saqf\\Integration\\NullLmsSource' => 'Integration/NullSources.php',
+        'Saqf\\Security\\JwtKeyNotFound' => 'Security/Jwt.php',
     ];
     $path = SAQF_ROOT . '/src/' . ($map[$class] ?? str_replace('\\', '/', substr($class, 5)) . '.php');
     if (is_file($path)) {
@@ -42,7 +47,9 @@ ErrorLog::register();
 
 if (PHP_SAPI !== 'cli') {
     Request::boot();
-    Session::start();
+    if (!defined('SAQF_STATELESS')) {
+        Session::start();
+    }
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
     header('Referrer-Policy: same-origin');
