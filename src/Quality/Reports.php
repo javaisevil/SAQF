@@ -41,7 +41,7 @@ final class Reports
             }
             $a = $ach[(int) $c['id']] ?? null;
             $clos[] = [
-                'code' => $c['code'], 'statement' => $c['statement'], 'domain' => $c['domain'], 'plos' => $maps,
+                'id' => (int) $c['id'], 'code' => $c['code'], 'statement' => $c['statement'], 'domain' => $c['domain'], 'plos' => $maps,
                 'assessments' => array_values(array_map(static fn($aid) => current(array_filter($spec['assessments'], static fn($x) => (int) $x['id'] === $aid))['name'] ?? '', $c['assessments'])),
                 'target' => $a ? (float) $a['target_pct'] : (float) ($c['target_pct'] ?? Policy::get('clo.default_target_pct')),
                 'target_source' => $c['target_pct'] !== null ? 'course' : 'institutional default',
@@ -72,6 +72,11 @@ final class Reports
             'actions' => $actions,
             'followups' => $followups,
             'evidence' => $batches,
+            'evidence_files' => Evidence::forOffering($offeringId),
+            'sections' => Sections::forOffering($offeringId),
+            'by_section' => Sections::achievement($offeringId),
+            'grades' => self::gradeDistribution($offeringId),
+            'assessed_students' => (int) Db::val('SELECT COUNT(DISTINCT student_ref) FROM assessment_results WHERE offering_id = ?', [$offeringId]),
             'method' => [
                 'achievement' => Policy::get('achievement.method'),
                 'student_threshold' => Policy::get('achievement.student_threshold_pct'),
@@ -79,6 +84,51 @@ final class Reports
             ],
             'generated_at' => Clock::stamp(),
         ];
+    }
+
+    /** Course grade bands used for the distribution in the course report (confirm against the university's scale). */
+    public const GRADE_BANDS = ['A+' => 95, 'A' => 90, 'B+' => 85, 'B' => 80, 'C+' => 75, 'C' => 70, 'D+' => 65, 'D' => 60, 'F' => 0];
+
+    /**
+     * Grade distribution once every assessment has results: each student's weighted total over the
+     * specification's assessments, banded. @return array<string,int>|null null while results are incomplete
+     */
+    public static function gradeDistribution(int $offeringId): ?array
+    {
+        $o = Db::one('SELECT spec_version_id FROM course_offerings WHERE id = ?', [$offeringId]);
+        if (!$o || !$o['spec_version_id']) {
+            return null;
+        }
+        $weights = [];
+        foreach (Db::all('SELECT id, weight_pct FROM assessments WHERE spec_version_id = ?', [$o['spec_version_id']]) as $a) {
+            $weights[(int) $a['id']] = (float) $a['weight_pct'];
+        }
+        $totalWeight = array_sum($weights);
+        if (!$weights || $totalWeight <= 0) {
+            return null;
+        }
+        $scores = [];
+        foreach (Db::all('SELECT assessment_id, student_ref, score_pct FROM assessment_results WHERE offering_id = ?', [$offeringId]) as $r) {
+            $scores[$r['student_ref']][(int) $r['assessment_id']] = (float) $r['score_pct'];
+        }
+        $complete = array_filter($scores, static fn($by) => count(array_intersect_key($weights, $by)) === count($weights));
+        if (!$complete || count($complete) < count($scores) * 0.8) {
+            return null;
+        }
+        $dist = array_fill_keys(array_keys(self::GRADE_BANDS), 0);
+        foreach ($complete as $by) {
+            $total = 0.0;
+            foreach ($weights as $aid => $w) {
+                $total += $by[$aid] * $w / $totalWeight;
+            }
+            foreach (self::GRADE_BANDS as $band => $min) {
+                if ($total >= $min - 1e-9) {
+                    $dist[$band]++;
+                    break;
+                }
+            }
+        }
+        return $dist;
     }
 
     public static function snapshotCourse(int $offeringId): ?int
