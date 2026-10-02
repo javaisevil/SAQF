@@ -85,7 +85,7 @@ final class Engine
         });
 
         Events::on('offering.assigned', static function (array $p): string {
-            $r = Workspaces::initialize((int) $p['course_id'], (int) $p['term_id'], $p['instructor_id'] ? (int) $p['instructor_id'] : null, (int) ($p['sections'] ?? 1), (int) ($p['enrolled'] ?? 0), $p['source'] ?? 'sis');
+            $r = Workspaces::initialize((int) $p['course_id'], (int) $p['term_id'], $p['instructor_id'] ? (int) $p['instructor_id'] : null, (int) ($p['sections'] ?? 1), (int) ($p['enrolled'] ?? 0), $p['source'] ?? 'sis', $p['section_rows'] ?? null);
             return $r['message'];
         });
     }

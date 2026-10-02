@@ -18,8 +18,12 @@ use Saqf\Core\Notify;
  */
 final class Workspaces
 {
-    /** @return array{offering_id:int,message:string,created:bool} */
-    public static function initialize(int $courseId, int $termId, ?int $instructorId, int $sections = 1, int $enrolled = 0, string $source = 'sis'): array
+    /**
+     * @param list<array{section:string,instructor_id:?int,enrolled:int}>|null $sectionRows sections from the SIS
+     *        (multi-section courses); $instructorId is then the course coordinator
+     * @return array{offering_id:int,message:string,created:bool}
+     */
+    public static function initialize(int $courseId, int $termId, ?int $instructorId, int $sections = 1, int $enrolled = 0, string $source = 'sis', ?array $sectionRows = null): array
     {
         $course = Catalog::course($courseId);
         $term = Db::one('SELECT * FROM terms WHERE id = ?', [$termId]);
@@ -41,9 +45,12 @@ final class Workspaces
                         Notify::user($instructorId, 'action', "{$course['code']}: one academic task needs your input", 'This course has no approved specification yet. Define its outcomes and assessment plan once; SAQF reuses them every term.', 'workspace.php?id=' . $existing['id'], 'first-spec:' . $existing['id'] . ':' . $instructorId);
                     }
                 }
+            }
+            $sectionChanges = $sectionRows !== null ? array_sum(Sections::sync((int) $existing['id'], $sectionRows)) : 0;
+            if ($changes || $sectionChanges) {
                 Engine::evaluateOffering((int) $existing['id']);
             }
-            return ['offering_id' => (int) $existing['id'], 'message' => "{$course['code']} {$term['name']} already initialised" . ($changes ? ' (assignment updated)' : ''), 'created' => false];
+            return ['offering_id' => (int) $existing['id'], 'message' => "{$course['code']} {$term['name']} already initialised" . ($changes || $sectionChanges ? ' (assignment updated)' : ''), 'created' => false];
         }
 
         $approved = Specs::approved($courseId);
@@ -59,6 +66,9 @@ final class Workspaces
             'initialized_by' => $source === 'manual' ? 'user' : 'system',
             'initialized_at' => Clock::stamp(),
         ]);
+        if ($sectionRows !== null) {
+            Sections::sync($offeringId, $sectionRows);
+        }
 
         // Automation transparency: count what was populated or inherited, not typed.
         $programs = Catalog::programsFor($courseId);

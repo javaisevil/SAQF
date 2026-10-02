@@ -33,8 +33,16 @@ final class Achievement
         foreach (Db::col('SELECT name FROM assessments WHERE spec_version_id = ?', [$o['spec_version_id']]) as $name) {
             $known[mb_strtolower(trim((string) $name))] = true;
         }
+        // One LMS course per section when SAQF_LMS_COURSE_KEY contains {section}; otherwise one per course.
+        $sections = Integrations::lmsKeyHasSection() ? array_column(Sections::forOffering($offeringId), 'section_code') : [];
+        $batches = [];
+        foreach ($sections ?: [null] as $section) {
+            foreach (Integrations::lms()->batches($o['term_code'], $o['course_code'], $section) as $batch) {
+                $batches[] = $batch + ($section !== null ? ['section' => $section] : []);
+            }
+        }
         $n = 0;
-        foreach (Integrations::lms()->batches($o['term_code'], $o['course_code']) as $batch) {
+        foreach ($batches as $batch) {
             if (Db::val('SELECT 1 FROM result_batches WHERE offering_id = ? AND external_ref = ?', [$offeringId, $batch['ref']])) {
                 continue;
             }
@@ -44,7 +52,7 @@ final class Achievement
                 continue;
             }
             Audit::asSystem(static function () use ($offeringId, $batch, $results, $ignored, $o, &$n) {
-                self::import($offeringId, $results, 'lms', $batch['ref']);
+                self::import($offeringId, $results, 'lms', $batch['ref'], $batch['sections'] ?? ($batch['section'] ?? null));
                 if ($ignored) {
                     Audit::record('results.columns_ignored', 'offering', $offeringId, "{$o['course_code']}: LMS gradebook columns not in the course specification were not imported: " . mb_strimwidth(implode(', ', $ignored), 0, 250, '…'));
                 }
@@ -57,8 +65,10 @@ final class Achievement
     /**
      * Imports results: assessment name => [student_ref => score_pct].
      * Assessment names are matched to the offering's specification; unknown names are rejected.
+     * $sections tags students with their section: one code for the whole batch, or student => code.
+     * @param string|array<string,string>|null $sections
      */
-    public static function import(int $offeringId, array $results, string $source, ?string $ref = null): array
+    public static function import(int $offeringId, array $results, string $source, ?string $ref = null, $sections = null): array
     {
         $o = Db::one('SELECT * FROM course_offerings WHERE id = ?', [$offeringId]);
         if (!$o || !$o['spec_version_id']) {
@@ -79,24 +89,27 @@ final class Achievement
             throw new InvalidArgumentException('These assessments are not in the course specification: ' . implode(', ', $unknown) . '. Results must use the specification\'s assessment names.');
         }
         $checksum = hash('sha256', json_encode($results));
-        $batchId = Db::tx(static function () use ($offeringId, $results, $assessments, $source, $ref, $checksum, &$rows) {
+        $batchSection = is_string($sections) ? Sections::code($sections) : null;
+        $sectionOf = is_array($sections) ? $sections : [];
+        $batchId = Db::tx(static function () use ($offeringId, $results, $assessments, $source, $ref, $checksum, $batchSection, $sectionOf, &$rows) {
             $batchId = Db::insert('result_batches', [
-                'offering_id' => $offeringId, 'source' => $source, 'external_ref' => $ref ?? ('upload-' . substr($checksum, 0, 12)),
+                'offering_id' => $offeringId, 'source' => $source, 'external_ref' => $ref ?? ('upload-' . substr($checksum, 0, 12) . '-' . bin2hex(random_bytes(3))),
                 'imported_by' => $_SESSION['uid'] ?? null, 'imported_at' => Clock::stamp(), 'rows_count' => 0,
                 'assessments' => mb_substr(implode(', ', array_keys($results)), 0, 400), 'checksum' => $checksum,
             ]);
             foreach ($results as $name => $scores) {
                 $aid = $assessments[mb_strtolower(trim((string) $name))];
                 foreach ($scores as $student => $score) {
+                    $section = $batchSection ?? (isset($sectionOf[$student]) ? Sections::code($sectionOf[$student]) : null);
                     $student = preg_replace('/[^A-Za-z0-9\-_]/', '', (string) $student);
                     $score = max(0.0, min(100.0, (float) $score));
                     if ($student === '') {
                         continue;
                     }
                     Db::exec(
-                        'INSERT INTO assessment_results (offering_id, assessment_id, student_ref, score_pct, batch_id) VALUES (?,?,?,?,?)
-                         ON DUPLICATE KEY UPDATE score_pct = VALUES(score_pct), batch_id = VALUES(batch_id)',
-                        [$offeringId, $aid, $student, $score, $batchId]
+                        'INSERT INTO assessment_results (offering_id, assessment_id, student_ref, section_code, score_pct, batch_id) VALUES (?,?,?,?,?,?)
+                         ON DUPLICATE KEY UPDATE score_pct = VALUES(score_pct), batch_id = VALUES(batch_id), section_code = COALESCE(VALUES(section_code), section_code)',
+                        [$offeringId, $aid, $student, $section, $score, $batchId]
                     );
                     $rows++;
                 }
@@ -159,27 +172,11 @@ final class Achievement
                 continue;
             }
             $coverage = array_sum(array_map(static fn($id) => $weights[$id] ?? 0, array_keys($withData))) / $linkedWeight * 100;
-            $studentScores = [];
-            foreach ($scores as $byAssessment) {
-                $num = 0.0;
-                $den = 0.0;
-                foreach ($linked as $aid) {
-                    if (isset($byAssessment[$aid]) && ($weights[$aid] ?? 0) > 0) {
-                        $num += $byAssessment[$aid] * $weights[$aid];
-                        $den += $weights[$aid];
-                    }
-                }
-                if ($den > 0) {
-                    $studentScores[] = $num / $den;
-                }
-            }
-            $n = count($studentScores);
-            if ($n === 0) {
+            $cv = self::cloValue($scores, $linked, $weights, $method, $studentThreshold);
+            if ($cv === null) {
                 continue;
             }
-            $value = round($method === 'average'
-                ? array_sum($studentScores) / $n
-                : count(array_filter($studentScores, static fn($s) => $s >= $studentThreshold - 1e-9)) / $n * 100, 2);
+            ['value' => $value, 'n' => $n] = $cv;
             $target = $clo['target_pct'] !== null ? (float) $clo['target_pct'] : $defaultTarget;
             $provisional = $coverage < 99.99 ? 1 : 0;
             Db::exec(
@@ -214,6 +211,38 @@ final class Achievement
         Audit::asSystem(static fn() => Audit::record('achievement.computed', 'offering', $offeringId, count($cloValues) . ' CLO and ' . count($byPlo) . " PLO achievement values calculated ($method method)"));
         Events::emit('achievement.computed', ['offering_id' => $offeringId]);
         return ['clos' => count($cloValues)];
+    }
+
+    /**
+     * One CLO's achievement over a set of students: each student's CLO score is the weighted mean of
+     * their linked assessment scores; the CLO value is the share reaching the threshold (or the mean).
+     * @param array<string,array<int,float>> $scores student => assessment id => score
+     * @return array{value:float,n:int}|null
+     */
+    public static function cloValue(array $scores, array $linked, array $weights, string $method, float $threshold): ?array
+    {
+        $studentScores = [];
+        foreach ($scores as $byAssessment) {
+            $num = 0.0;
+            $den = 0.0;
+            foreach ($linked as $aid) {
+                if (isset($byAssessment[$aid]) && ($weights[$aid] ?? 0) > 0) {
+                    $num += $byAssessment[$aid] * $weights[$aid];
+                    $den += $weights[$aid];
+                }
+            }
+            if ($den > 0) {
+                $studentScores[] = $num / $den;
+            }
+        }
+        $n = count($studentScores);
+        if ($n === 0) {
+            return null;
+        }
+        $value = round($method === 'average'
+            ? array_sum($studentScores) / $n
+            : count(array_filter($studentScores, static fn($s) => $s >= $threshold - 1e-9)) / $n * 100, 2);
+        return ['value' => $value, 'n' => $n];
     }
 
     /** Achievement history of a CLO lineage across offerings (institutional memory). */
