@@ -77,10 +77,10 @@ $cneSo1 = (int) Db::val('SELECT pl.id FROM plos pl JOIN programs p ON p.id = pl.
 
 echo "\n2. Change-based specification workflow + continuous validation (the live demo)\n";
 $o412 = $offering('SWE 412', '2026-1');
-$faisal = user('f.faisal');
+$omar = user('f.omar');
 ok(count(array_intersect(['CLO_VAGUE_VERB', 'CLO_UNMAPPED', 'CLO_NOT_ASSESSED', 'ASSESSMENT_WEIGHT_TOTAL'], openRules($o412))) === 4, 'four deterministic issues open on the SWE 412 draft');
 $draft = (int) Specs::inFlight($swe412)['id'];
-$r = Specs::submit($draft, $faisal);
+$r = Specs::submit($draft, $omar);
 ok(!$r['ok'] && count($r['blockers']) === 4, 'submission with blockers is refused ("red is never sent")');
 $clo4 = (int) Db::val('SELECT id FROM clos WHERE spec_version_id = ? AND code = "CLO4"', [$draft]);
 Specs::saveClo($draft, $clo4, ['statement' => 'Analyze security risks in mobile applications and apply appropriate mitigations.', 'domain' => 'Skills', 'target_pct' => '']);
@@ -89,7 +89,7 @@ $sugg = Db::one('SELECT * FROM recommendations WHERE scope_type = "spec" AND sco
 ok($sugg !== null, 'an assisted mapping suggestion is offered for the unmapped CLO (' . ($sugg['title'] ?? 'none') . ')');
 throws(static fn() => Specs::setMapping($clo4, $cneSo1, true), 'mapping to a PLO of a program that does not contain the course is prevented');
 if ($sugg) {
-    Intelligence::decide((int) $sugg['id'], $faisal, true);
+    Intelligence::decide((int) $sugg['id'], $omar, true);
 } else {
     Specs::setMapping($clo4, (int) Db::val('SELECT id FROM plos WHERE program_id = ? AND code = "SO1"', [$swe]), true);
 }
@@ -104,7 +104,7 @@ Specs::saveAssessment($draft, $lab, ['name' => 'Lab assignments', 'kind' => 'lab
 ok(!array_intersect(['ASSESSMENT_WEIGHT_TOTAL', 'CLO_VAGUE_VERB', 'CLO_UNMAPPED', 'CLO_NOT_ASSESSED'], openRules($o412)), 'weights back to 100% — all four issues cleared without anyone "running a check"');
 $diff = Specs::diff($draft);
 ok(count($diff) >= 1 && $diff[0]['academic'], 'reviewers see only the difference from the approved baseline (' . count($diff) . ' change)');
-$r = Specs::submit($draft, $faisal);
+$r = Specs::submit($draft, $omar);
 ok($r['ok'] && $r['route'] === 'hod', 'valid revision is routed to the HoD');
 $hod = user('hod.ced');
 $msg = Specs::hodDecide($draft, $hod, 'approve', '');
@@ -120,7 +120,9 @@ $o413 = $offering('SWE 413', '2026-1');
 ok($o413 > 0 && (int) Db::val('SELECT COUNT(*) FROM course_offerings') === (int) $before + 1, 'SIS assignment created the SWE 413 workspace automatically');
 ok(in_array('OFFERING_NO_SPEC', openRules($o413), true), 'no approved specification → the one academic task is surfaced');
 ok((Ledger::totals($o413)['field_populated'] ?? 0) > 0, 'automation ledger recorded ' . (Ledger::totals($o413)['field_populated'] ?? 0) . ' fields populated from institutional data');
-ok((bool) Db::val('SELECT 1 FROM notifications WHERE user_id = ? AND dedupe_key = ?', [$faisal['id'], 'first-spec:' . $o413]), 'instructor notified only because an academic input is needed');
+$newInstructor = Db::one('SELECT u.* FROM users u JOIN course_offerings o ON o.instructor_id = u.id WHERE o.id = ?', [$o413]);
+ok($newInstructor && $newInstructor['role'] === 'faculty' && $newInstructor['external_id'] === 'YU-F1047', 'a brand-new instructor in the SIS feed got a faculty account automatically (' . ($newInstructor['username'] ?? '?') . ')');
+ok((bool) Db::val('SELECT 1 FROM notifications WHERE user_id = ? AND dedupe_key = ?', [(int) ($newInstructor['id'] ?? 0), 'first-spec:' . $o413]), 'instructor notified only because an academic input is needed');
 Sync::assignments('2026-1');
 ok((int) Db::val('SELECT COUNT(*) FROM course_offerings WHERE course_id = ?', [$course('SWE 413')]) === 1, 're-running the feed is idempotent (no duplicate workspace)');
 
@@ -138,7 +140,7 @@ ok(Achievement::syncFromLms($o302) === 0, 'importing the same LMS batch twice is
 throws(static fn() => Achievement::import($o302, ['Pop quiz 9' => ['S1' => 80]], 'upload'), 'results for assessments not in the specification are rejected');
 
 echo "\n5. Target missed → gap → improvement drafted → committed → tracked\n";
-user('f.faisal');
+user('f.omar');
 $scores = [];
 foreach (Db::col('SELECT name FROM assessments WHERE spec_version_id = ?', [$draft]) as $name) {
     for ($i = 1; $i <= 12; $i++) {
@@ -149,10 +151,10 @@ Achievement::import($o412, $scores, 'upload');
 ok(in_array('CLO_TARGET_MISSED', openRules($o412), true), 'missed targets detected immediately after results import');
 $ia = Db::one('SELECT * FROM improvement_actions WHERE origin_offering_id = ? AND status = "draft" LIMIT 1', [$o412]);
 ok($ia && $ia['created_by'] === null && str_contains($ia['evidence_summary'], 'target'), 'improvement record drafted by SAQF with evidence: "' . mb_strimwidth((string) ($ia['evidence_summary'] ?? ''), 0, 70, '…') . '"');
-throws(static fn() => Improvements::commit((int) $ia['id'], $faisal, 'short', null, '2027-01-15'), 'an empty academic response is not accepted');
+throws(static fn() => Improvements::commit((int) $ia['id'], $omar, 'short', null, '2027-01-15'), 'an empty academic response is not accepted');
 $drafts = Db::col('SELECT id FROM improvement_actions WHERE origin_offering_id = ? AND status = "draft"', [$o412]);
 foreach ($drafts as $id) {
-    Improvements::commit((int) $id, $faisal, 'Add guided practice sessions and formative feedback before the summative assessment.', $faisal['id'], '2027-01-15');
+    Improvements::commit((int) $id, $omar, 'Add guided practice sessions and formative feedback before the summative assessment.', $omar['id'], '2027-01-15');
 }
 ok(!in_array('IMPROVEMENT_MISSING', openRules($o412), true) && !in_array('CLO_TARGET_MISSED', openRules($o412), true), 'committing actions resolves IMPROVEMENT_MISSING; the gap is now tracked by the actions');
 
@@ -178,7 +180,7 @@ throws(static fn() => Overrides::decide((int) $ov['id'], $qa, true, ''), 'an ove
 Overrides::decide((int) $ov['id'], $qa, true, 'Capstone milestone structure accepted per graduation project handbook.');
 ok(Db::val('SELECT status FROM findings WHERE id = ?', [$ov['finding_id']]) === 'overridden', 'finding marked overridden (not deleted), with who/why recorded');
 $vague = Db::val('SELECT id FROM findings WHERE rule_code = "OFFERING_NO_SPEC" AND status = "open" LIMIT 1');
-throws(static fn() => Overrides::request((int) $vague, user('f.yousef'), 'Please waive this requirement for my course this term.'), 'workflow/validation blockers cannot be waived by request');
+throws(static fn() => Overrides::request((int) $vague, user('f.sara'), 'Please waive this requirement for my course this term.'), 'workflow/validation blockers cannot be waived by request');
 
 echo "\n9. Policy is configuration (audited), not code\n";
 user('qa.director');

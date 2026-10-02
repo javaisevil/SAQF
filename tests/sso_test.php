@@ -125,8 +125,8 @@ section('4. Provisioning and roles from the identity provider');
 [$code] = http($qa, "$app/quality.php");
 $u = Db::one('SELECT * FROM users WHERE username = "l.qa"');
 ok($u && $u['role'] === 'qa' && $u['provisioned_by'] === 'sso' && str_ends_with($loc, 'quality.php') && $code === 200, 'new QA staff member provisioned from the role claim and lands on the Exception Center');
-$f = (int) Db::val('SELECT id FROM users WHERE username = "f.faisal"');
-[, $next] = sso($fa = jar(), ['sub' => 'faisal-1', 'preferred_username' => 'f.faisal@yu.edu.sa', 'roles' => ['SAQF.Faculty']]);
+$f = (int) Db::val('SELECT id FROM users WHERE username = "f.noura"');
+[, $next] = sso($fa = jar(), ['sub' => 'noura-1', 'preferred_username' => 'f.noura@yu.edu.sa', 'roles' => ['SAQF.Faculty']]);
 ok($next === 'index.php' && Db::val('SELECT role FROM users WHERE id = ?', [$f]) === 'faculty', 'existing faculty member keeps the faculty role');
 
 section('5. Password rules once SSO is on');
@@ -143,7 +143,10 @@ ok($alert($right) !== '' && $alert($right) === $alert($wrong) && $alert($wrong) 
 $adm = jar();
 [, $html] = http($adm, "$app/login.php");
 [$code, , $loc] = http($adm, "$app/login.php", ['_csrf' => csrf_of($html), 'username' => 'it.admin', 'password' => Story::PASSWORD]);
-ok($code === 302 && str_ends_with($loc, 'index.php'), 'administrators keep break-glass password access');
+ok($code === 302 && str_ends_with($loc, 'mfa.php'), 'administrators keep break-glass password access, protected by two-step verification');
+[, $html] = http($adm, "$app/mfa.php");
+[$code, , $loc] = http($adm, "$app/mfa.php", ['_csrf' => csrf_of($html), 'code' => \Saqf\Security\Totp::code(Story::ADMIN_TOTP_SECRET)]);
+ok($code === 302 && str_ends_with($loc, 'index.php'), '…the authenticator code completes the administrator sign-in');
 [$code, , $loc] = http(jar(), "$app/forgot.php");
 ok($code === 302 && str_ends_with($loc, 'login.php'), 'password reset page is off while e-mail is not configured');
 

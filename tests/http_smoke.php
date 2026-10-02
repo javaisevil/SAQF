@@ -58,6 +58,14 @@ function login(string $base, string $user, string $password = Story::PASSWORD): 
     $c = client();
     [, $html] = req($c, "$base/login.php");
     [$code, , $loc] = req($c, "$base/login.php", ['_csrf' => csrf($html), 'username' => $user, 'password' => $password]);
+    if ($code === 302 && str_contains($loc, 'mfa.php')) {
+        // Two-step verification (required for administrators): answer with the authenticator code.
+        $secret = (string) \Saqf\Core\Secrets::decrypt((string) Db::val('SELECT mfa_secret FROM users WHERE username = ?', [$user]));
+        [, $html] = req($c, "$base/mfa.php");
+        [$code, , $loc] = req($c, "$base/mfa.php", ['_csrf' => csrf($html), 'code' => \Saqf\Security\Totp::code($secret)]);
+        // the same code cannot be used twice: later sign-ins in this run wait for the next 30-second step
+        Db::exec('UPDATE users SET mfa_last_step = NULL WHERE username = ?', [$user]);
+    }
     $c['ok'] = $code === 302 && str_contains($loc, 'index.php');
     return $c;
 }
@@ -78,13 +86,15 @@ $finding = (int) Db::val('SELECT id FROM findings WHERE rule_code = "COURSE_CRED
 $specPending = (int) Db::val('SELECT id FROM spec_versions WHERE status = "approved" ORDER BY id LIMIT 1');
 
 $pages = [
-    'f.faisal' => ['faculty.php', "workspace.php?id=$swe412", "workspace.php?id=$swe412&tab=structure", "workspace.php?id=$swe412&tab=results", "workspace.php?id=$swe412&tab=improve", "workspace.php?id=$swe412&tab=report", "workspace.php?id=$swe412&tab=history", 'improvements.php', 'catalog.php', "catalog.php?program=$swe", 'notifications.php', 'account.php', 'search.php?q=SWE', "program.php?id=$swe"],
-    'f.omar' => ['faculty.php', "workspace.php?id=$swe401", "workspace.php?id=$swe401&tab=improve", "workspace.php?id=$swe401old", "report.php?type=course&id=$swe401old", "report.php?type=course&id=$swe401old&snapshot=1"],
+    'f.omar' => ['faculty.php', "workspace.php?id=$swe412", "workspace.php?id=$swe412&tab=structure", "workspace.php?id=$swe412&tab=results", "workspace.php?id=$swe412&tab=improve", "workspace.php?id=$swe412&tab=report", "workspace.php?id=$swe412&tab=history", 'improvements.php', 'catalog.php', "catalog.php?program=$swe", 'notifications.php', 'account.php', 'search.php?q=SWE', "program.php?id=$swe",
+        "workspace.php?id=$swe401", "workspace.php?id=$swe401&tab=results", "workspace.php?id=$swe401&tab=evidence", "workspace.php?id=$swe401&tab=improve", "workspace.php?id=$swe401old", "report.php?type=course&id=$swe401old", "report.php?type=course&id=$swe401old&snapshot=1"],
+    'f.sara' => ['faculty.php', "workspace.php?id=$swe401", "workspace.php?id=$swe401&tab=results", "workspace.php?id=$swe401&tab=evidence"],
+    'f.noura' => ['faculty.php', "workspace.php?id=$acc311", "workspace.php?id=$acc311&tab=structure", 'account.php'],
     'hod.ced' => ['department.php', 'approvals.php', 'exceptions.php', 'programs.php', "program.php?id=$swe", "program.php?id=$swe&tab=plos", "program.php?id=$swe&tab=plan", "program.php?id=$swe&tab=matrix", 'improvements.php', 'assign.php', "assign.php?program=$swe", 'catalog.php', "workspace.php?id=$swe412", "report.php?type=program&id=$swe", "report.php?type=spec&id=$specPending", 'policies.php'],
-    'qa.director' => ['quality.php', 'exceptions.php', "exceptions.php?finding=$finding", 'approvals.php', 'programs.php', 'improvements.php', 'policies.php', 'institution.php', "workspace.php?id=$acc311"],
+    'qa.director' => ['quality.php', 'exceptions.php', "exceptions.php?finding=$finding", 'approvals.php', 'programs.php', 'improvements.php', 'policies.php', 'institution.php', "workspace.php?id=$acc311", 'spec_import.php'],
     'dean.coe' => ['college.php', 'programs.php', 'exceptions.php', 'improvements.php', "program.php?id=$swe"],
     'vp.academic' => ['institution.php', 'programs.php', 'exceptions.php', 'improvements.php', 'college.php?college=1'],
-    'it.admin' => ['admin.php', 'admin.php?tab=users', 'admin.php?tab=security', 'admin.php?tab=audit', 'admin.php?tab=errors', 'admin.php?tab=integrations', 'policies.php', 'catalog.php'],
+    'it.admin' => ['admin.php', 'admin.php?tab=center', 'admin.php?tab=users', 'admin.php?tab=security', 'admin.php?tab=audit', 'admin.php?tab=errors', 'admin.php?tab=alerts', 'admin.php?tab=integrations', 'policies.php', 'catalog.php', 'account.php'],
 ];
 
 echo "== pages render cleanly for every role\n";
@@ -99,8 +109,9 @@ foreach ($pages as $user => $list) {
 
 echo "== authorization is enforced server-side\n";
 $deny = [
-    ['f.faisal', 'department.php'], ['f.faisal', 'quality.php'], ['f.faisal', 'admin.php'], ['f.faisal', "workspace.php?id=$swe401"],
-    ['f.faisal', "workspace.php?id=$acc311"], ['f.faisal', "program.php?id=$acc"], ['f.faisal', "exceptions.php?finding=$finding"],
+    ['f.noura', 'department.php'], ['f.noura', 'quality.php'], ['f.noura', 'admin.php'], ['f.noura', "workspace.php?id=$swe401"],
+    ['f.noura', "workspace.php?id=$swe412"], ['f.noura', "program.php?id=$swe"], ['f.noura', "exceptions.php?finding=$finding"],
+    ['f.sara', "workspace.php?id=$swe412"], ['f.noura', 'spec_import.php'],
     ['hod.ced', "workspace.php?id=$acc311"], ['hod.ced', "program.php?id=$acc"], ['hod.ced', 'admin.php'], ['hod.ced', 'quality.php'],
     ['dean.coe', "workspace.php?id=$acc311"], ['dean.coe', 'admin.php'], ['it.admin', "workspace.php?id=$swe412"], ['it.admin', 'department.php'],
     ['it.admin', "program.php?id=$swe"], ['vp.academic', 'admin.php'], ['qa.director', 'admin.php'], ['f.omar', "report.php?type=course&id=$acc311"],
@@ -112,11 +123,13 @@ foreach ($deny as [$user, $p]) {
 }
 
 echo "== API mutations are scoped and CSRF-protected\n";
-$c = login($base, 'f.omar');
+$c = login($base, 'f.sara');
 [, $html] = req($c, "$base/faculty.php");
 $tok = csrf($html);
+[$code, $body] = req($c, "$base/api.php", ['action' => 'save_clo', 'offering' => $swe401, 'statement' => 'Analyze things.', 'domain' => 'Skills'], ["X-CSRF-Token: $tok"]);
+check($code === 403 && str_contains($body, '"ok":false'), "f.sara teaches section 02 of SWE 401 but cannot change its shared specification (coordinator only) → $code");
 [$code, $body] = req($c, "$base/api.php", ['action' => 'save_clo', 'offering' => $swe412, 'statement' => 'Analyze things.', 'domain' => 'Skills'], ["X-CSRF-Token: $tok"]);
-check($code === 403 && str_contains($body, '"ok":false'), "f.omar cannot edit SWE 412 (Fall 2026 belongs to f.faisal) → $code");
+check($code === 403 && str_contains($body, '"ok":false'), "f.sara cannot edit SWE 412 (Dr. Omar's course) → $code");
 [$code] = req($c, "$base/api.php", ['action' => 'save_clo', 'offering' => $swe401, 'statement' => 'Analyze things.', 'domain' => 'Skills']);
 check($code === 403, "missing CSRF token rejected → $code");
 [$code, $body] = req($c, "$base/api.php", ['action' => 'policy_set', 'p' => ['clo.default_target_pct=10']], ["X-CSRF-Token: $tok"]);
@@ -136,7 +149,7 @@ $accPlo = (int) Db::val('SELECT id FROM plos WHERE program_id = ? LIMIT 1', [$ac
 check($code === 403, "HoD of CED cannot change Accounting PLOs → $code");
 
 echo "== account lockout\n";
-$victim = 'f.lina';
+$victim = 'f.noura';
 for ($i = 0; $i < 5; $i++) {
     login($base, $victim, 'wrong-password-' . $i);
 }
