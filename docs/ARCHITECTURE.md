@@ -14,8 +14,8 @@ This document is for developers and university IT. For a non-technical overview 
 
 | Layer | Code | Notes |
 |---|---|---|
-| Integration adapters | `src/Integration/Sources.php` (interfaces), `SeededSources.php` (prototype implementations), `Sync.php` | `InstitutionSource`, `SisSource`, `LmsSource`. The prototype reads `data/yu/*.json` and `data/demo/*`. Production swaps in real implementations. |
-| Data model | `database/schema.sql` (38 tables) | institution → colleges → departments → programs → study_plan_entries ↔ courses → course_offerings (per term) → spec_versions → clos / assessments / clo_plo / assessment_clo → result_batches / assessment_results → clo_achievement / plo_achievement → improvement_actions |
+| Integration connectors | `src/Integration/Sources.php` (interfaces), `Integrations.php` (registry, chosen by configuration), `FileSources.php`, `RestSisSource.php`, `MoodleLmsSource.php`, `BlackboardLmsSource.php`, `SeededSources.php` (catalogue files + demo feeds), `Sync.php`, `Http.php` | `InstitutionSource`, `SisSource`, `LmsSource`. SIS: CSV export folder or REST API. LMS: Moodle web services, Blackboard Learn REST, or CSV export folder. Demo mode uses the simulated feeds in `data/demo/`. Setup: [INTEGRATIONS.md](INTEGRATIONS.md). |
+| Data model | `database/schema.sql` (38 tables) + `database/migrations/` (applied by `bin/migrate.php`; 42 tables with the first migration) | institution → colleges → departments → programs → study_plan_entries ↔ courses → course_offerings (per term) → spec_versions → clos / assessments / clo_plo / assessment_clo → result_batches / assessment_results → clo_achievement / plo_achievement → improvement_actions |
 | Rules engine | `Rules.php`, `Findings.php` | 33 rules in 7 categories. Findings are fingerprinted, deduplicated, re-opened if a problem returns, and **auto-resolved** when the rule passes again. |
 | Event bus | `src/Core/Events.php`, wiring in `src/Quality/Engine.php` | Events: `spec.changed`, `spec.approved`, `results.imported`, `achievement.computed`, `improvement.changed`, `plo.changed`, `offering.assigned`. Every event and its outcome is stored in `events` (visible to IT under Integrations). |
 | Calculation | `Achievement.php` | Results → weighted per-student CLO score → % reaching the threshold (or mean) → CLO achievement → PLO = mean of contributing CLOs. *Provisional* until every planned assessment has results. Method and thresholds come from policy. |
@@ -25,7 +25,8 @@ This document is for developers and university IT. For a non-technical overview 
 | Status | `Status.php` | Explainable course states: *Action required*, *Exception detected*, *Awaiting academic decision*, *Improvement follow-up*, *Ready*. Each state lists the reasons behind it. No opaque scores. |
 | Role views | `ActionCenter.php`, `public/*.php` | One Action Center per role. Every number links to the records behind it. |
 | Reports | `Reports.php`, `public/report.php` | Course and program reports are views over live data. Closing a term freezes each course report into `snapshots` with a SHA-256 seal. |
-| Cross-cutting | `Audit.php`, `Ledger.php`, `Policy.php`, `Notify.php`, `ErrorLog.php`, `Security/*` | Hash-chained audit log, automation ledger ("work saved" counts), configurable policies, action-only notifications, error references. |
+| Identity and accounts | `Security/Auth.php`, `Oidc.php`, `Jwt.php`, `Users.php`, `PasswordReset.php` | University SSO (OpenID Connect + PKCE, JWKS signature verification), password login policy, account provisioning (admin form, CSV import, SIS feed, SSO), e-mail invitations and password reset. |
+| Cross-cutting | `Audit.php`, `Ledger.php`, `Policy.php`, `Notify.php`, `Mailer.php`, `Smtp.php`, `Migrations.php`, `Secrets.php`, `ErrorLog.php` | Hash-chained audit log, automation ledger ("work saved" counts), configurable policies, action-only notifications and their e-mail digests (queued, retried), schema upgrades, keyed pseudonyms for student identities, error references. |
 
 ## 3. Event-driven pipeline
 
@@ -46,7 +47,7 @@ Term activated ─▶ close previous term (snapshot reports) ─▶ rollover: ev
                   inherits its approved spec ─▶ carry open improvement actions
 ```
 
-`bin/tick.php` (cron, every 5 min) is the heartbeat. It imports newly published LMS batches, re-checks date-driven rules (overdue results and actions) and re-evaluates programs daily. The web app also triggers it opportunistically, at most every 5 minutes.
+`bin/tick.php` (every 5 min: the container loop or cron) is the heartbeat (`src/Quality/Scheduler.php`). Hourly it reads the SIS calendar and teaching assignments and **activates a term on its start date** (closing the previous one). Every run it imports newly published LMS results and delivers e-mail; daily it re-syncs the catalogue, re-checks date-driven rules (overdue results and actions) and re-evaluates programs. Each step is isolated (a failing system is logged and the rest continue) and a database lock keeps one scheduler running at a time. If the heartbeat stops, page requests run it as a safety net after 15 minutes (demo: 5).
 
 ## 4. Study-plan intelligence (Al Yamamah University)
 
@@ -62,7 +63,7 @@ Term activated ─▶ close previous term (snapshot reports) ─▶ rollover: ev
 
 ## 5. Security model
 
-- **Authentication:** bcrypt (`password_hash`), timing-equalised unknown users, lockout after N failures (policy), per-IP throttling, forced password change for reset or new accounts, minimum length plus a username check.
+- **Authentication:** university SSO through OpenID Connect (authorization code + PKCE; state single-use and bound to the browser with a SameSite=Lax cookie; nonce; ID token signature verified against the provider's JWKS with RS256/384/512 or ES256/384 only, so `none`/HS* algorithm confusion is impossible; issuer, audience, `azp`, expiry checked against real time). `SAQF_PASSWORD_LOGIN` limits passwords to administrators (break-glass) or turns them off. Passwords: bcrypt (`password_hash`), timing-equalised unknown users, lockout after N failures (policy), per-IP throttling, forced change after an administrator reset, minimum length plus a username check. Self-service reset: 256-bit single-use tokens stored as SHA-256, 30-minute expiry, throttled, links built only from `SAQF_BASE_URL`.
 - **Sessions:** strict mode, HttpOnly, SameSite=Strict, Secure on HTTPS, regenerated on login, idle and absolute timeouts (policy), bound to the user agent. Logout is POST-only.
 - **CSRF:** a token on every state-changing form and API call (`X-CSRF-Token`).
 - **Authorization:** `src/Security/Authz.php` checks scope on every object (offering, course, program, finding, version) on the server. Faculty see only their offerings, HoDs their department, deans their college. Every denial is audited as `security.access_denied`. Hiding buttons is never the control.
@@ -74,11 +75,14 @@ Term activated ─▶ close previous term (snapshot reports) ─▶ rollover: ev
 
 ## 6. Configuration and policy
 
-Environment variables (or `config.local.php`): `APP_ENV`, `APP_DEBUG`, `APP_TIMEZONE`, `SAQF_DB_*`, `SAQF_DEMO`, `SAQF_TRUST_PROXY`, `SAQF_DEMO_CLOCK`.
+Environment variables (or `config.local.php`): `APP_ENV`, `APP_DEBUG`, `APP_TIMEZONE`, `SAQF_DB_*`, `SAQF_DEMO`, `SAQF_TRUST_PROXY`, `SAQF_DEMO_CLOCK`, `SAQF_BASE_URL`, `SAQF_APP_KEY`, connectors (`SAQF_SIS_*`, `SAQF_LMS_*`, `SAQF_MOODLE_*`, `SAQF_BLACKBOARD_*`, `SAQF_INSTITUTION_DIR`), sign-in (`SAQF_OIDC_*`, `SAQF_PASSWORD_LOGIN`) and e-mail (`SAQF_MAIL_*`). `.env.example` lists them all; [INTEGRATIONS.md](INTEGRATIONS.md) explains them.
 
-Quality and security thresholds are **institutional policy** stored in `quality_policies` and edited by QA with an audited reason. There are 24 policies: achievement method and thresholds, weight limits, default targets, recurrence cycles, improvement deadlines, sampling rate, minimum sample size, coverage minimum, lockout and session limits, and approval routing switches. Defaults are labelled as not YU-approved until the Deanship of Quality confirms them.
+Quality and security thresholds are **institutional policy** stored in `quality_policies` and edited by QA with an audited reason. There are 28 policies: achievement method and thresholds, weight limits, default targets, recurrence cycles, improvement deadlines, sampling rate, minimum sample size, coverage minimum, lockout and session limits, and approval routing switches. Defaults are labelled as not YU-approved until the Deanship of Quality confirms them.
 
 ## 7. Testing
 
 - `tests/automation_test.php`: service-level scenarios. Assignment → workspace, CLO change → revalidation, results → achievement, missed target → finding + draft action, recurrence, early warning, rollover, effectiveness, PLO change → impact, override lifecycle, conflict resolution, audit tamper detection.
 - `tests/http_smoke.php`: every page for every role renders cleanly. Cross-role and cross-scope access is denied server-side, and anonymous access is redirected. CSRF is enforced, scoped API mutations are checked, and lockout, the error log, audit verification and maintenance mode are exercised.
+- `tests/production_test.php`: the connectors against local stand-ins for Moodle, Blackboard and a SIS API (`tests/mock/`), the export folders, pseudonymisation, the automatic semester cycle (term start, skipped terms, idempotence, instructor provisioning), scheduler fault isolation, accounts and CSV import, SMTP delivery (UTF-8, header injection, retries), digests, password reset and invitations, JWT/OIDC validation including forged, replayed and algorithm-confusion tokens.
+- `tests/sso_test.php`: the full sign-in flow over HTTP against a stand-in identity provider — PKCE, browser binding, replay, forged signature, wrong audience, provisioning from role claims, password policy, administrator account creation, provider logout.
+- CI (`.github/workflows/ci.yml`) runs all four suites on MySQL 8.0, then builds the Docker image, starts the stack, runs the HTTP suite against Apache and takes a backup.

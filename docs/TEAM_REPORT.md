@@ -33,7 +33,7 @@ Our rule for every screen was: *if the university already knows it, nobody types
 | Checking errors | At submission. The document came back for fixes | Continuously, while working. Errors never reach Quality |
 | Approvals | Everything went through approval | Unchanged spec: none. Small non-academic edit: automatic. Academic change: HoD sees only what changed |
 | Quality (QA) role | Reviewed records one by one | Exception Center: only data conflicts, policy exceptions, risks and a random sample |
-| Student results | Not supported | Imported (simulated LMS). Achievement calculated automatically |
+| Student results | Not supported | Imported automatically from Moodle, Blackboard or gradebook exports (simulated in the demo). Achievement calculated automatically |
 | Weak outcomes | Not detected | Flagged automatically, labelled first, recurring or worsening, with early warnings mid-term |
 | Improvement plans | Free-text boxes inside the form | Tracked actions (owner, deadline, status), checked against next term's results |
 | Program picture | KPIs typed by hand | Calculated from course data: PLO coverage, achievement, gaps |
@@ -110,8 +110,8 @@ All people and grades are fictional. The study plans are YU's real published pla
 
 **APIs**
 - **Internal API** (`public/api.php`): the pages call it to save CLOs, mappings, assessments, decisions, overrides and policies. It accepts only logged-in users, needs a CSRF token, and checks permission on every record.
-- **University APIs (the plug-in points):** three adapter interfaces in `src/Integration/Sources.php`, one each for the Registrar/study plans, the SIS and the LMS. In the prototype they read our JSON files. At YU they would call the real systems.
-- **No external or paid services and no AI APIs.** Nothing leaves the server.
+- **University connections:** ready-made connectors for the SIS (scheduled CSV export or a REST API), the LMS (Moodle web services, Blackboard Learn REST, or gradebook CSV exports), university single sign-on (OpenID Connect: Microsoft 365 / Entra ID, Google, Keycloak, ADFS) and e-mail (SMTP). IT chooses them with settings; nothing in the code changes. In demo mode they read our JSON files. Setup guide: `docs/INTEGRATIONS.md`.
+- **No external or paid services and no AI APIs.** SAQF only talks to the university's own systems, and student identities are pseudonymised before they are stored.
 
 **Built-in tools we rely on:** PDO (safe database access), bcrypt `password_hash` (passwords), SHA-256 `hash` (audit chain and report seals), `random_bytes` (tokens).
 
@@ -168,8 +168,8 @@ Our current 2-minute video script compared with what exists now:
 | "Found four errors; fixed them; the record turned green" | ✅ SWE 412 demo has exactly four issues → *Ready*. ⚠️ The shot showing **40% → 100%** should change: SAQF now shows explainable states (*Action required → Ready*) instead of a percentage score |
 | Green approved automatically after HoD with a QA sample; amber to QA; red never sent | ✅ Policy-controlled. A record with blockers cannot be submitted |
 | Every transition recorded: who, when, outcome | ✅ Hash-chained audit log, plus old/new values and the reason |
-| *Vision:* connect to the SIS so the course arrives ready and inherits last term | ✅ Works in the prototype through a **simulated** SIS adapter (clearly labelled). The real YU connection is future work |
-| *Vision:* grades → automatic CLO achievement | ✅ Works with a **simulated** LMS feed. Method configurable |
+| *Vision:* connect to the SIS so the course arrives ready and inherits last term | ✅ SIS connectors (export folder or API) are built and tested; the term starts by itself on its start date. The demo uses a **simulated** feed. Connecting YU's SIS needs YU IT to provide the export or API access |
+| *Vision:* grades → automatic CLO achievement | ✅ Moodle, Blackboard and gradebook-export connectors are built and tested; the demo uses a **simulated** LMS feed. Method configurable |
 | *Vision:* below target → improvement plan with owner and date | ✅ Drafted automatically. The professor writes the academic response |
 | *Vision:* compare the next term's results | ✅ "Performance improved / similar / declined following the intervention" |
 | Data → engine → roles | ✅ That is the architecture |
@@ -185,7 +185,7 @@ Our current 2-minute video script compared with what exists now:
 |---|---|
 | Idea & evolution (41%) | Clear evolution from a digital form (AQMS) to automating the quality cycle (SAQF). Before/after documented in `docs/AUDIT_BEFORE.md`. Differentiation: exception-based QA and the change-based workflow, not a file repository |
 | Solution & prototype (27%) | A working end-to-end demo across 6 roles. Event-driven automation can be shown live through the simulator |
-| Feasibility & execution (17%) | Standard PHP/MySQL that any university can host. Clear adapter points for the Registrar, SIS and LMS. Docker, tests and an operations runbook. Next step: pilot with one department |
+| Feasibility & execution (17%) | Standard PHP/MySQL that any university can host. Working connectors for the SIS, Moodle/Blackboard, university SSO and e-mail. Docker stack with backups and health checks, four automated test suites in CI, database upgrades, an operations runbook and an IT integration guide. Next step: pilot with one department |
 | Impact & sustainability (10%) | Factual automation counts: in the demo scenario SAQF populated 5,991 fields, ran 7,797 checks, inherited 308 records, made 152 calculations and auto-cleared 138 issues, while only 12 issues needed a person. Policies are configurable, so other universities could adopt it |
 | Presentation (5%) | Screenshots in `docs/screenshots/` and an updated video plan (section 8) |
 
@@ -208,29 +208,42 @@ Our current 2-minute video script compared with what exists now:
 
 - **57 automation scenario checks** (`tests/automation_test.php`), including: assignment creates a workspace, editing an outcome re-validates everything, grades trigger achievement, a missed target triggers a finding and a draft action, recurring gaps escalate, the semester rollover inherits structure, improvement effectiveness is evaluated, a PLO change shows its impact, the override lifecycle works, data conflicts are resolved, and a forged audit entry is detected.
 - **101 page and security checks** (`tests/http_smoke.php`), including: every page for every role, plus about 20 deliberate break-in attempts (professor opening another professor's course, a HoD from another department, faculty calling QA actions, missing CSRF token, anonymous access). Also account lockout, error-log lookup, audit verification from the console, and maintenance mode.
+- **96 production-capability checks** (`tests/production_test.php`): the SIS and LMS connectors against stand-ins for Moodle, Blackboard and a SIS API, the export folders, the automatic semester start, new-instructor accounts, e-mail delivery (including Arabic text), password reset, and sign-in token security (forged, expired, replayed and wrong-application tokens are refused).
+- **28 end-to-end sign-in checks** (`tests/sso_test.php`): the full university sign-in through a stand-in identity provider, including the attacks it must refuse.
 - Visual review of every page at desktop and phone widths.
-- **Honest limits:** tested with PHP 8.3 against a MySQL-compatible database (Dolt) because real MySQL and Docker were not available in the build environment. The Docker setup follows the official images but has not yet been run. Please run `docker compose up --build` once and tell us if anything fails.
+- **Where it was tested:** real **MySQL 8.0** and the **Docker** stack (Apache, MySQL, backups) — all four suites pass in both. A backup was restored and its audit chain verified. Every push to GitHub runs the suites again (`.github/workflows/ci.yml`). Running the Docker stack under Apache uncovered one page (generated reports) that answered a refused request with the wrong status code; it is fixed and covered by the tests.
 
 ---
 
-## 12. What is still simulated
+## 12. Demo mode versus a real deployment
 
-- The **Registrar data** is a snapshot of public PDFs, not a live feed.
-- **SIS teaching assignments** and **LMS grades** are generated demo files behind real adapter interfaces.
-- **People** are fictional demo accounts. Production would use YU single sign-on.
+In **demo mode** (the default for `docker compose up`):
+- **People, teaching assignments and student results** are fictional, delivered through simulated SIS and LMS feeds, and the IT admin's *Integration simulator* plays the university systems.
+- The clock is anchored to Fall 2026, week 6, so the story looks the same whenever it is installed.
+
+In **production mode** (`APP_ENV=production`) the same engine runs on real data:
+- the SIS connector delivers the calendar and teaching assignments; terms start on their start date by themselves;
+- the LMS connector imports grades as they are published;
+- people sign in with their university account, and new instructors get accounts from the SIS feed;
+- notifications reach people by e-mail; backups, health checks and database upgrades are automatic.
+
+Still true in both modes:
+- The **Registrar data** shipped with SAQF is a structured snapshot of YU's public study plans. The Registrar can replace it with its own export in the same format.
 - The **achievement method and targets** (70%) are configurable defaults. YU's Deanship of Quality must confirm the real methodology.
 - SAQF **supports NCAAA-oriented workflows**. It is not certified as NCAAA-compliant.
 
-## 13. What it takes to connect SAQF to YU for real
+## 13. What YU provides to go live
 
-1. Read-only access to the Registrar/academic catalogue (programs, plans, courses, PLOs) → implement `InstitutionSource`.
-2. The SIS feed for terms, teaching assignments and enrolment → `SisSource`.
-3. An LMS gradebook export per assessment (e.g. Blackboard) → `LmsSource`.
-4. YU single sign-on (SAML/OIDC) for login.
-5. The Deanship of Quality confirms the policies (achievement method, targets, limits).
-6. IT hosting with HTTPS, nightly backups and the two cron jobs (see `docs/OPERATIONS.md`).
+Everything on SAQF's side is built and tested. What only the university can provide:
 
-Everything else (rules, workflows, dashboards, reports) stays as it is.
+1. **SIS:** a nightly export of terms and teaching assignments (two CSV files), or API access.
+2. **LMS:** a Moodle web-service token or a Blackboard REST application, and course IDs that follow one pattern (e.g. `2026-1-SWE401`).
+3. **Sign-in:** an app registration in YU's identity provider (e.g. Microsoft 365), optionally with SAQF roles.
+4. **E-mail:** a mailbox or relay SAQF can send from.
+5. **Hosting:** a server with Docker (or PHP + MySQL), HTTPS and an address such as `saqf.yu.edu.sa`.
+6. **Decisions:** the Deanship of Quality confirms the policies; Heads of Department enter PLOs for the four programs without published ones (Architecture, EMBA, LLB, LLM).
+
+Step-by-step instructions for IT: `docs/INTEGRATIONS.md` and `docs/OPERATIONS.md`.
 
 ---
 
