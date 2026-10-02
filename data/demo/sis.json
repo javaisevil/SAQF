@@ -59,13 +59,13 @@
             },
             {
                 "course": "CIS 491",
-                "instructor": "YU-F1009",
+                "instructor": "YU-F1034",
                 "sections": 1,
                 "enrolled": 24
             },
             {
                 "course": "CNE 307",
-                "instructor": "YU-F1052",
+                "instructor": "YU-F1021",
                 "sections": 1,
                 "enrolled": 26
             },
@@ -77,7 +77,7 @@
             },
             {
                 "course": "MIS 327",
-                "instructor": "YU-F2024",
+                "instructor": "YU-F2011",
                 "sections": 1,
                 "enrolled": 25
             }
@@ -109,7 +109,7 @@
             },
             {
                 "course": "CNE 307",
-                "instructor": "YU-F1052",
+                "instructor": "YU-F1021",
                 "sections": 1,
                 "enrolled": 27
             },
@@ -121,7 +121,7 @@
             },
             {
                 "course": "MIS 327",
-                "instructor": "YU-F2024",
+                "instructor": "YU-F2011",
                 "sections": 1,
                 "enrolled": 26
             }
@@ -136,8 +136,16 @@
             {
                 "course": "SWE 401",
                 "instructor": "YU-F1034",
-                "sections": 2,
-                "enrolled": 29
+                "section": "01",
+                "coordinator": true,
+                "enrolled": 15
+            },
+            {
+                "course": "SWE 401",
+                "instructor": "YU-F1021",
+                "section": "02",
+                "coordinator": false,
+                "enrolled": 14
             },
             {
                 "course": "SWE 302",
@@ -147,25 +155,25 @@
             },
             {
                 "course": "SWE 412",
-                "instructor": "YU-F1047",
+                "instructor": "YU-F1034",
                 "sections": 1,
                 "enrolled": 27
             },
             {
                 "course": "CIS 491",
-                "instructor": "YU-F1009",
+                "instructor": "YU-F1034",
                 "sections": 1,
                 "enrolled": 22
             },
             {
                 "course": "SWE 411",
-                "instructor": "YU-F1009",
+                "instructor": "YU-F1021",
                 "sections": 1,
                 "enrolled": 28
             },
             {
                 "course": "CNE 307",
-                "instructor": "YU-F1052",
+                "instructor": "YU-F1021",
                 "sections": 1,
                 "enrolled": 25
             },
@@ -177,7 +185,7 @@
             },
             {
                 "course": "MIS 327",
-                "instructor": "YU-F2024",
+                "instructor": "YU-F2011",
                 "sections": 1,
                 "enrolled": 24
             }
@@ -192,30 +200,38 @@
             {
                 "course": "SWE 401",
                 "instructor": "YU-F1034",
-                "sections": 2,
-                "enrolled": 30
+                "section": "01",
+                "coordinator": true,
+                "enrolled": 15
+            },
+            {
+                "course": "SWE 401",
+                "instructor": "YU-F1021",
+                "section": "02",
+                "coordinator": false,
+                "enrolled": 15
             },
             {
                 "course": "SWE 302",
-                "instructor": "YU-F1047",
+                "instructor": "YU-F1021",
                 "sections": 1,
                 "enrolled": 28
             },
             {
                 "course": "SWE 412",
-                "instructor": "YU-F1047",
+                "instructor": "YU-F1034",
                 "sections": 1,
                 "enrolled": 26
             },
             {
                 "course": "CIS 492",
-                "instructor": "YU-F1009",
+                "instructor": "YU-F1034",
                 "sections": 1,
                 "enrolled": 22
             },
             {
                 "course": "CNE 307",
-                "instructor": "YU-F1052",
+                "instructor": "YU-F1021",
                 "sections": 1,
                 "enrolled": 26
             },
@@ -227,7 +243,7 @@
             },
             {
                 "course": "MIS 327",
-                "instructor": "YU-F2024",
+                "instructor": "YU-F2011",
                 "sections": 1,
                 "enrolled": 25
             }
@@ -238,9 +254,11 @@
             "term": "2026-1",
             "course": "SWE 413",
             "instructor": "YU-F1047",
+            "instructor_name": "Dr. Faisal Al-Dosari",
+            "instructor_email": "f.aldosari@demo.saqf.invalid",
             "sections": 1,
             "enrolled": 18,
-            "label": "SIS assigns SWE 413 Design Patterns (elective) to Dr. Faisal Al-Dosari"
+            "label": "SIS assigns SWE 413 Design Patterns to Dr. Faisal Al-Dosari, a newly hired instructor SAQF does not know yet"
         }
     ]
 }

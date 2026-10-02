@@ -149,6 +149,37 @@ function generate(string $term, string $course, int $n, array $spec, array $targ
     throw new RuntimeException("Could not hit targets for $term $course (best error " . ($GLOBALS["lastBest"] ?? "?") . ")");
 }
 
+/**
+ * Places students in sections. The demo deliberately gives section 02 more of the students who
+ * struggled on the midterm, so the per-section breakdown and the SECTION_GAP rule have something to
+ * show; the overall course figures are unchanged.
+ * @return array<string,string> student => section code
+ */
+function sectionMap(array $results, array $sections): array
+{
+    $mid = $results['Midterm exam'] ?? current($results);
+    arsort($mid);
+    $students = array_keys($mid);
+    $first = (int) $sections[0][2];
+    $out = [];
+    $taken = 0;
+    foreach ($students as $rank => $sid) {
+        // ranks 0,1,2 → 01,01,02 in the top half; 01,02,02 below: section 02 skews weaker.
+        $top = $rank < count($students) / 2;
+        $wantFirst = $top ? ($rank % 3 !== 2) : ($rank % 3 === 0);
+        $remainingFirst = $first - $taken;
+        $remaining = count($students) - $rank;
+        if ($remainingFirst <= 0) {
+            $wantFirst = false;
+        } elseif ($remainingFirst >= $remaining) {
+            $wantFirst = true;
+        }
+        $out[$sid] = $wantFirst ? $sections[0][0] : $sections[1][0];
+        $taken += $wantFirst ? 1 : 0;
+    }
+    return $out;
+}
+
 $sis = ['terms' => Story::TERMS, 'assignments' => [], 'pending_assignments' => Story::PENDING_ASSIGNMENTS];
 $external = [];
 foreach (Story::USERS as $u) {
@@ -163,7 +194,15 @@ foreach (Story::OFFERINGS as $termCode => $offerings) {
     foreach ($offerings as $course => $row) {
         [$instructor, $n, $targets] = $row;
         $batches = $row[3] ?? null;
-        $sis['assignments'][$termCode][] = ['course' => $course, 'instructor' => $external[$instructor], 'sections' => $n > 28 ? 2 : 1, 'enrolled' => $n];
+        $sections = $row[4] ?? null;
+        if ($sections) {
+            // One SIS row per section; the first section's instructor coordinates the course.
+            foreach ($sections as $i => [$code, $who, $count]) {
+                $sis['assignments'][$termCode][] = ['course' => $course, 'instructor' => $external[$who], 'section' => $code, 'coordinator' => $i === 0, 'enrolled' => $count];
+            }
+        } else {
+            $sis['assignments'][$termCode][] = ['course' => $course, 'instructor' => $external[$instructor], 'sections' => $n > 28 ? 2 : 1, 'enrolled' => $n];
+        }
         if (!$targets || !isset(Story::SPECS[$course])) {
             continue;
         }
@@ -184,6 +223,12 @@ foreach (Story::OFFERINGS as $termCode => $offerings) {
             $results = generate($termCode, $course, $n, $spec, $targets, $allNames);
             foreach ($batches as $k => [$label, $published, $names]) {
                 $files[] = ['ref' => "LMS-$termCode-" . str_replace(' ', '', $course) . '-B' . ($k + 1), 'course' => $course, 'label' => $label, 'published_at' => $published, 'results' => array_intersect_key($results, array_flip($names))];
+            }
+        }
+        if ($sections && $files) {
+            $map = sectionMap($results, $sections);
+            foreach ($files as $k => $f) {
+                $files[$k]['sections'] = array_intersect_key($map, array_flip(array_keys(current($f['results']) ?: [])));
             }
         }
         @mkdir("$lmsDir/$termCode", 0775, true);

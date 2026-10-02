@@ -59,6 +59,13 @@ if ($fresh && $exists) {
     }
     $server->exec("DROP DATABASE `$name`");
     echo "Dropped database `$name`\n";
+    // Evidence files belonged to the dropped database: remove them too (only SAQF's own random names).
+    $evidenceDir = \Saqf\Quality\Evidence::dir();
+    foreach (glob($evidenceDir . '/[0-9a-f][0-9a-f]/*') ?: [] as $f) {
+        if (preg_match('/^[0-9a-f]{40}$/', basename($f))) {
+            @unlink($f);
+        }
+    }
 }
 $server->exec("CREATE DATABASE IF NOT EXISTS `$name` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 echo "Database `$name` ready\n";
@@ -106,7 +113,7 @@ if ($demo) {
 } else {
     Sync::terms();
     $password = rtrim(strtr(base64_encode(random_bytes(12)), '+/', 'Ab'), '=') . '7';
-    Db::insert('users', ['username' => 'admin', 'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'full_name' => 'System Administrator', 'role' => 'admin', 'status' => 'active', 'must_change_password' => 1, 'created_at' => date('Y-m-d H:i:s')]);
+    Db::insert('users', ['username' => 'admin', 'password_hash' => \Saqf\Security\Auth::hash($password), 'full_name' => 'System Administrator', 'role' => 'admin', 'status' => 'active', 'must_change_password' => 1, 'created_at' => date('Y-m-d H:i:s')]);
     echo "\nAdministrator account created.\n  username: admin\n  password: $password   (shown once — you must change it at first sign-in)\n";
 }
 

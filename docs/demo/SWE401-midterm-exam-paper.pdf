@@ -1,0 +1,44 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 1132 >>
+stream
+BT /F1 16 Tf 56 790 Td (SWE 401 Software Quality Assurance - Midterm exam \(Fall 2026\)) Tj ET
+BT /F1 10 Tf 56 760 Td (Al Yamamah University - College of Engineering - Computer Engineering Department) Tj ET
+BT /F1 10 Tf 56 741 Td (Sections 01 and 02 - 90 minutes - 40% of the course grade \(CLO1, CLO2\)) Tj ET
+BT /F1 10 Tf 56 722 Td () Tj ET
+BT /F1 10 Tf 56 703 Td (Q1 \(CLO1, 10 marks\). Name four ISO/IEC 25010 product quality characteristics and give a) Tj ET
+BT /F1 10 Tf 56 688 Td (measurable sub-characteristic for each.) Tj ET
+BT /F1 10 Tf 56 669 Td (Q2 \(CLO1, 10 marks\). Contrast quality assurance with quality control using one example from) Tj ET
+BT /F1 10 Tf 56 654 Td (a software project.) Tj ET
+BT /F1 10 Tf 56 635 Td (Q3 \(CLO2, 20 marks\). Run a checklist-based inspection of the attached requirements excerpt;) Tj ET
+BT /F1 10 Tf 56 620 Td (record each defect with its type and severity.) Tj ET
+BT /F1 10 Tf 56 601 Td () Tj ET
+BT /F1 10 Tf 56 582 Td (Model answers and the marking scheme are kept with the course file.) Tj ET
+BT /F1 10 Tf 56 563 Td (Fictional demo document for the SAQF evidence workflow.) Tj ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1494
+%%EOF
