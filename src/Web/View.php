@@ -30,7 +30,8 @@ final class View
         if ($v === null || $v === '') {
             return '—';
         }
-        return rtrim(rtrim(number_format((float) $v, $dec, '.', ''), '0'), '.') . '%';
+        $s = number_format((float) $v, $dec, '.', '');
+        return (str_contains($s, '.') ? rtrim(rtrim($s, '0'), '.') : $s) . '%';
     }
 
     public static function date(?string $d, string $fmt = 'j M Y'): string
@@ -125,9 +126,9 @@ final class View
             case 'faculty':
                 return [['faculty.php', 'My actions & courses', 'home'], ['improvements.php', 'Improvement actions', 'loop'], ['catalog.php', 'Study plans', 'book']];
             case 'hod':
-                return [['department.php', 'Department', 'home'], ['approvals.php', 'Approvals', 'check'], ['exceptions.php', 'Exceptions', 'flag'], ['programs.php', 'Programs', 'grid'], ['improvements.php', 'Improvement actions', 'loop'], ['assign.php', 'Assign a course', 'plus'], ['catalog.php', 'Study plans', 'book']];
+                return [['department.php', 'Department', 'home'], ['approvals.php', 'Approvals', 'check'], ['exceptions.php', 'Exceptions', 'flag'], ['programs.php', 'Programs', 'grid'], ['improvements.php', 'Improvement actions', 'loop'], ['assign.php', 'Assign a course', 'plus'], ['spec_import.php', 'Import specifications', 'upload'], ['catalog.php', 'Study plans', 'book']];
             case 'qa':
-                return [['quality.php', 'Quality overview', 'home'], ['exceptions.php', 'Exception center', 'flag'], ['approvals.php', 'Approvals & sample', 'check'], ['programs.php', 'Programs', 'grid'], ['improvements.php', 'Improvement actions', 'loop'], ['policies.php', 'Quality policies', 'sliders'], ['catalog.php', 'Study plans', 'book']];
+                return [['quality.php', 'Quality overview', 'home'], ['exceptions.php', 'Exception center', 'flag'], ['approvals.php', 'Approvals & sample', 'check'], ['programs.php', 'Programs', 'grid'], ['improvements.php', 'Improvement actions', 'loop'], ['spec_import.php', 'Import specifications', 'upload'], ['policies.php', 'Quality policies', 'sliders'], ['catalog.php', 'Study plans', 'book']];
             case 'dean':
                 return [['college.php', 'College quality', 'home'], ['programs.php', 'Programs', 'grid'], ['exceptions.php', 'Exceptions', 'flag'], ['improvements.php', 'Improvement actions', 'loop'], ['catalog.php', 'Study plans', 'book']];
             case 'leadership':
@@ -158,6 +159,10 @@ final class View
             'search' => 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16M21 21l-4.3-4.3',
             'spark' => 'M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8',
             'cpu' => 'M9 3v2M15 3v2M9 19v2M15 19v2M3 9h2M3 15h2M19 9h2M19 15h2M6 5h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM9 9h6v6H9z',
+            'upload' => 'M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3',
+            'lock' => 'M6 11h12v9H6zM8 11V8a4 4 0 0 1 8 0v3',
+            'bolt' => 'M13 3 4 14h7l-1 7 9-11h-7z',
+            'route' => 'M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4M18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4M6 15V9a4 4 0 0 1 4-4h6M18 9v6a4 4 0 0 1-4 4H8',
         ];
         return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' . ($paths[$name] ?? '') . '"/></svg>';
     }
@@ -185,23 +190,29 @@ final class View
         }
         echo '</nav><div class="side-foot"><div class="me"><div class="avatar">' . self::h(mb_substr(preg_replace('/^(Dr\.|Prof\.)\s*/', '', $user['full_name']), 0, 1)) . '</div><div><div class="me-name">' . self::h($user['full_name']) . '</div><div class="me-role">' . self::h($roleLabel) . '</div></div></div>';
         echo '<div class="side-links"><a href="' . self::url('account.php') . '">Account & security</a><form method="post" action="' . self::url('logout.php') . '">' . Csrf::field() . '<button class="linkbtn" type="submit">Sign out</button></form></div></div></aside>';
-        echo '<div class="main"><header class="top"><button class="burger" type="button" aria-label="Menu" onclick="document.getElementById(\'side\').classList.toggle(\'open\')">☰</button>';
+        echo '<div class="main"><header class="top"><button class="burger" type="button" aria-label="Menu" data-toggle="#side">☰</button>';
         echo '<div class="top-title"><h1>' . self::h($title) . '</h1>' . (!empty($opts['subtitle']) ? '<div class="sub">' . $opts['subtitle'] . '</div>' : '') . '</div>';
         echo '<form class="search" action="' . self::url('search.php') . '" method="get" role="search">' . self::icon('search') . '<input name="q" placeholder="Search courses, programs, CLOs, PLOs, people, issues" value="' . self::h($_GET['q'] ?? '') . '" aria-label="Search" autocomplete="off" id="globalSearch"><div class="search-pop" id="searchPop"></div></form>';
         if ($term) {
             echo '<div class="termchip" title="Active term from the SIS">' . self::h($term['name']) . ($week && $week <= 18 ? ' · week ' . $week : '') . '</div>';
         }
         echo '<a class="bell" href="' . self::url('notifications.php') . '" title="Notifications (only things that need you)">' . self::icon('bell') . ($unread ? '<span class="dot">' . $unread . '</span>' : '') . '</a>';
-        echo '<div class="scope" title="Your data scope">' . self::h($scope) . '</div></header>';
+        echo '<div class="scope" title="Your data scope">' . self::h($scope) . '</div>' . \Saqf\Web\I18n::switchLink() . '</header>';
         if (Config::demoMode()) {
-            echo '<div class="demobar">Prototype · demo data: fictional people and synthetic results on top of YU\'s public study plans. Integrations are simulated adapters.</div>';
+            $opts = '';
+            foreach (\Saqf\Demo\Story::USERS as [$u, $name, , $role]) {
+                $opts .= '<option value="' . self::h($u) . '"' . ($u === $user['username'] ? ' selected' : '') . '>' . self::h((Auth::ROLES[$role] ?? $role) . ' — ' . $name) . '</option>';
+            }
+            echo '<div class="demobar"><span>Demo mode · fictional people and results on YU\'s real study plans · university systems simulated</span>'
+                . '<form method="post" action="' . self::url('demo.php') . '" class="demo-switch">' . Csrf::field() . '<input type="hidden" name="next" value="index.php"><label>Switch role <select name="as" data-autosubmit>' . $opts . '</select></label></form>'
+                . '<a href="' . self::url('tour.php') . '">Guided tour</a></div>';
         }
         echo '<main id="main" class="content">' . self::flash();
     }
 
     public static function footer(): void
     {
-        echo '</main><footer class="foot">SAQF ' . SAQF_VERSION . ' · Al Yamamah University prototype · Supports NCAAA-oriented academic quality workflows (not a compliance certification)</footer></div></div>';
+        echo '</main><footer class="foot">SAQF ' . SAQF_VERSION . ' · Al Yamamah University · Supports NCAAA-oriented academic quality workflows (not a compliance certification)</footer></div></div>';
         echo '<script src="' . self::url('assets/app.js') . '?v=' . SAQF_VERSION . '"></script></body></html>';
     }
 
