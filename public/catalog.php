@@ -43,9 +43,6 @@ V::header('Study plans', $user, ['subtitle' => 'Synced from YU\'s published stud
   <div class="field" style="grid-column:span 3"><label>Find in plan</label><input type="search" name="q" value="<?= V::h($q) ?>" placeholder="Code or title"></div>
   <div><button class="btn btn-primary" type="submit">Show plan</button></div>
 </form>
-<script>
-(function(){var lv=document.getElementById('fLevel'),pr=document.getElementById('fProgram');function f(){Array.prototype.forEach.call(pr.options,function(o){if(!o.value)return;var hide=(lv.value&&o.dataset.level!==lv.value)||o.hidden;o.style.display=hide?'none':'';o.disabled=!!((lv.value&&o.dataset.level!==lv.value)||o.hidden);});}lv.addEventListener('change',f);document.getElementById('fCollege').addEventListener('change',f);f();})();
-</script>
 </div></section>
 <?php if ($program): ?>
 <section class="card"><div class="card-h"><h2><?= V::h($program['code'] . ' — ' . $program['name']) ?></h2><span class="muted small"><?= V::h($program['college'] . ' · ' . $program['dept']) ?> · plan <?= V::h($program['plan_version']) ?></span><a class="right small" href="<?= V::h($program['source_url']) ?>" target="_blank" rel="noopener noreferrer">Published PDF</a></div>

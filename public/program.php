@@ -74,7 +74,7 @@ if ($tab === 'overview'): ?>
       <?php if ($canManage): ?><details><summary class="btn btn-sm">Change</summary><form data-api="plo_save" style="margin-top:8px;min-width:340px"><input type="hidden" name="program" value="<?= (int) $p['id'] ?>"><input type="hidden" name="code" value="<?= V::h($pl['code']) ?>">
         <div class="field"><textarea name="statement" required><?= V::h($pl['statement']) ?></textarea></div><div class="field"><select name="domain"><?php foreach (Specs::DOMAINS as $d): ?><option <?= $d === $pl['domain'] ? 'selected' : '' ?>><?= V::h($d) ?></option><?php endforeach; ?></select></div>
         <div class="field"><input type="text" name="reason" required placeholder="Reason (e.g. program council decision ref.)"></div><div class="row"><button class="btn btn-sm btn-primary" type="submit">Save change</button>
-        <button class="btn btn-sm btn-red" type="button" onclick="var r=prompt('Reason for retiring <?= V::h($pl['code']) ?>?');if(r)saqf.post('plo_retire',{program:'<?= (int) $p['id'] ?>',plo:'<?= (int) $pl['id'] ?>',reason:r})">Retire</button></div></form></details><?php endif; ?>
+        <button class="btn btn-sm btn-red" type="button" data-act="plo_retire" data-program="<?= (int) $p['id'] ?>" data-plo="<?= (int) $pl['id'] ?>" data-prompt="Reason for retiring <?= V::h($pl['code']) ?>?">Retire</button></div></form></details><?php endif; ?>
     </div></div>
   <?php endforeach; ?>
   <?php if (!$r['plos']): ?><p class="muted">No approved PLOs are recorded for this program in the institutional source.</p><?php endif; ?>

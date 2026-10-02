@@ -52,14 +52,52 @@
     toast: toast
   };
 
+  // No inline scripts anywhere (strict Content-Security-Policy): behaviour is declared with data attributes.
+
+  // Submit buttons that set a field first: <button type="submit" data-set="decision=reject">
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-set]');
+    if (!b || !b.form) return;
+    b.dataset.set.split('&').forEach(function (pair) {
+      var kv = pair.split('='), field = b.form.elements[kv[0]];
+      if (field) field.value = kv.slice(1).join('=');
+    });
+  }, true);
+  // Forms that ask before submitting: <form data-confirm="…">
+  document.addEventListener('submit', function (e) {
+    var f = e.target;
+    if (f.dataset && f.dataset.confirm && !window.confirm(f.dataset.confirm)) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+  // Menu toggle, print, auto-submitting and navigating selects.
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-toggle]');
+    if (t) { var target = document.querySelector(t.dataset.toggle); if (target) target.classList.toggle('open'); }
+    if (e.target.closest('[data-print]')) window.print();
+  });
+  document.addEventListener('change', function (e) {
+    var s = e.target;
+    if (s.matches('select[data-autosubmit]') && s.form) s.form.submit();
+    if (s.matches('select[data-nav]') && s.value) location.href = s.dataset.nav + encodeURIComponent(s.value);
+  });
+
   // Declarative actions: <button data-act="map" data-clo="1" data-plo="2" data-on="1">
+  // data-prompt asks for a reason first (sent as "reason"); data-weights collects the weight inputs.
   document.addEventListener('click', function (e) {
     var el = e.target.closest('[data-act]');
     if (!el) return;
     e.preventDefault();
     if (el.dataset.confirm && !window.confirm(el.dataset.confirm)) return;
     var data = {};
-    Object.keys(el.dataset).forEach(function (k) { if (k !== 'act' && k !== 'confirm') data[k] = el.dataset[k]; });
+    Object.keys(el.dataset).forEach(function (k) { if (['act', 'confirm', 'prompt', 'weights'].indexOf(k) === -1) data[k] = el.dataset[k]; });
+    if (el.dataset.prompt) {
+      var reason = window.prompt(el.dataset.prompt);
+      if (!reason) return;
+      data.reason = reason;
+    }
+    if (el.hasAttribute('data-weights')) {
+      data.w = [];
+      document.querySelectorAll('input[data-weight]').forEach(function (i) { data.w.push(i.dataset.id + ':' + i.value); });
+    }
     el.disabled = true;
     window.saqf.post(el.dataset.act, data).then(function () { el.disabled = false; });
   });
@@ -108,6 +146,22 @@
       }, 180);
     });
     document.addEventListener('click', function (e) { if (!e.target.closest('.search')) pop.style.display = 'none'; });
+  }
+
+  // Study-plan browser: the level filter hides programs of the other level.
+  var lv = document.getElementById('fLevel'), pr = document.getElementById('fProgram'), col = document.getElementById('fCollege');
+  if (lv && pr) {
+    var levelFilter = function () {
+      Array.prototype.forEach.call(pr.options, function (o) {
+        if (!o.value) return;
+        var hide = (lv.value && o.dataset.level !== lv.value) || o.hidden;
+        o.style.display = hide ? 'none' : '';
+        o.disabled = !!hide;
+      });
+    };
+    lv.addEventListener('change', levelFilter);
+    if (col) col.addEventListener('change', levelFilter);
+    levelFilter();
   }
 
   // Cascading selects (study-plan aware pickers): <select data-cascade="url" data-target="#id">

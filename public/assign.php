@@ -56,14 +56,14 @@ V::header('Assign a course', $user, ['subtitle' => 'Fallback for assignments mis
 ?>
 <div class="split"><section class="card"><div class="card-h"><h2>Study-plan-aware assignment</h2></div><div class="card-b">
   <form method="get" class="grid g2">
-    <div class="field"><label>Term</label><select name="term" onchange="this.form.submit()"><?php foreach ($terms as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) $t['id'] === $termId ? 'selected' : '' ?>><?= V::h($t['name']) ?> (<?= V::h($t['status']) ?>)</option><?php endforeach; ?></select></div>
-    <div class="field"><label>Program</label><select name="program" onchange="this.form.submit()"><option value="">Choose a program…</option>
+    <div class="field"><label>Term</label><select name="term" data-autosubmit><?php foreach ($terms as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) $t['id'] === $termId ? 'selected' : '' ?>><?= V::h($t['name']) ?> (<?= V::h($t['status']) ?>)</option><?php endforeach; ?></select></div>
+    <div class="field"><label>Program</label><select name="program" data-autosubmit><option value="">Choose a program…</option>
       <?php foreach (['Undergraduate', 'Postgraduate'] as $lvl): ?><optgroup label="<?= $lvl ?>"><?php foreach ($programs as $p): if ($p['level'] !== $lvl) { continue; } ?><option value="<?= (int) $p['id'] ?>" <?= (int) $p['id'] === $programId ? 'selected' : '' ?>><?= V::h($p['code'] . ' — ' . $p['short_name']) ?></option><?php endforeach; ?></optgroup><?php endforeach; ?></select>
       <div class="field-help">Only programs whose study plan contains courses owned by <?= V::h($user['department_name']) ?>.</div></div>
   </form>
   <?php if ($programId): ?>
   <form method="post"><?= Csrf::field() ?><input type="hidden" name="term" value="<?= $termId ?>"><input type="hidden" name="program" value="<?= $programId ?>">
-    <div class="field"><label>Course</label><select name="course" required onchange="location.href='assign.php?term=<?= $termId ?>&program=<?= $programId ?>&course='+this.value"><option value="">Choose a course from this plan…</option>
+    <div class="field"><label>Course</label><select name="course" required data-nav="assign.php?term=<?= $termId ?>&amp;program=<?= $programId ?>&amp;course="><option value="">Choose a course from this plan…</option>
       <?php $group = null; foreach ($plan as $e): $g = $e['plan_year'] ? ($e['plan_year'] == 0 ? 'Foundation' : 'Year ' . $e['plan_year'] . ($e['plan_semester'] == 3 ? ' · Summer' : ' · Semester ' . $e['plan_semester'])) : 'Electives · ' . $e['requirement_group']; if ($g !== $group) { echo $group ? '</optgroup>' : ''; echo '<optgroup label="' . V::h($g) . '">'; $group = $g; } ?>
         <option value="<?= (int) $e['course_id'] ?>" <?= (int) $e['course_id'] === $courseId ? 'selected' : '' ?> <?= $e['assigned_to'] ? 'disabled' : '' ?>><?= V::h($e['code'] . ' — ' . $e['title'] . ' (' . rtrim(rtrim((string) $e['credits'], '0'), '.') . ' CR, ' . $e['course_type'] . ')' . ($e['assigned_to'] ? ' — already assigned to ' . $e['assigned_to'] : '')) ?></option>
       <?php endforeach; echo $group ? '</optgroup>' : ''; ?></select>
