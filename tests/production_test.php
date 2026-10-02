@@ -133,7 +133,7 @@ write_csv("$sisDir/terms.csv", [
 write_csv("$sisDir/assignments.csv", [
     ['term', 'course', 'instructor_id', 'instructor_name', 'instructor_email', 'department', 'sections', 'enrolled'],
     ['2026-2', 'SWE 401', 'YU-F1034', '', '', '', '2', '41'],
-    ['2026-2', 'swe412', 'YU-F1047', '', '', '', '1', '22'],
+    ['2026-2', 'swe412', 'YU-F1034', '', '', '', '1', '22'],
     ['2026-2', 'CIS 491', 'YU-F9001', 'Dr. Hala Al-Mutairi', 'hala@yu.example', '', '1', '19'],
     ['2026-2', 'XYZ 999', 'YU-F1034', '', '', '', '1', '10'],
     ['2026-2', 'SWE 302', 'YU-F9002', '', '', '', '1', '30'],
