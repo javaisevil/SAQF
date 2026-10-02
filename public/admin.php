@@ -20,13 +20,18 @@ use Saqf\Integration\Sync;
 use Saqf\Quality\Achievement;
 use Saqf\Quality\Scheduler;
 use Saqf\Quality\Workspaces;
+use Saqf\Core\Alerts;
+use Saqf\Quality\Evidence;
 use Saqf\Security\Auth;
+use Saqf\Security\Mfa;
 use Saqf\Security\Oidc;
+use Saqf\Security\SecurityCenter;
+use Saqf\Security\Sessions;
 use Saqf\Security\Users;
 use Saqf\Web\View as V;
 
 $user = saqf_page(['admin']);
-$tab = in_array($_GET['tab'] ?? '', ['health', 'users', 'security', 'audit', 'errors', 'integrations'], true) ? $_GET['tab'] : 'health';
+$tab = in_array($_GET['tab'] ?? '', ['health', 'center', 'users', 'security', 'audit', 'errors', 'alerts', 'integrations'], true) ? $_GET['tab'] : 'health';
 
 // ---------------------------------------------------------------- CSV export of the audit log
 if ($tab === 'audit' && ($_GET['export'] ?? '') === 'csv') {
@@ -61,8 +66,41 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $reason = trim((string) ($_POST['reason'] ?? ''));
     $targetId = (int) ($_POST['user'] ?? 0);
     $target = $targetId ? Db::one('SELECT * FROM users WHERE id = ?', [$targetId]) : null;
+    // Changes to people's access need a recent sign-in or a fresh identity confirmation.
+    $sensitive = ['create_user', 'edit_user', 'import_users', 'disable', 'enable', 'reset', 'role', 'mfa_reset', 'end_sessions', 'maintenance'];
     try {
+        if (in_array($op, $sensitive, true) && !Auth::recentlyVerified()) {
+            throw new DomainException('For security, confirm your identity (top of the page) before changing accounts or access.');
+        }
         switch ($op) {
+            case 'reauth':
+                if ($err = Auth::reauthenticate($user, (string) ($_POST['password'] ?? ''), (string) ($_POST['code'] ?? ''))) {
+                    throw new DomainException($err);
+                }
+                Session::flash('success', 'Identity confirmed for the next ' . (int) Policy::get('security.reauth_minutes') . ' minutes.');
+                break;
+            case 'mfa_reset':
+                if (!$target || $targetId === $user['id']) {
+                    throw new DomainException('Choose another account (manage your own under Account & security).');
+                }
+                if (mb_strlen($reason) < 5) {
+                    throw new DomainException('Give a reason (e.g. the helpdesk ticket for a lost phone).');
+                }
+                Mfa::disable($targetId, 'admin', $reason);
+                Sessions::endAll($targetId, 'two-step verification reset');
+                Session::flash('success', "Two-step verification reset for {$target['username']}; they set it up again at their next password sign-in.");
+                break;
+            case 'end_sessions':
+                if (!$target) {
+                    throw new DomainException('Unknown account.');
+                }
+                if (mb_strlen($reason) < 5) {
+                    throw new DomainException('Give a reason (recorded in the audit log).');
+                }
+                $n = Sessions::endAll($targetId, 'signed out by an administrator');
+                Audit::record('admin.sessions_ended', 'user', $targetId, "All sessions of {$target['username']} ended by an administrator ($n)", null, null, $reason);
+                Session::flash('success', "{$target['username']} was signed out everywhere ($n session(s)).");
+                break;
             case 'create_user':
             case 'edit_user':
                 $data = [];
@@ -112,6 +150,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     throw new DomainException('Give a reason (recorded in the audit log).');
                 }
                 Db::update('users', ['status' => $op === 'disable' ? 'disabled' : 'active'], 'id = ?', [$targetId]);
+                if ($op === 'disable') {
+                    Sessions::endAll($targetId, 'account disabled');
+                }
                 Audit::record('admin.user_' . $op . 'd', 'user', $targetId, "Account {$target['username']} {$op}d", ['status' => $target['status']], ['status' => $op === 'disable' ? 'disabled' : 'active'], $reason);
                 Session::flash('success', 'Account ' . $op . 'd.');
                 break;
@@ -120,7 +161,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     throw new DomainException('Use Account & security to change your own password.');
                 }
                 $temp = Users::tempPassword();
-                Db::update('users', ['password_hash' => password_hash($temp, PASSWORD_DEFAULT), 'must_change_password' => 1, 'status' => 'active', 'locked_until' => null, 'failed_logins' => 0], 'id = ?', [$targetId]);
+                Db::update('users', ['password_hash' => Auth::hash($temp), 'must_change_password' => 1, 'status' => 'active', 'locked_until' => null, 'failed_logins' => 0], 'id = ?', [$targetId]);
+                Sessions::endAll($targetId, 'password reset by an administrator');
                 Audit::record('admin.password_reset', 'user', $targetId, "Temporary password issued for {$target['username']} (must change at next sign-in)", null, null, $reason ?: null);
                 Session::flash('success', "Temporary password for {$target['username']}: $temp — share it through a secure channel; it is not stored or shown again.");
                 break;
@@ -256,9 +298,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     saqf_redirect('admin.php?tab=' . $tab);
 }
 
-$tabs = ['health' => 'System health', 'users' => 'Users & access', 'security' => 'Security events', 'audit' => 'Audit log', 'errors' => 'Error log', 'integrations' => 'Integrations'];
+$openAlerts = Alerts::open();
+$tabs = ['health' => 'System health', 'center' => 'Security center', 'users' => 'Users & access', 'security' => 'Security events', 'audit' => 'Audit log', 'errors' => 'Error log', 'alerts' => 'IT alerts' . ($openAlerts ? ' <span class="count">' . count($openAlerts) . '</span>' : ''), 'integrations' => 'Integrations'];
 V::header('System administration', $user, ['subtitle' => 'Operations and security — administrators manage the platform, not academic decisions (separation of duties)']);
 echo V::tabs($tabs, $tab, 'admin.php');
+if (!Auth::recentlyVerified() && in_array($tab, ['users', 'health'], true)): ?>
+<section class="card" style="margin-bottom:14px;border-color:#F6DFC3"><div class="card-h"><?= V::icon('lock') ?><h2>Confirm your identity to change accounts or access</h2></div><div class="card-b small">
+  <form method="post" class="row"><?= Csrf::field() ?><input type="hidden" name="op" value="reauth"><input type="password" name="password" placeholder="Your password" required autocomplete="current-password" style="width:220px"><?php if (Mfa::enabled($user)): ?><input type="text" name="code" placeholder="Authenticator code" inputmode="numeric" autocomplete="one-time-code" required style="width:170px"><?php endif; ?><button class="btn btn-sm btn-primary">Confirm</button>
+  <span class="muted">Required when your sign-in is older than <?= (int) Policy::get('security.reauth_minutes') ?> minutes.</span></form></div></section>
+<?php endif;
 
 if ($tab === 'health'):
     $dbVersion = Db::val('SELECT VERSION()');
@@ -295,6 +343,9 @@ if ($tab === 'health'):
         ['University sign-in (SSO)', Oidc::enabled() ? 'Configured (' . parse_url((string) Config::get('SAQF_OIDC_ISSUER'), PHP_URL_HOST) . ') · password sign-in: ' . Auth::passwordLoginMode() : 'Not configured — password sign-in only', Oidc::enabled() ? true : (Config::env() === 'production' ? false : null)],
         ['E-mail', Mailer::enabled() ? Mailer::transport() . ' · ' . $mailFailing . ' message(s) waiting to retry' . (Mailer::baseUrl() === '' ? ' · SAQF_BASE_URL not set (no links)' : '') : 'Not configured — notifications appear in SAQF only', Mailer::enabled() ? ($mailFailing === 0 && Mailer::baseUrl() !== '') : null],
         ['Database migrations', $pendingMigrations ? count($pendingMigrations) . ' pending — run php bin/migrate.php' : 'Up to date', !$pendingMigrations],
+        ['Backups', SecurityCenter::backupLine(), SecurityCenter::backupOk()],
+        ['Evidence store', is_dir(Evidence::dir()) && is_writable(Evidence::dir()) ? 'Writable (' . Evidence::dir() . ')' . (Config::get('SAQF_CLAMAV_HOST') ? ' · virus scanning on' : ' · virus scanning not configured') : 'Not writable: ' . Evidence::dir(), is_dir(Evidence::dir()) && is_writable(Evidence::dir())],
+        ['IT alerts', $openAlerts ? count($openAlerts) . ' open — see IT alerts' : 'None open' . (Config::get('SAQF_ALERT_WEBHOOK') ? ' · webhook configured' : ''), !$openAlerts],
     ];
 ?>
 <div class="split"><section class="card"><div class="card-h"><h2>Health checks</h2></div><div class="card-b tight"><table><tbody>
@@ -366,12 +417,14 @@ if ($tab === 'health'):
 <?php foreach ($users as $u): $isLocked = $u['status'] === 'locked' && $u['locked_until'] > Clock::stamp(); ?>
   <tr><td><strong><?= V::h($u['full_name']) ?></strong><div class="tiny muted"><?= V::h($u['username']) ?> · <?= V::h($u['external_id'] ?? '') ?><?= $u['email'] ? ' · ' . V::h($u['email']) : '' ?></div><?= ($u['auth_source'] ?? 'local') === 'sso' ? V::pill('SSO', 'blue') : '' ?><?= ($u['provisioned_by'] ?? 'admin') === 'sis' ? ' ' . V::pill('from SIS', 'grey') : '' ?></td>
     <td class="small"><?= V::h(Auth::ROLES[$u['role']] ?? $u['role']) ?><div class="muted"><?= V::h($u['dept'] ?? '') ?></div></td>
-    <td><?= $u['status'] === 'disabled' ? V::pill('disabled', 'grey') : ($isLocked ? V::pill('locked until ' . date('H:i', strtotime($u['locked_until'])), 'red') : V::pill('active', 'green')) ?><?= $u['must_change_password'] ? ' ' . V::pill('must change password', 'amber') : '' ?></td>
+    <td><?= $u['status'] === 'disabled' ? V::pill('disabled', 'grey') : ($isLocked ? V::pill('locked until ' . date('H:i', strtotime($u['locked_until'])), 'red') : V::pill('active', 'green')) ?><?= $u['must_change_password'] ? ' ' . V::pill('must change password', 'amber') : '' ?><?= Mfa::enabled($u) ? ' ' . V::pill('2-step', 'green') : (Mfa::required($u) && ($u['auth_source'] ?? 'local') !== 'sso' ? ' ' . V::pill('2-step not set up', 'amber') : '') ?></td>
     <td class="small"><?= V::h(V::ago($u['last_login_at'])) ?><div class="tiny muted mono"><?= V::h($u['last_login_ip'] ?? '') ?></div></td>
     <td><?php if ((int) $u['id'] !== $user['id']): ?><details><summary class="btn btn-sm">Manage</summary><div style="margin-top:8px;min-width:280px">
       <form method="post" class="row"><?= Csrf::field() ?><input type="hidden" name="user" value="<?= (int) $u['id'] ?>"><input type="text" name="reason" placeholder="Reason / ticket (audited)" style="flex:1;min-width:180px">
         <?php if ($isLocked): ?><button class="btn btn-sm" name="op" value="unlock">Unlock</button><?php endif; ?>
         <button class="btn btn-sm" name="op" value="reset">Reset password</button>
+        <button class="btn btn-sm" name="op" value="end_sessions">Sign out everywhere</button>
+        <?php if (Mfa::enabled($u)): ?><button class="btn btn-sm" name="op" value="mfa_reset">Reset two-step</button><?php endif; ?>
         <button class="btn btn-sm <?= $u['status'] === 'disabled' ? '' : 'btn-red' ?>" name="op" value="<?= $u['status'] === 'disabled' ? 'enable' : 'disable' ?>"><?= $u['status'] === 'disabled' ? 'Enable' : 'Disable' ?></button>
         <select name="role" style="width:auto"><?php foreach (Auth::ROLES as $k => $l): ?><option value="<?= $k ?>" <?= $u['role'] === $k ? 'selected' : '' ?>><?= V::h($l) ?></option><?php endforeach; ?></select><button class="btn btn-sm" name="op" value="role">Change role</button></form>
       <details style="margin-top:8px"><summary class="small">Edit details</summary><form method="post" style="margin-top:6px"><?= Csrf::field() ?><input type="hidden" name="op" value="edit_user"><input type="hidden" name="user" value="<?= (int) $u['id'] ?>"><?= $fieldsFor($u) ?><button class="btn btn-sm" style="margin-top:6px">Save details</button></form></details></div></details><?php else: ?><span class="tiny muted">your account</span><?php endif; ?></td></tr>
@@ -426,6 +479,34 @@ if ($tab === 'health'):
 <div class="card-b tight"><table><tbody><?php foreach ($rows as $e): ?><tr><td class="mono"><?= V::h($e['ref']) ?></td><td class="small nowrap"><?= V::h($e['occurred_at']) ?></td><td class="small"><?= V::pill($e['level'], $e['level'] === 'error' ? 'red' : 'amber') ?> <?= V::h($e['message']) ?><div class="tiny muted mono"><?= V::h($e['location']) ?> · <?= V::h($e['url']) ?> · user <?= V::h($e['username'] ?? '—') ?> · req <?= V::h($e['request_id']) ?></div><details><summary class="tiny">trace</summary><pre class="mono tiny" style="white-space:pre-wrap"><?= V::h($e['trace']) ?></pre></details></td></tr><?php endforeach; ?>
 <?php if (!$rows): ?><tr><td><?= V::empty('No errors recorded', 'Unhandled errors appear here with a reference code users can quote.') ?></td></tr><?php endif; ?></tbody></table></div></section>
 
+<?php elseif ($tab === 'center'):
+    $checks = SecurityCenter::checks();
+    $ok = count(array_filter($checks, static fn($c) => $c['ok'] === true));
+    $attention = array_filter($checks, static fn($c) => $c['ok'] === false);
+?>
+<div class="split"><section class="card"><div class="card-h"><?= V::icon('shield') ?><h2>Security controls — live status</h2><span class="right muted small"><?= $ok ?> of <?= count($checks) ?> in place<?= $attention ? ' · ' . count($attention) . ' need attention' : '' ?></span></div><div class="card-b tight"><table><tbody>
+<?php foreach ($checks as $c): ?><tr><td style="width:34px"><?= $c['ok'] === true ? V::pill('✓', 'green') : ($c['ok'] === false ? V::pill('!', 'amber') : V::pill('i', 'grey')) ?></td><td><strong><?= V::h($c['label']) ?></strong><div class="small"><?= V::h($c['status']) ?></div><?php if ($c['ok'] !== true && $c['fix']): ?><div class="tiny muted">How to fix: <?= V::h($c['fix']) ?></div><?php endif; ?></td></tr><?php endforeach; ?>
+</tbody></table></div></section>
+<aside class="stack">
+  <section class="card"><div class="card-h"><h2>People</h2></div><div class="card-b small"><?php $p = SecurityCenter::people(); ?>
+    <div class="row between"><span>Administrators</span><strong><?= (int) $p['admins'] ?></strong></div>
+    <div class="row between"><span>… with two-step verification</span><strong><?= (int) $p['admins_mfa'] ?></strong></div>
+    <div class="row between"><span>Active sessions now</span><strong><?= (int) $p['sessions'] ?></strong></div>
+    <div class="row between"><span>Locked accounts</span><strong><?= (int) $p['locked'] ?></strong></div>
+    <div class="row between"><span>Dormant accounts (&gt; <?= (int) Policy::get('auth.dormant_days') ?> days)</span><strong><?= count($p['dormant']) ?></strong></div>
+    <?php if ($p['dormant']): ?><p class="tiny muted" style="margin-top:6px">Review: <?= V::h(implode(', ', array_slice($p['dormant'], 0, 8))) ?><?= count($p['dormant']) > 8 ? ' …' : '' ?></p><?php endif; ?></div></section>
+  <section class="card"><div class="card-h"><h2>Last 7 days</h2></div><div class="card-b small"><?php foreach (SecurityCenter::week() as $label => $n): ?><div class="row between"><span><?= V::h($label) ?></span><strong><?= (int) $n ?></strong></div><?php endforeach; ?></div></section>
+</aside></div>
+
+<?php elseif ($tab === 'alerts'):
+    $recent = Alerts::recent(30);
+?>
+<section class="card"><div class="card-h"><?= V::icon('bolt') ?><h2>IT alerts</h2><span class="right muted small">Raised automatically; administrators are notified (and e-mailed) when an alert opens and every <?= Alerts::REMIND_HOURS ?> hours while it stays open<?= Config::get('SAQF_ALERT_WEBHOOK') ? ' · also sent to the configured webhook' : '' ?></span></div>
+<div class="card-b tight"><table><thead><tr><th>Alert</th><th>Since</th><th class="num">Occurrences</th><th>Status</th></tr></thead><tbody>
+<?php foreach ($recent as $a): ?><tr><td><?= V::pill($a['severity'], ['critical' => 'red', 'warning' => 'amber'][$a['severity']] ?? 'grey') ?> <strong><?= V::h($a['title']) ?></strong><div class="tiny muted"><?= V::h($a['detail']) ?></div></td><td class="small nowrap"><?= V::h(V::date($a['first_at'], 'j M H:i')) ?><div class="tiny muted">last <?= V::h(V::ago($a['last_at'])) ?></div></td><td class="num"><?= (int) $a['occurrences'] ?></td><td><?= $a['resolved_at'] ? V::pill('resolved ' . V::ago($a['resolved_at']), 'green') : V::pill('open', 'red') ?></td></tr><?php endforeach; ?>
+<?php if (!$recent): ?><tr><td colspan="4"><?= V::empty('No alerts', 'Connector failures, a stalled scheduler, missing backups, a broken audit chain, undeliverable mail and blocked malware raise alerts here automatically.') ?></td></tr><?php endif; ?>
+</tbody></table></div></section>
+
 <?php else:
     $runs = Db::all('SELECT * FROM sync_runs ORDER BY id DESC LIMIT 15');
     $pendingLms = Integrations::lms()->pending();
@@ -451,7 +532,7 @@ if ($tab === 'health'):
   <section class="card"><div class="card-h"><h2>Academic calendar</h2></div><div class="card-b small">
     <table><tbody><?php foreach ($allTerms as $t): ?><tr><td><?= V::h($t['name']) ?> <span class="tiny muted mono"><?= V::h($t['code']) ?></span></td><td class="small nowrap"><?= V::h(V::date($t['starts_on'])) ?></td><td><?= V::pill($t['status'], ['active' => 'green', 'upcoming' => 'blue'][$t['status']] ?? 'grey') ?></td></tr><?php endforeach; ?><?= $allTerms ? '' : '<tr><td class="muted">No terms yet.</td></tr>' ?></tbody></table>
     <p class="tiny muted" style="margin-top:8px"><?= Policy::get('term.auto_activate') ? 'Terms start automatically on their start date.' : 'Automatic term start is off (policy).' ?> Terms normally come from the SIS calendar.</p>
-    <?php if ($upcoming): ?><form method="post" class="fieldset" onsubmit="return confirm('Close the current term (freeze its reports) and start the selected term now?')"><?= Csrf::field() ?><input type="hidden" name="op" value="term_activate">
+    <?php if ($upcoming): ?><form method="post" class="fieldset" data-confirm="Close the current term (freeze its reports) and start the selected term now?"><?= Csrf::field() ?><input type="hidden" name="op" value="term_activate">
       <strong>Start a term now</strong><select name="term" style="margin-top:6px"><?php foreach ($upcoming as $t): ?><option value="<?= (int) $t['id'] ?>"><?= V::h($t['name']) ?></option><?php endforeach; ?></select>
       <input type="text" name="reason" placeholder="Reason (audited)" required style="margin-top:6px"><button class="btn btn-sm" style="margin-top:6px">Start term</button></form><?php endif; ?>
     <details style="margin-top:8px"><summary class="small">Add a term (when the SIS does not provide it)</summary><form method="post" style="margin-top:6px"><?= Csrf::field() ?><input type="hidden" name="op" value="term_add">
@@ -465,7 +546,7 @@ if ($tab === 'health'):
     <p class="muted">Plays the role of the university systems so the event-driven automation can be demonstrated. Disabled outside demo mode.</p>
     <?php foreach ($pendingLms as $b): ?><form method="post" class="fieldset"><?= Csrf::field() ?><input type="hidden" name="op" value="sim_lms"><input type="hidden" name="ref" value="<?= V::h($b['ref']) ?>"><strong>LMS publishes:</strong> <?= V::h($b['course']) ?> — <?= V::h($b['label']) ?> <span class="muted">(scheduled <?= V::h(V::date($b['published_at'])) ?>)</span><br><button class="btn btn-sm" style="margin-top:6px">Publish now</button></form><?php endforeach; ?>
     <?php foreach ($pendingSis as $i => $a): if (in_array('sis.assignment.' . $i, $released, true)) { continue; } ?><form method="post" class="fieldset"><?= Csrf::field() ?><input type="hidden" name="op" value="sim_sis"><input type="hidden" name="index" value="<?= (int) $i ?>"><strong>SIS publishes:</strong> <?= V::h($a['label']) ?><br><button class="btn btn-sm" style="margin-top:6px">Publish assignment</button></form><?php endforeach; ?>
-    <?php if ($next): ?><form method="post" class="fieldset" onsubmit="return confirm('Close the current term (freeze reports) and activate <?= V::h($next['name']) ?>?')"><?= Csrf::field() ?><input type="hidden" name="op" value="sim_rollover"><strong>Registrar activates:</strong> <?= V::h($next['name']) ?> (semester rollover)<br><button class="btn btn-sm" style="margin-top:6px">Activate term</button></form><?php endif; ?>
+    <?php if ($next): ?><form method="post" class="fieldset" data-confirm="Close the current term (freeze reports) and activate <?= V::h($next['name']) ?>?"><?= Csrf::field() ?><input type="hidden" name="op" value="sim_rollover"><strong>Registrar activates:</strong> <?= V::h($next['name']) ?> (semester rollover)<br><button class="btn btn-sm" style="margin-top:6px">Activate term</button></form><?php endif; ?>
   </div></section>
   <?php endif; ?>
 </aside></div>
