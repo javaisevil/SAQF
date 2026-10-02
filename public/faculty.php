@@ -6,23 +6,25 @@ require __DIR__ . '/_init.php';
 use Saqf\Core\Db;
 use Saqf\Core\Ledger;
 use Saqf\Quality\ActionCenter;
+use Saqf\Quality\Sections;
 use Saqf\Quality\Status;
+use Saqf\Security\Authz;
 use Saqf\Web\View as V;
 
 $user = saqf_page(['faculty']);
 $actions = ActionCenter::forUser($user);
 $current = Db::all(
-    'SELECT o.*, c.code, c.title, c.credits, t.name AS term_name, t.status AS term_status, sv.version_no
-     FROM course_offerings o JOIN courses c ON c.id = o.course_id JOIN terms t ON t.id = o.term_id LEFT JOIN spec_versions sv ON sv.id = o.spec_version_id
-     WHERE o.instructor_id = ? AND t.status <> "closed" ORDER BY t.sequence DESC, c.code',
-    [$user['id']]
+    'SELECT o.*, c.code, c.title, c.credits, t.name AS term_name, t.status AS term_status, sv.version_no, cu.full_name AS coordinator_name
+     FROM course_offerings o JOIN courses c ON c.id = o.course_id JOIN terms t ON t.id = o.term_id LEFT JOIN spec_versions sv ON sv.id = o.spec_version_id LEFT JOIN users cu ON cu.id = o.instructor_id
+     WHERE ' . Authz::teachesSql('o') . ' AND t.status <> "closed" ORDER BY t.sequence DESC, c.code',
+    [$user['id'], $user['id']]
 );
 $past = Db::all(
     'SELECT o.id, c.code, c.title, t.name AS term_name, (SELECT COUNT(*) FROM clo_achievement ca WHERE ca.offering_id = o.id AND ca.met = 0 AND ca.provisional = 0) AS gaps,
             (SELECT COUNT(*) FROM clo_achievement ca WHERE ca.offering_id = o.id) AS measured
      FROM course_offerings o JOIN courses c ON c.id = o.course_id JOIN terms t ON t.id = o.term_id
-     WHERE o.instructor_id = ? AND t.status = "closed" ORDER BY t.sequence DESC, c.code',
-    [$user['id']]
+     WHERE ' . Authz::teachesSql('o') . ' AND t.status = "closed" ORDER BY t.sequence DESC, c.code',
+    [$user['id'], $user['id']]
 );
 $ids = array_map(static fn($o) => (int) $o['id'], $current);
 $ledger = [];
@@ -55,11 +57,12 @@ V::header('My actions & courses', $user, ['subtitle' => V::h($user['title'] . ' 
     <section class="card">
       <div class="card-h"><h2>My courses this term</h2><span class="muted small">Assigned automatically from the SIS — you never create a course</span></div>
       <div class="grid g2" style="padding:14px">
-        <?php foreach ($current as $o): $st = Status::forOffering($o); ?>
+        <?php foreach ($current as $o): $st = Status::forOffering($o); $mySections = Sections::taughtBy((int) $o['id'], $user['id']); $sectionCount = count(Sections::forOffering((int) $o['id'])); $coordinator = (int) $o['instructor_id'] === $user['id']; ?>
           <a class="card ccard tone-<?= V::h($st['tone']) ?>" href="workspace.php?id=<?= (int) $o['id'] ?>">
             <div class="row between"><span class="ccard-code"><?= V::h($o['code']) ?></span><?= V::pill($st['label'], $st['tone']) ?></div>
             <div class="ccard-title"><?= V::h($o['title']) ?></div>
             <div class="ccard-meta"><?= V::h($o['term_name']) ?> · <?= (int) $o['enrolled'] ?> students · <?= $o['version_no'] ? 'specification v' . (int) $o['version_no'] . ' inherited' : 'first specification needed' ?></div>
+            <?php if ($sectionCount > 1): ?><div class="ccard-meta"><?= $coordinator ? V::pill('Course coordinator', 'blue') . ' ' . $sectionCount . ' sections' : V::pill('Section ' . implode(', ', $mySections), 'grey') . ' coordinated by ' . V::h($o['coordinator_name'] ?? '—') ?></div><?php endif; ?>
             <?php if ($st['reasons']): ?><div class="ccard-meta"><?= V::h($st['reasons'][0][1]) ?><?= count($st['reasons']) > 1 ? ' (+' . (count($st['reasons']) - 1) . ' more)' : '' ?></div><?php endif; ?>
           </a>
         <?php endforeach; ?>

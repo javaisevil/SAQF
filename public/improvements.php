@@ -23,7 +23,7 @@ $status = in_array($_GET['status'] ?? '', ['draft', 'open', 'in_progress', 'comp
 $where = [$cs];
 $params = $cp;
 if ($user['role'] === 'faculty') {
-    $where = ['(ia.owner_id = ? OR oo.instructor_id = ?)'];
+    $where = ['(ia.owner_id = ? OR oo.instructor_id = ?)']; // coordinator or action owner
     $params = [$user['id'], $user['id']];
 }
 if ($status === 'active') {

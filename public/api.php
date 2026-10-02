@@ -201,7 +201,7 @@ try {
                 throw new InvalidArgumentException('Insight not found.');
             }
             $off = Authz::offering($user, (int) $rec['scope_id']);
-            if ($user['role'] === 'faculty' && (int) $off['instructor_id'] !== $user['id']) {
+            if ($user['role'] === 'faculty' && !Authz::isCoordinator($user, $off)) {
                 Authz::deny('insight');
             }
             $message = Intelligence::decide((int) $rec['id'], $user, $in('accept') === '1');
@@ -209,7 +209,10 @@ try {
 
         // ------------------------------------------------ results & report (faculty)
         case 'lms_sync':
-            $o = Authz::offering($user, $int('offering'), 'edit');
+            $o = Authz::offering($user, $int('offering'));
+            if (!Authz::canContribute($user, $o)) {
+                Authz::deny('LMS check');
+            }
             $n = Achievement::syncFromLms((int) $o['id']);
             $message = $n ? "$n new result batch(es) imported from the LMS; achievement recalculated." : 'The LMS has no new published results for this course yet.';
             break;
@@ -379,7 +382,11 @@ try {
             if ($user['role'] !== 'qa') {
                 Authz::deny('quality policy');
             }
-            foreach ((array) ($_POST['p'] ?? []) as $pair) {
+            $pairs = (array) ($_POST['p'] ?? []);
+            if ($in('key') !== '') {
+                $pairs[] = $in('key') . '=' . (string) ($_POST['v'] ?? '');
+            }
+            foreach ($pairs as $pair) {
                 [$key, $val] = array_pad(explode('=', (string) $pair, 2), 2, '');
                 Policy::set($key, $val, $in('reason') ?: null);
             }
