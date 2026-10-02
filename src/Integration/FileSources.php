@@ -13,6 +13,7 @@ use Saqf\Core\ErrorLog;
  * Works with any SIS (Banner, PeopleSoft, in-house) that can export two CSV files:
  *   terms.csv        code,name,academic_year,sequence,starts_on,ends_on,grades_due_on
  *   assignments.csv  term,course,instructor_id,instructor_name,instructor_email,department,sections,enrolled
+ *                    optional per-section rows: section (e.g. 01) and coordinator (yes for the course coordinator)
  * A sis.json in the demo format (data/demo/sis.json) is accepted instead of the two CSVs.
  */
 final class FileSisSource implements SisSource
@@ -111,6 +112,8 @@ final class FileSisSource implements SisSource
             'department' => trim((string) ($r['department'] ?? '')) ?: null,
             'sections' => max(1, (int) ($r['sections'] ?? 1)),
             'enrolled' => max(0, (int) ($r['enrolled'] ?? 0)),
+            'section' => \Saqf\Quality\Sections::code($r['section'] ?? ''),
+            'coordinator' => in_array(strtolower(trim((string) ($r['coordinator'] ?? ''))), ['1', 'y', 'yes', 'true', 'x'], true),
         ];
     }
 
@@ -142,7 +145,7 @@ final class FileLmsSource implements LmsSource
         return 'LMS gradebook export folder (' . $this->dir . '/<term>/<course>/*.csv)';
     }
 
-    public function batches(string $termCode, string $courseCode): array
+    public function batches(string $termCode, string $courseCode, ?string $section = null): array
     {
         $courseDir = $this->courseDir($termCode, $courseCode);
         if ($courseDir === null) {
@@ -156,7 +159,7 @@ final class FileLmsSource implements LmsSource
                 continue; // still being written by the export job
             }
             try {
-                $results = Gradebook::parseCsv($file, Config::bool('SAQF_LMS_PSEUDONYMIZE', true) ? 'lms' : null);
+                $parsed = Gradebook::parse($file, Config::bool('SAQF_LMS_PSEUDONYMIZE', true) ? 'lms' : null);
             } catch (InvalidArgumentException $e) {
                 ErrorLog::record(new RuntimeException('Gradebook export ' . basename($file) . " ($termCode $courseCode) skipped: " . $e->getMessage()), 'warning');
                 continue;
@@ -166,7 +169,8 @@ final class FileLmsSource implements LmsSource
                 'ref' => 'FILE-' . substr($key, 0, 24) . '-' . substr(sha1(basename($file) . ':' . sha1_file($file)), 0, 20),
                 'published_at' => date('Y-m-d H:i:s', (int) filemtime($file)),
                 'label' => 'Gradebook export ' . basename($file),
-                'results' => $results,
+                'results' => $parsed['results'],
+                'sections' => $parsed['sections'],
             ];
         }
         return $out;

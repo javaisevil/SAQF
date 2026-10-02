@@ -86,11 +86,20 @@ final class Integrations
         return self::sis() instanceof SeededSisSource;
     }
 
-    /** Course key used by LMS connectors: SAQF_LMS_COURSE_KEY with {term}, {code}, {code_nospace}. */
-    public static function lmsCourseKey(string $termCode, string $courseCode): string
+    /**
+     * Course key used by LMS connectors: SAQF_LMS_COURSE_KEY with {term}, {code}, {code_nospace} and,
+     * for universities with one LMS course per section, {section} (e.g. {term}-{code_nospace}-{section}).
+     */
+    public static function lmsCourseKey(string $termCode, string $courseCode, ?string $section = null): string
     {
         $pattern = (string) (Config::get('SAQF_LMS_COURSE_KEY') ?: '{term}-{code_nospace}');
-        return strtr($pattern, ['{term}' => $termCode, '{code}' => $courseCode, '{code_nospace}' => str_replace(' ', '', $courseCode)]);
+        return strtr($pattern, ['{term}' => $termCode, '{code}' => $courseCode, '{code_nospace}' => str_replace(' ', '', $courseCode), '{section}' => (string) $section]);
+    }
+
+    /** True when each section is a separate LMS course (the key pattern contains {section}). */
+    public static function lmsKeyHasSection(): bool
+    {
+        return str_contains((string) Config::get('SAQF_LMS_COURSE_KEY', ''), '{section}');
     }
 
     public static function use(?InstitutionSource $i = null, ?SisSource $s = null, ?LmsSource $l = null): void

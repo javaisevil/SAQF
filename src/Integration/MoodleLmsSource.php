@@ -35,9 +35,9 @@ final class MoodleLmsSource implements LmsSource
         return 'Moodle (' . ($this->base !== '' ? Http::host($this->base) : 'SAQF_MOODLE_URL not set') . ', courses matched by ' . $this->field . ')';
     }
 
-    public function batches(string $termCode, string $courseCode): array
+    public function batches(string $termCode, string $courseCode, ?string $section = null): array
     {
-        $key = Integrations::lmsCourseKey($termCode, $courseCode);
+        $key = Integrations::lmsCourseKey($termCode, $courseCode, $section);
         $courses = $this->call('core_course_get_courses_by_field', ['field' => $this->field, 'value' => $key])['courses'] ?? [];
         if (!$courses) {
             return [];

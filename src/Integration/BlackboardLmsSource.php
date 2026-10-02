@@ -35,9 +35,9 @@ final class BlackboardLmsSource implements LmsSource
         return 'Blackboard Learn (' . ($this->base !== '' ? Http::host($this->base) : 'SAQF_BLACKBOARD_URL not set') . ')';
     }
 
-    public function batches(string $termCode, string $courseCode): array
+    public function batches(string $termCode, string $courseCode, ?string $section = null): array
     {
-        $key = Integrations::lmsCourseKey($termCode, $courseCode);
+        $key = Integrations::lmsCourseKey($termCode, $courseCode, $section);
         try {
             $course = $this->get('/learn/api/public/v3/courses/externalId:' . rawurlencode($key));
         } catch (RuntimeException $e) {

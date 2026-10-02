@@ -8,8 +8,9 @@ use Saqf\Core\Secrets;
 
 /**
  * Gradebook CSV format shared by the manual upload and the LMS export drop folder:
- *   student,<assessment name>,<assessment name>,…   (one row per student, scores in %)
- * Validated strictly; nothing in the file is trusted.
+ *   student,[section,]<assessment name>,<assessment name>,…   (one row per student, scores in %)
+ * The optional "section" column tags each student with their course section. Validated strictly;
+ * nothing in the file is trusted.
  */
 final class Gradebook
 {
@@ -21,6 +22,12 @@ final class Gradebook
      * @return array<string,array<string,float>> assessment name => [student key => score %]
      */
     public static function parseCsv(string $path, ?string $pseudonymize = null): array
+    {
+        return self::parse($path, $pseudonymize)['results'];
+    }
+
+    /** @return array{results:array<string,array<string,float>>,sections:array<string,string>} */
+    public static function parse(string $path, ?string $pseudonymize = null): array
     {
         $fh = @fopen($path, 'r');
         if (!$fh) {
@@ -34,7 +41,10 @@ final class Gradebook
             if (!$header || mb_strtolower(trim((string) $header[0])) !== 'student') {
                 throw new InvalidArgumentException('The first column must be "student" (a pseudonymous student key), followed by one column per assessment name.');
             }
+            $hasSection = isset($header[1]) && mb_strtolower(trim((string) $header[1])) === 'section';
+            $first = $hasSection ? 2 : 1;
             $results = [];
+            $sections = [];
             $line = 1;
             while (($row = fgetcsv($fh)) !== false) {
                 $line++;
@@ -45,8 +55,11 @@ final class Gradebook
                 if ($pseudonymize !== null) {
                     $student = Secrets::pseudonym($pseudonymize, $student);
                 }
-                foreach (array_slice($header, 1) as $i => $name) {
-                    $v = trim((string) ($row[$i + 1] ?? ''));
+                if ($hasSection && ($code = \Saqf\Quality\Sections::code($row[1] ?? '')) !== null) {
+                    $sections[$student] = $code;
+                }
+                foreach (array_slice($header, $first) as $i => $name) {
+                    $v = trim((string) ($row[$i + $first] ?? ''));
                     if ($v === '') {
                         continue;
                     }
@@ -59,7 +72,7 @@ final class Gradebook
                     throw new InvalidArgumentException('Too many rows.');
                 }
             }
-            return $results;
+            return ['results' => $results, 'sections' => $sections];
         } finally {
             fclose($fh);
         }

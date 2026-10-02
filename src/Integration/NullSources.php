@@ -35,7 +35,7 @@ final class NullLmsSource implements LmsSource
         return 'Not connected (SAQF_LMS_SOURCE=none) — results are uploaded in each course workspace';
     }
 
-    public function batches(string $termCode, string $courseCode): array
+    public function batches(string $termCode, string $courseCode, ?string $section = null): array
     {
         return [];
     }

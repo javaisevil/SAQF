@@ -243,17 +243,22 @@ final class Sync
         return $n;
     }
 
-    /** Pull SIS teaching assignments for a term; each one initialises a workspace via an event. */
+    /**
+     * Pull SIS teaching assignments for a term; each course initialises a workspace via an event.
+     * Rows for the same course are one course with several sections: the coordinator owns the record
+     * and every section instructor gets access to it.
+     */
     public static function assignments(string $termCode, ?SisSource $sis = null): array
     {
         $sis = $sis ?? Integrations::sis();
         $term = Db::one('SELECT * FROM terms WHERE code = ?', [$termCode]);
-        $stats = ['assignments' => 0, 'created' => 0, 'inherited' => 0, 'unknown_courses' => 0, 'instructors_provisioned' => 0, 'unknown_instructors' => 0];
+        $stats = ['assignments' => 0, 'created' => 0, 'inherited' => 0, 'unknown_courses' => 0, 'instructors_provisioned' => 0, 'unknown_instructors' => 0, 'sectioned_courses' => 0];
         if (!$term) {
             return $stats;
         }
-        Audit::asSystem(static function () use ($sis, $termCode, $term, &$stats) {
-            foreach ($sis->assignments($termCode) as $a) {
+        Audit::asSystem(static function () use ($sis, $term, &$stats) {
+            $byCourse = [];
+            foreach ($sis->assignments((string) $term['code']) as $a) {
                 $stats['assignments']++;
                 $courseId = Db::val('SELECT id FROM courses WHERE code = ?', [$a['course']]);
                 if (!$courseId) {
@@ -268,8 +273,27 @@ final class Sync
                     $instructor = Users::provisionInstructor((string) $a['instructor'], $a['instructor_name'] ?? null, $a['instructor_email'] ?? null, $dept ? (int) $dept : null);
                     $stats[$instructor ? 'instructors_provisioned' : 'unknown_instructors']++;
                 }
+                $byCourse[(int) $courseId][] = [
+                    'instructor_id' => $instructor ? (int) $instructor : null, 'section' => \Saqf\Quality\Sections::code($a['section'] ?? ''),
+                    'coordinator' => !empty($a['coordinator']), 'sections' => (int) ($a['sections'] ?? 1), 'enrolled' => (int) ($a['enrolled'] ?? 0),
+                ];
+            }
+            foreach ($byCourse as $courseId => $rows) {
+                $sectioned = array_values(array_filter($rows, static fn($r) => $r['section'] !== null));
+                if ($sectioned) {
+                    usort($sectioned, static fn($x, $y) => strcmp((string) $x['section'], (string) $y['section']));
+                    $payload = [
+                        'instructor_id' => self::coordinator($courseId, (int) $term['id'], $sectioned), 'sections' => count($sectioned),
+                        'enrolled' => array_sum(array_column($sectioned, 'enrolled')),
+                        'section_rows' => array_map(static fn($r) => ['section' => $r['section'], 'instructor_id' => $r['instructor_id'], 'enrolled' => $r['enrolled']], $sectioned),
+                    ];
+                    $stats['sectioned_courses']++;
+                } else {
+                    $last = $rows[count($rows) - 1];
+                    $payload = ['instructor_id' => $last['instructor_id'], 'sections' => $last['sections'], 'enrolled' => $last['enrolled']];
+                }
                 $before = (int) Db::val('SELECT COUNT(*) FROM course_offerings WHERE term_id = ?', [$term['id']]);
-                Events::emit('offering.assigned', ['course_id' => (int) $courseId, 'term_id' => (int) $term['id'], 'instructor_id' => $instructor ? (int) $instructor : null, 'sections' => $a['sections'] ?? 1, 'enrolled' => $a['enrolled'] ?? 0, 'source' => 'sis']);
+                Events::emit('offering.assigned', ['course_id' => $courseId, 'term_id' => (int) $term['id'], 'source' => 'sis'] + $payload);
                 $after = (int) Db::val('SELECT COUNT(*) FROM course_offerings WHERE term_id = ?', [$term['id']]);
                 if ($after > $before) {
                     $stats['created']++;
@@ -281,5 +305,25 @@ final class Sync
         }, 'integration', 'SIS integration');
         Db::insert('sync_runs', ['source' => 'sis.assignments', 'started_at' => Clock::stamp(), 'finished_at' => Clock::stamp(), 'status' => 'ok', 'stats' => $stats, 'message' => $termCode]);
         return $stats;
+    }
+
+    /** The SIS-flagged coordinator; else the current coordinator if still teaching; else the first section's instructor. */
+    private static function coordinator(int $courseId, int $termId, array $sections): ?int
+    {
+        foreach ($sections as $r) {
+            if ($r['coordinator'] && $r['instructor_id']) {
+                return $r['instructor_id'];
+            }
+        }
+        $current = Db::val('SELECT instructor_id FROM course_offerings WHERE course_id = ? AND term_id = ?', [$courseId, $termId]);
+        if ($current && in_array((int) $current, array_column($sections, 'instructor_id'), true)) {
+            return (int) $current;
+        }
+        foreach ($sections as $r) {
+            if ($r['instructor_id']) {
+                return $r['instructor_id'];
+            }
+        }
+        return null;
     }
 }

@@ -10,7 +10,7 @@ use Saqf\Core\Config;
  * SIS connector over HTTPS/JSON for universities with an integration layer (e.g. Ellucian
  * Ethos, MuleSoft or an in-house API gateway in front of Banner/PeopleSoft). Contract:
  *   GET {SAQF_SIS_URL}/terms                     → [ {code,name,academic_year,sequence,starts_on,ends_on,grades_due_on}, … ]
- *   GET {SAQF_SIS_URL}/terms/{code}/assignments  → [ {course,instructor_id,instructor_name,instructor_email,department,sections,enrolled}, … ]
+ *   GET {SAQF_SIS_URL}/terms/{code}/assignments  → [ {course,instructor_id,instructor_name,instructor_email,department,sections,enrolled,section?,coordinator?}, … ]
  * Both may also wrap the list as {"terms": […]} / {"assignments": […]}.
  * Authentication: Authorization: Bearer {SAQF_SIS_TOKEN}.
  */

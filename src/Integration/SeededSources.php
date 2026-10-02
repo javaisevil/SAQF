@@ -130,7 +130,7 @@ final class SeededLmsSource implements LmsSource
         return is_file($f) ? (json_decode((string) file_get_contents($f), true) ?: []) : [];
     }
 
-    public function batches(string $termCode, string $courseCode): array
+    public function batches(string $termCode, string $courseCode, ?string $section = null): array
     {
         $now = Clock::stamp();
         $out = [];
