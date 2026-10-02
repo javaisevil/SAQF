@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+# A newer push supersedes a run still in progress on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tests:
     name: Tests (PHP 8.3, MySQL 8.0)
@@ -47,16 +52,21 @@ jobs:
           php tests/http_smoke.php http://127.0.0.1:8080
       - name: University sign-in end to end
         run: php bin/install.php --demo --fresh && php tests/sso_test.php
+      - name: Sections, import, evidence, Word exports, two-step sign-in, alerts, Arabic
+        run: php bin/install.php --demo --fresh && php tests/features_test.php
       - name: Upgrade path (migrations are idempotent)
         run: php bin/migrate.php && php bin/migrate.php --status
 
   docker:
-    name: Docker stack
+    name: Docker stack (HTTPS, encrypted backups)
     runs-on: ubuntu-24.04
+    env:
+      SAQF_BACKUP_PASSPHRASE: ci-only-backup-passphrase
+      SAQF_BACKUP_START_DELAY: "99999"
     steps:
       - uses: actions/checkout@v4
-      - name: Build and start (demo)
-        run: docker compose up -d --build
+      - name: Build and start (demo, with the HTTPS proxy)
+        run: docker compose --profile https up -d --build
       - name: Wait until healthy
         run: |
           for i in $(seq 1 60); do
@@ -67,10 +77,27 @@ jobs:
           exit 1
       - name: HTTP and security tests against Apache
         run: docker compose exec -T app php tests/http_smoke.php http://127.0.0.1
-      - name: Backup
+      - name: HTTPS through the bundled proxy (secure cookie, HSTS, HTTP redirected)
+        run: |
+          for i in $(seq 1 30); do curl -skfI https://localhost/login.php > /tmp/https.txt && break; sleep 2; done
+          cat /tmp/https.txt
+          grep -qi '^strict-transport-security' /tmp/https.txt
+          grep -qi 'set-cookie: SAQFSESSID=.*secure' /tmp/https.txt
+          curl -sI http://localhost/login.php | grep -qi '^location: https://'
+      - name: Encrypted backup, verified and reported to SAQF
         run: |
           docker compose exec -T backup sh /usr/local/bin/saqf-backup
           ls -l backups/
+          ls backups/ | grep -q 'sql.gz.enc$'
+          docker compose exec -T app cat storage/backups/last-backup.json | tee /tmp/status.json
+          grep -q '"status":"ok"' /tmp/status.json && grep -q '"encrypted":true' /tmp/status.json
+      - name: Restore drill (database and evidence files, then audit chain)
+        run: |
+          docker compose stop app
+          docker compose run --rm --entrypoint sh backup /usr/local/bin/saqf-restore "$(ls backups | grep 'sql.gz.enc$' | tail -1)"
+          docker compose start app
+          sleep 5
+          docker compose exec -T app php bin/verify_audit.php
       - name: Logs on failure
         if: failure()
         run: docker compose logs
