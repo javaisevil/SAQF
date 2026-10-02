@@ -64,8 +64,17 @@ Works with any SIS that can run a scheduled report. Drop two UTF-8 CSV files (wi
 | instructor_name | `Dr. Omar Al-Harbi` | optional; lets SAQF create the account for a new instructor |
 | instructor_email | `o.alharbi@yu.edu.sa` | optional; links an existing account or receives the invitation |
 | department | `CED` | optional; defaults to the department that owns the course prefix |
-| sections | `2` | |
-| enrolled | `41` | |
+| sections | `2` | used when the file has one row per course |
+| enrolled | `41` | for a section row: students in that section |
+| section | `02` | optional; one row **per section** of the course (see below) |
+| coordinator | `1` | optional; marks the section instructor who coordinates the course |
+
+**Courses with several sections.** Give one row per section with the `section` column filled in.
+SAQF keeps one course record per term: the coordinator (the row with `coordinator=1`, otherwise the
+current coordinator if still teaching, otherwise the first section's instructor) owns the shared
+specification, and every section instructor gets access to the course to add results and evidence.
+New section instructors are notified; achievement is compared between sections and a gap larger than
+the policy *Gap between sections* (15 points) is raised for the coordinator.
 
 Replace the files whenever the SIS changes; SAQF reads the current content every hour and only acts
 on differences. Rows for courses that are not in the catalogue are counted in the integration log.
@@ -76,7 +85,7 @@ For universities with an integration layer (Ellucian Ethos, MuleSoft, an API gat
 
 ```
 GET {SAQF_SIS_URL}/terms                     → [ {code, name, academic_year, sequence, starts_on, ends_on, grades_due_on}, … ]
-GET {SAQF_SIS_URL}/terms/{code}/assignments  → [ {course, instructor_id, instructor_name, instructor_email, department, sections, enrolled}, … ]
+GET {SAQF_SIS_URL}/terms/{code}/assignments  → [ {course, instructor_id, instructor_name, instructor_email, department, sections, enrolled, section?, coordinator?}, … ]
 Authorization: Bearer {SAQF_SIS_TOKEN}
 ```
 
@@ -94,8 +103,11 @@ identities are replaced by keyed pseudonyms before anything is stored (`SAQF_APP
 generated at installation), so SAQF never holds student numbers or names.
 
 Courses are matched with `SAQF_LMS_COURSE_KEY`, default `{term}-{code_nospace}` (e.g. `2026-1-SWE401`).
-Tokens: `{term}`, `{code}` (`SWE 401`), `{code_nospace}` (`SWE401`). Use the pattern your LMS course
-IDs already follow.
+Tokens: `{term}`, `{code}` (`SWE 401`), `{code_nospace}` (`SWE401`), `{section}` (`02`). Use the pattern
+your LMS course IDs already follow. When the university runs **one LMS course per section**, include
+`{section}` (e.g. `{term}-{code_nospace}-{section}` → `2026-1-SWE401-02`): SAQF reads every section's
+course and tags each student's results with their section. With one LMS course for all sections,
+results are still tagged per section when the gradebook export has a `section` column.
 
 ### Moodle (`SAQF_LMS_SOURCE=moodle`)
 
@@ -131,8 +143,51 @@ student,Midterm exam,Quiz
 202600002,64.5,82
 ```
 
-Scores are percentages (0–100). A changed file is re-imported; a file is read only once it has not
+An optional second column `section` tags each student with their course section
+(`student,section,Midterm exam,…`). Scores are percentages (0–100). A changed file is re-imported; a file is read only once it has not
 changed for 30 seconds. Invalid files are skipped and reported in the error log.
+
+---
+
+## Existing course specifications (one-time import)
+
+Universities already have approved specifications. *Import specifications* (Quality, and Heads of
+Department for their own courses) reads them from one CSV file — download the template from the page.
+One row per item:
+
+| column | used for |
+|---|---|
+| course | course code (`SWE 401`) |
+| type | `objectives`, `strategies`, `clo`, `assessment`, `topic` or `resource` |
+| code | CLO code (`CLO1`) |
+| text | the statement, assessment name, topic or reference |
+| category | CLO learning domain (Knowledge and Understanding / Skills / Values, Autonomy, and Responsibility), assessment kind (`quiz`, `midterm`, `final`, `project`, …) or resource kind (`essential`, `supportive`, `electronic`, `facility`) |
+| weight, week | assessment weight (%) and week |
+| hours | contact hours of a topic |
+| target | CLO target (%), optional |
+| links | for a CLO: the PLOs it develops (`SO1;SO2`, or `SWE:SO1` when several programs share codes); for an assessment: the CLOs it measures (`CLO1;CLO3`) |
+
+Each course is checked completely before anything is written; a course with any mistake is reported
+line by line and skipped, the others are imported. *Approved baseline* makes the import the course's
+current approved specification (decision route `import`, audited with the reason given); *Draft* lets
+the instructor review and submit it through the normal workflow. The file is UTF-8, so Arabic text is
+kept (the template has a byte-order mark so Excel opens it correctly).
+
+---
+
+## IT alerts to Teams or Slack
+
+Set `SAQF_ALERT_WEBHOOK` to an incoming-webhook address (Microsoft Teams *Incoming Webhook* or
+*Workflows*, Slack *Incoming Webhooks*). Every new alert, and a reminder every 6 hours while it stays
+open, is posted as JSON `{"text": "SAQF CRITICAL: Database backup missing or failed …"}`. Alerts are
+also shown under *Admin → IT alerts* and e-mailed to administrators. The list of alerts is in
+[OPERATIONS.md](OPERATIONS.md#it-alerts).
+
+## Virus scanning
+
+`SAQF_CLAMAV_HOST=host:3310` makes SAQF send every uploaded evidence file to a ClamAV daemon (clamd
+`INSTREAM`) before storing it. The compose profile `antivirus` starts one (`clamav:3310`). If clamd
+does not answer, uploads pause and IT is alerted; nothing is stored unscanned.
 
 ---
 
