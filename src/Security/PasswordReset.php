@@ -111,13 +111,14 @@ final class PasswordReset
         if ($password !== $confirm) {
             return 'The passwords do not match.';
         }
-        if ($problem = Auth::passwordProblem($password, (string) $user['username'])) {
+        if ($problem = Auth::passwordProblem($password, (string) $user['username'], $user)) {
             return $problem;
         }
         Db::tx(static function () use ($user, $password) {
-            Db::update('users', ['password_hash' => password_hash($password, PASSWORD_DEFAULT), 'password_changed_at' => Clock::stamp(), 'must_change_password' => 0,
+            Db::update('users', ['password_hash' => Auth::hash($password), 'password_changed_at' => Clock::stamp(), 'must_change_password' => 0,
                 'status' => 'active', 'locked_until' => null, 'failed_logins' => 0], 'id = ?', [$user['id']]);
             Db::exec('UPDATE password_resets SET used_at = ? WHERE user_id = ? AND used_at IS NULL', [Clock::stamp(), $user['id']]);
+            Sessions::endAll((int) $user['id'], 'password reset');
             Audit::actAs('user', (int) $user['id'], (string) $user['full_name'], (string) $user['role']);
             Audit::record('auth.password_reset', 'user', $user['id'], "{$user['full_name']} set a new password with an e-mailed link");
         });

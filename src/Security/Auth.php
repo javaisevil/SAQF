@@ -13,9 +13,12 @@ use Saqf\Core\Session;
 
 /**
  * Authentication: university SSO (OpenID Connect, see Oidc) and password login with per-account
- * lockout, per-IP throttling, session fixation protection, idle/absolute timeouts and session binding.
+ * lockout, per-IP throttling, two-step verification (Mfa), session fixation protection, a session
+ * registry (Sessions), idle/absolute timeouts and session binding. Passwords are hashed with Argon2id
+ * where PHP supports it (bcrypt otherwise) and upgraded on the next sign-in.
  * SAQF_PASSWORD_LOGIN = all | admins | off decides who may still use a password once SSO is on
  * (recommended: admins, as a break-glass path when the identity provider is unavailable).
+ * SAQF_ADMIN_ALLOWED_IPS limits administrator access to the listed networks (e.g. the campus).
  */
 final class Auth
 {
@@ -29,7 +32,25 @@ final class Auth
     ];
 
     private static ?array $user = null;
-    private const DUMMY_HASH = '$2y$10$AAfKQE8NqdIfMvVDSW4G4.gt.GclCdJUmLXFiV8wdGTpjS6oMtvhC';
+    private static ?string $dummy = null;
+
+    /** Password hash with the strongest algorithm available (Argon2id, else bcrypt). */
+    public static function hash(string $password): string
+    {
+        return password_hash($password, self::algorithm());
+    }
+
+    private static function algorithm(): string|int|null
+    {
+        return defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT;
+    }
+
+    /** Administrators may be limited to trusted networks (SAQF_ADMIN_ALLOWED_IPS). */
+    public static function adminNetworkAllowed(): bool
+    {
+        $allowed = trim((string) Config::get('SAQF_ADMIN_ALLOWED_IPS', ''));
+        return $allowed === '' || Request::inRanges(Request::ip(), $allowed);
+    }
 
     /** @return array{ok:bool,message:string} */
     public static function attempt(string $username, string $password): array
@@ -43,6 +64,7 @@ final class Auth
         if ($ipAttempts >= Policy::get('auth.ip_max_attempts_15min')) {
             self::logAttempt($username, false, 'ip_throttled');
             Audit::asSystem(fn() => Audit::record('security.ip_throttled', 'ip', $ip, "Login attempts from $ip throttled after $ipAttempts failures in 15 minutes"));
+            \Saqf\Core\Alerts::raise('security.bruteforce', 'warning', 'Password guessing blocked', "Sign-in attempts from $ip were throttled after $ipAttempts failures in 15 minutes. If this continues, block the address at the firewall (Security events lists the sources).");
             return ['ok' => false, 'message' => 'Too many sign-in attempts from this network. Please wait 15 minutes and try again.'];
         }
 
@@ -52,7 +74,7 @@ final class Auth
             : 'Incorrect username or password. Unless you are a SAQF administrator, use “' . Oidc::buttonLabel() . '”.';
         $user = Db::one('SELECT * FROM users WHERE username = ?', [$username]);
         if (!$user || !self::passwordLoginAllowed($user['role'])) {
-            password_verify($password, self::DUMMY_HASH); // equalise timing
+            password_verify($password, self::$dummy ??= self::hash(bin2hex(random_bytes(12)))); // equalise timing
             self::logAttempt($username, false, $user ? 'password_login_disabled' : 'unknown_user');
             return ['ok' => false, 'message' => $incorrect];
         }
@@ -80,12 +102,81 @@ final class Auth
             return ['ok' => false, 'message' => $incorrect];
         }
 
-        if (password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
-            Db::update('users', ['password_hash' => password_hash($password, PASSWORD_DEFAULT)], 'id = ?', [$user['id']]);
+        if (password_needs_rehash($user['password_hash'], self::algorithm())) {
+            Db::update('users', ['password_hash' => self::hash($password)], 'id = ?', [$user['id']]);
+        }
+        if ($user['role'] === 'admin' && !self::adminNetworkAllowed()) {
+            self::logAttempt($username, false, 'admin_network_refused');
+            Audit::asSystem(fn() => Audit::record('security.admin_network_refused', 'user', $user['id'], "Administrator sign-in for {$user['username']} refused from $ip (outside SAQF_ADMIN_ALLOWED_IPS)"));
+            return ['ok' => false, 'message' => 'Administrator access is only allowed from the university network.'];
+        }
+        if (Mfa::enabled($user)) {
+            // Password is right; the session is created only after the second step.
+            Session::regenerate();
+            $_SESSION['mfa_pending'] = ['uid' => (int) $user['id'], 'at' => time(), 'tries' => 0];
+            return ['ok' => true, 'mfa' => true, 'message' => 'Enter the code from your authenticator app'];
         }
         self::login($user);
         self::logAttempt($username, true, null);
         return ['ok' => true, 'message' => 'Signed in'];
+    }
+
+    /** User waiting for the second step, if the pending sign-in is still fresh (5 minutes). */
+    public static function mfaPending(): ?array
+    {
+        $p = $_SESSION['mfa_pending'] ?? null;
+        if (!$p || time() - (int) $p['at'] > 300) {
+            unset($_SESSION['mfa_pending']);
+            return null;
+        }
+        return Db::one('SELECT * FROM users WHERE id = ? AND status <> "disabled"', [$p['uid']]);
+    }
+
+    /** Second step of a password sign-in. @return array{ok:bool,message:string} */
+    public static function completeMfa(string $code): array
+    {
+        $user = self::mfaPending();
+        if (!$user) {
+            return ['ok' => false, 'message' => 'The sign-in expired. Enter your password again.'];
+        }
+        if (Mfa::verify($user, $code) === null) {
+            $_SESSION['mfa_pending']['tries'] = (int) $_SESSION['mfa_pending']['tries'] + 1;
+            self::logAttempt((string) $user['username'], false, 'bad_mfa_code');
+            if ($_SESSION['mfa_pending']['tries'] >= 5) {
+                unset($_SESSION['mfa_pending']);
+                Audit::asSystem(fn() => Audit::record('security.mfa_failed', 'user', $user['id'], "Five wrong verification codes for {$user['username']}; sign-in abandoned"));
+                return ['ok' => false, 'message' => 'Too many wrong codes. Sign in again.'];
+            }
+            return ['ok' => false, 'message' => 'That code is not right. Enter the current 6-digit code, or a recovery code.'];
+        }
+        unset($_SESSION['mfa_pending']);
+        self::login($user, 'password+mfa');
+        self::logAttempt((string) $user['username'], true, 'mfa');
+        return ['ok' => true, 'message' => 'Signed in'];
+    }
+
+    /** Sensitive changes need a sign-in or identity confirmation within security.reauth_minutes. */
+    public static function recentlyVerified(): bool
+    {
+        $at = max((int) ($_SESSION['login_at'] ?? 0), (int) ($_SESSION['reauth_at'] ?? 0));
+        return time() - $at <= Policy::get('security.reauth_minutes') * 60;
+    }
+
+    /** Confirms the signed-in person's identity again (password, plus a code when two-step is on). */
+    public static function reauthenticate(array $user, string $password, string $code): ?string
+    {
+        $row = Db::one('SELECT * FROM users WHERE id = ?', [$user['id']]);
+        if (!$row || !password_verify($password, $row['password_hash'])) {
+            self::logAttempt((string) $user['username'], false, 'reauth_failed');
+            return 'That password is not right.';
+        }
+        if (Mfa::enabled($row) && Mfa::verify($row, $code) === null) {
+            self::logAttempt((string) $user['username'], false, 'reauth_bad_code');
+            return 'That verification code is not right.';
+        }
+        $_SESSION['reauth_at'] = time();
+        Audit::record('auth.reauthenticated', 'user', $user['id'], "{$user['full_name']} confirmed their identity for sensitive changes");
+        return null;
     }
 
     public static function login(array $user, string $method = 'password'): void
@@ -100,18 +191,24 @@ final class Auth
         $_SESSION['login_at'] = time();
         $_SESSION['seen_at'] = time();
         $_SESSION['ua'] = hash('sha256', Request::userAgent());
+        Sessions::start($user, $method);
+        \Saqf\Web\I18n::applyAccount($user);
         Db::update('users', [
             'failed_logins' => 0, 'locked_until' => null, 'status' => 'active',
             'last_login_at' => $now->format('Y-m-d H:i:s'), 'last_login_ip' => Request::ip(),
         ], 'id = ?', [$user['id']]);
         self::$user = null;
-        Audit::record('auth.login', 'user', $user['id'], "{$user['full_name']} signed in" . ($method === 'sso' ? ' (university SSO)' : ''));
+        $how = ['sso' => ' (university SSO)', 'password+mfa' => ' (password and two-step verification)', 'demo' => ' (demo one-click sign-in)'][$method] ?? '';
+        Audit::record('auth.login', 'user', $user['id'], "{$user['full_name']} signed in$how");
     }
 
     public static function logout(string $reason = 'user'): void
     {
         if (!empty($_SESSION['uid'])) {
             Audit::record('auth.logout', 'user', $_SESSION['uid'], ($_SESSION['name'] ?? 'User') . ' signed out' . ($reason !== 'user' ? " ($reason)" : ''));
+        }
+        if ($hash = Sessions::currentHash()) {
+            Sessions::end($hash, $reason === 'user' ? 'signed out' : $reason);
         }
         Session::destroy();
         self::$user = null;
@@ -147,6 +244,14 @@ final class Auth
             Session::start();
             return null;
         }
+        if (!Sessions::valid((int) $_SESSION['uid'])) {
+            // Ended elsewhere: password changed, "sign out other sessions", or an administrator.
+            Session::destroy();
+            Session::start();
+            Session::flash('info', 'You were signed out of this session. Please sign in again.');
+            self::$user = null;
+            return null;
+        }
         $user = Db::one(
             'SELECT u.*, d.name AS department_name, d.code AS department_code, COALESCE(u.college_id, d.college_id) AS scope_college_id, c.name AS college_name
              FROM users u LEFT JOIN departments d ON d.id = u.department_id
@@ -179,8 +284,18 @@ final class Auth
         if ($roles && !in_array($user['role'], $roles, true)) {
             Authz::deny('page ' . basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')));
         }
-        if ($user['must_change_password'] && ($_SESSION['auth'] ?? 'password') === 'password' && basename((string) $_SERVER['SCRIPT_NAME']) !== 'account.php') {
+        if ($user['role'] === 'admin' && !self::adminNetworkAllowed()) {
+            self::logout('administrator network restriction');
+            Authz::deny('administration from an untrusted network');
+        }
+        $page = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+        $passwordSession = in_array($_SESSION['auth'] ?? 'password', ['password', 'password+mfa'], true);
+        if ($user['must_change_password'] && $passwordSession && $page !== 'account.php') {
             header('Location: ' . Request::url('account.php?required=1'));
+            exit;
+        }
+        if ($passwordSession && Mfa::required($user) && !Mfa::enabled($user) && $page !== 'account.php') {
+            header('Location: ' . Request::url('account.php?mfa=required'));
             exit;
         }
         return $user;
@@ -261,24 +376,10 @@ final class Auth
         self::logAttempt($who !== '' ? $who : 'sso', false, 'sso: ' . mb_substr($reason, 0, 50));
     }
 
-    /** @return string|null error message, or null when the password is acceptable */
-    public static function passwordProblem(string $password, string $username): ?string
+    /** @return string|null error message, or null when the password is acceptable (see PasswordPolicy) */
+    public static function passwordProblem(string $password, string $username, array $person = []): ?string
     {
-        $min = Policy::get('auth.min_password_length');
-        if (mb_strlen($password) < $min) {
-            return "Use at least $min characters.";
-        }
-        if (!preg_match('/[A-Za-z]/', $password) || !preg_match('/\d/', $password)) {
-            return 'Use both letters and numbers.';
-        }
-        if (stripos($password, $username) !== false) {
-            return 'The password must not contain your username.';
-        }
-        $common = ['password123', 'qwerty1234', '1234567890', 'yamamah123', 'saqf123456', 'welcome123'];
-        if (in_array(mb_strtolower($password), $common, true)) {
-            return 'That password is too common.';
-        }
-        return null;
+        return PasswordPolicy::problem($password, $person + ['username' => $username]);
     }
 
     public static function changePassword(array $user, string $current, string $new): ?string
@@ -287,15 +388,16 @@ final class Auth
         if (!$row || !password_verify($current, $row['password_hash'])) {
             return 'Your current password is incorrect.';
         }
-        if ($problem = self::passwordProblem($new, $user['username'])) {
+        if ($problem = self::passwordProblem($new, $user['username'], $user)) {
             return $problem;
         }
         if (password_verify($new, $row['password_hash'])) {
             return 'Choose a password different from the current one.';
         }
-        Db::update('users', ['password_hash' => password_hash($new, PASSWORD_DEFAULT), 'password_changed_at' => Clock::stamp(), 'must_change_password' => 0], 'id = ?', [$user['id']]);
+        Db::update('users', ['password_hash' => self::hash($new), 'password_changed_at' => Clock::stamp(), 'must_change_password' => 0], 'id = ?', [$user['id']]);
         Session::regenerate();
-        Audit::record('auth.password_changed', 'user', $user['id'], "{$user['full_name']} changed their password");
+        $ended = Sessions::endAll((int) $user['id'], 'password changed', true);
+        Audit::record('auth.password_changed', 'user', $user['id'], "{$user['full_name']} changed their password" . ($ended ? " ($ended other session(s) signed out)" : ''));
         return null;
     }
 

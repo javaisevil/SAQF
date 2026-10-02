@@ -12,7 +12,8 @@ use Saqf\Core\Request;
  * then checks scope here — hiding buttons is never the only control.
  *
  * Scope model
- *   faculty    — offerings they teach (edit while the term is open)
+ *   faculty    — offerings they teach: as course coordinator (edit the specification and report while
+ *                the term is open) or as a section instructor (view, add results and evidence)
  *   hod        — courses owned by their department (decide) + courses in their programs (view)
  *   dean       — everything in their college (view)
  *   qa         — institution-wide quality data (view, override, policy)
@@ -53,7 +54,7 @@ final class Authz
             case 'dean':
                 return ["($c.owner_department_id IN (SELECT id FROM departments WHERE college_id = ?) OR $c.id IN (SELECT spe.course_id FROM study_plan_entries spe JOIN programs p ON p.id = spe.program_id JOIN departments d ON d.id = p.department_id WHERE d.college_id = ? AND spe.course_id IS NOT NULL))", [$user['scope_college_id'], $user['scope_college_id']]];
             case 'faculty':
-                return ["$c.id IN (SELECT course_id FROM course_offerings WHERE instructor_id = ?)", [$user['id']]];
+                return ["$c.id IN (SELECT o_.course_id FROM course_offerings o_ WHERE " . self::teachesSql('o_') . ')', [$user['id'], $user['id']]];
             default:
                 return ['1=0', []];
         }
@@ -63,9 +64,36 @@ final class Authz
     public static function offeringScope(array $user, string $o = 'o', string $c = 'c'): array
     {
         if ($user['role'] === 'faculty') {
-            return ["$o.instructor_id = ?", [$user['id']]];
+            return [self::teachesSql($o), [$user['id'], $user['id']]];
         }
         return self::courseScope($user, $c);
+    }
+
+    /** SQL predicate (two ? = the user id): offerings the person teaches as coordinator or section instructor. */
+    public static function teachesSql(string $o = 'o'): string
+    {
+        return "($o.instructor_id = ? OR $o.id IN (SELECT offering_id FROM offering_sections WHERE instructor_id = ?))";
+    }
+
+    /** Coordinator or section instructor of this offering. */
+    public static function teaches(array $user, array $offering): bool
+    {
+        if ($user['role'] !== 'faculty') {
+            return false;
+        }
+        return (int) $offering['instructor_id'] === $user['id']
+            || (bool) Db::val('SELECT 1 FROM offering_sections WHERE offering_id = ? AND instructor_id = ?', [$offering['id'], $user['id']]);
+    }
+
+    public static function isCoordinator(array $user, array $offering): bool
+    {
+        return $user['role'] === 'faculty' && (int) $offering['instructor_id'] === $user['id'];
+    }
+
+    /** Results and evidence can come from the coordinator or any section instructor while the term is open. */
+    public static function canContribute(array $user, array $offering): bool
+    {
+        return $offering['term_status'] !== 'closed' && self::teaches($user, $offering);
     }
 
     public static function programScope(array $user, string $p = 'p'): array
@@ -79,7 +107,7 @@ final class Authz
             case 'dean':
                 return ["$p.department_id IN (SELECT id FROM departments WHERE college_id = ?)", [$user['scope_college_id']]];
             case 'faculty':
-                return ["$p.id IN (SELECT spe.program_id FROM study_plan_entries spe JOIN course_offerings o ON o.course_id = spe.course_id WHERE o.instructor_id = ?)", [$user['id']]];
+                return ["$p.id IN (SELECT spe.program_id FROM study_plan_entries spe JOIN course_offerings o_ ON o_.course_id = spe.course_id WHERE " . self::teachesSql('o_') . ')', [$user['id'], $user['id']]];
             default:
                 return ['1=0', []];
         }
@@ -100,11 +128,8 @@ final class Authz
         if (!$o) {
             self::deny("offering #$offeringId", 404);
         }
-        if (!self::canViewCourse($user, (int) $o['course_id']) && !($user['role'] === 'faculty' && (int) $o['instructor_id'] === $user['id'])) {
-            self::deny("offering #$offeringId");
-        }
-        if ($user['role'] === 'faculty' && (int) $o['instructor_id'] !== $user['id']) {
-            self::deny("offering #$offeringId (not your course)");
+        if ($user['role'] === 'faculty' ? !self::teaches($user, $o) : !self::canViewCourse($user, (int) $o['course_id'])) {
+            self::deny("offering #$offeringId" . ($user['role'] === 'faculty' ? ' (not your course)' : ''));
         }
         if ($mode === 'edit' && !self::canEditOffering($user, $o)) {
             self::deny("editing offering #$offeringId");
@@ -112,6 +137,7 @@ final class Authz
         return $o;
     }
 
+    /** Editing the specification and the course report is the course coordinator's. */
     public static function canEditOffering(array $user, array $offering): bool
     {
         return $user['role'] === 'faculty'

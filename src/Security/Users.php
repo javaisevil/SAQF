@@ -97,7 +97,7 @@ final class Users
         $temp = (!$sso && $passwordAllowed && !$invite && !in_array($source, ['sis', 'sso'], true)) ? self::tempPassword() : null;
         $id = Db::insert('users', $fields + [
             'username' => $username,
-            'password_hash' => password_hash($temp ?? bin2hex(random_bytes(24)), PASSWORD_DEFAULT),
+            'password_hash' => Auth::hash($temp ?? bin2hex(random_bytes(24))),
             'auth_source' => $sso ? 'sso' : 'local',
             'provisioned_by' => $source,
             'status' => 'active',
