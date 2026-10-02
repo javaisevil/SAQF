@@ -631,9 +631,9 @@ final class Specs
                 [$versionId, $v['course_id'], $previous['id'] ?? 0]
             );
         });
-        $labels = ['auto_minor' => 'auto-approved (non-academic change)', 'auto_green' => 'approved by HoD and auto-cleared (all checks green)', 'qa' => 'approved by Quality Assurance', 'seed' => 'baseline imported', 'hod' => 'approved by HoD'];
+        $labels = ['auto_minor' => 'auto-approved (non-academic change)', 'auto_green' => 'approved by HoD and auto-cleared (all checks green)', 'qa' => 'approved by Quality Assurance', 'seed' => 'baseline imported', 'import' => 'imported as the approved baseline', 'hod' => 'approved by HoD'];
         Audit::record('spec.approved', 'spec_version', $versionId, "{$course['code']} v{$v['version_no']} " . ($labels[$route] ?? $route), null, ['route' => $route, 'qa_sampled' => $sampled]);
-        if ($v['submitted_by'] && $route !== 'seed') {
+        if ($v['submitted_by'] && !in_array($route, ['seed', 'import'], true)) {
             Notify::user((int) $v['submitted_by'], 'info', "{$course['code']} specification v{$v['version_no']} approved", $labels[$route] ?? $route, self::workspaceLink((int) $v['course_id']), 'spec-approved:' . $versionId);
         }
         Events::emit('spec.approved', ['version_id' => $versionId, 'course_id' => (int) $v['course_id']]);
