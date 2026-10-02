@@ -28,7 +28,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 <title>Reset password · SAQF</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="assets/app.css?v=<?= SAQF_VERSION ?>"></head>
 <body><div class="login"><section class="login-hero"><div><img src="assets/yu-logo.png" alt="Al Yamamah University"><h1>Reset your SAQF password</h1>
 <p>Enter your username or university e-mail address. If it matches an account, SAQF e-mails you a link to choose a new password.</p></div></section>
-<section class="login-form"><h2>Forgot password</h2><?= V::flash() ?>
+<section class="login-form"><div class="login-lang"><?= \Saqf\Web\I18n::switchLink() ?></div><h2>Forgot password</h2><?= V::flash() ?>
 <form method="post"><?= Csrf::field() ?>
   <div class="field"><label for="identifier">Username or e-mail</label><input type="text" id="identifier" name="identifier" required autofocus autocomplete="username"></div>
   <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center;padding:10px">E-mail me a reset link</button></form>

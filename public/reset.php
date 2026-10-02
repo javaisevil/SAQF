@@ -25,7 +25,7 @@ $user = PasswordReset::find($token);
 <title>Choose a password · SAQF</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="assets/app.css?v=<?= SAQF_VERSION ?>"></head>
 <body><div class="login"><section class="login-hero"><div><img src="assets/yu-logo.png" alt="Al Yamamah University"><h1>Choose your SAQF password</h1>
 <p>Use at least <?= (int) Policy::get('auth.min_password_length') ?> characters with letters and numbers. Do not reuse your password from other systems.</p></div></section>
-<section class="login-form"><h2>New password</h2>
+<section class="login-form"><div class="login-lang"><?= \Saqf\Web\I18n::switchLink() ?></div><h2>New password</h2>
 <?php if ($error): ?><div class="alert alert-error" role="alert"><?= V::h($error) ?></div><?php endif; ?>
 <?php if (!$user): ?>
   <div class="alert alert-error">This link is invalid or has expired.</div><p class="small"><a href="forgot.php">Request a new link</a> · <a href="login.php">Sign in</a></p>

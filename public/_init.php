@@ -43,6 +43,7 @@ function saqf_redirect(string $to): void
 function saqf_heartbeat(): void
 {
     try {
+        Scheduler::checkHeartbeat();
         Scheduler::tick(false, \Saqf\Core\Config::demoMode() ? 300 : 900);
     } catch (Throwable $e) {
         ErrorLog::record($e, 'warning');

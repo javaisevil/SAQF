@@ -23,7 +23,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $mode !== 'off') {
     } else {
         $r = Auth::attempt((string) ($_POST['username'] ?? ''), (string) ($_POST['password'] ?? ''));
         if ($r['ok']) {
-            saqf_redirect('index.php');
+            saqf_redirect(!empty($r['mfa']) ? 'mfa.php' : 'index.php');
         }
         $error = $r['message'];
     }
@@ -49,6 +49,7 @@ $flash = V::flash();
     <p class="tiny">Supports NCAAA-oriented academic quality workflows.<?= Config::demoMode() ? ' Demo mode: people, teaching assignments and student results are fictional, delivered through simulated SIS and LMS feeds.' : ' Institutional data is synchronised from the university Registrar, SIS and LMS.' ?></p>
   </section>
   <section class="login-form">
+    <div class="login-lang"><?= \Saqf\Web\I18n::switchLink() ?></div>
     <h2>Sign in</h2>
     <p class="muted">Use your university account.</p>
     <?= $flash ?>
@@ -66,14 +67,16 @@ $flash = V::flash();
     <?php if ($sso && $mode === 'admins'): ?></details><?php endif; ?>
     <?php endif; ?>
     <p class="tiny muted" style="margin-top:12px">Accounts lock temporarily after repeated failed attempts. Sessions expire after inactivity.<?= $sso ? ' Sign-in is handled by the university identity provider.' : '' ?></p>
-    <?php if (Config::demoMode()): ?>
+    <?php if (Config::demoMode()): $byName = []; foreach (Story::USERS as $row) { $byName[$row[0]] = $row; } ?>
     <div class="demo-accounts">
-      <strong>Demo accounts</strong> (fictional people · password <code><?= V::h(Story::PASSWORD) ?></code>)
+      <div class="row between"><strong>Demo — one-click sign-in</strong><a class="btn btn-sm btn-primary" href="tour.php">Guided 5-minute tour</a></div>
+      <div class="tiny muted" style="margin:4px 0 8px">Fictional people. Password for every account: <code><?= V::h(Story::PASSWORD) ?></code> (the administrator also needs a code: shown on the next screen in demo mode).</div>
       <div class="acc">
-        <?php foreach (Story::USERS as [$u, $name, $title, $role]): ?>
-          <div><button type="button" onclick="document.getElementById('username').value='<?= V::h($u) ?>';document.getElementById('password').value='<?= V::h(Story::PASSWORD) ?>';document.getElementById('loginForm').submit()"><?= V::h($u) ?></button><small><?= V::h(Auth::ROLES[$role]) ?> · <?= V::h($name) ?></small></div>
+        <?php foreach (Story::ROLE_ACCOUNTS as $u): [, $name, , $role] = $byName[$u]; ?>
+          <form method="post" action="demo.php"><?= Csrf::field() ?><input type="hidden" name="as" value="<?= V::h($u) ?>"><button type="submit"><?= V::h(Auth::ROLES[$role]) ?></button><small><?= V::h($name) ?> · <?= V::h($u) ?></small></form>
         <?php endforeach; ?>
       </div>
+      <div class="tiny muted" style="margin-top:6px">Also in the story: <?php foreach (array_diff(array_keys($byName), Story::ROLE_ACCOUNTS) as $u): ?><span class="mono"><?= V::h($u) ?></span> (<?= V::h($byName[$u][1]) ?>) <?php endforeach; ?></div>
     </div>
     <?php endif; ?>
   </section>
