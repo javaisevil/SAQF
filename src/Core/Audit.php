@@ -59,7 +59,7 @@ final class Audit
             'actor_role' => $actor['role'],
             'action' => $action,
             'object_type' => $objectType,
-            'object_id' => $objectId === null ? null : (string) $objectId,
+            'object_id' => $objectId === null ? null : mb_substr((string) $objectId, 0, 40),
             'summary' => mb_substr($summary, 0, 400),
             'old_value' => $old === null ? null : json_encode($old, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'new_value' => $new === null ? null : json_encode($new, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),

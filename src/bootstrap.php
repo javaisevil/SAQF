@@ -7,7 +7,7 @@ declare(strict_types=1);
  */
 
 define('SAQF_ROOT', dirname(__DIR__));
-define('SAQF_VERSION', '2.0.0');
+define('SAQF_VERSION', '2.1.0');
 
 spl_autoload_register(static function (string $class): void {
     if (strncmp($class, 'Saqf\\', 5) !== 0) {
@@ -50,11 +50,15 @@ if (PHP_SAPI !== 'cli') {
     if (!defined('SAQF_STATELESS')) {
         Session::start();
     }
+    \Saqf\Web\I18n::boot();
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
     header('Referrer-Policy: same-origin');
-    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
-    header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'");
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+    header('Cross-Origin-Opener-Policy: same-origin');
+    header('Cross-Origin-Resource-Policy: same-origin');
+    // No inline scripts anywhere: script-src is 'self' only, so injected markup cannot run code.
+    header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'");
     if (Request::isHttps()) {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     }

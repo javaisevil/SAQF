@@ -40,6 +40,13 @@ final class Policy
         'session.idle_minutes' => ['30', 'int', 'Session idle timeout (minutes)', null, null],
         'session.absolute_hours' => ['8', 'int', 'Absolute session lifetime (hours)', null, null],
         'auth.min_password_length' => ['10', 'int', 'Minimum password length', null, null],
+        'section.gap_points' => ['15', 'float', 'Gap between sections that needs attention (points)', 'When one section\'s achievement on a CLO trails another section of the same course by more than this, the coordinator is told.', null],
+        'evidence.request_on_results' => ['1', 'bool', 'Ask for assessment evidence when results arrive', 'When results for an assessment arrive, the instructor is asked (advisory) to upload the assessment and a sample of marked work; the request clears itself once evidence is uploaded.', null],
+        'evidence.max_mb' => ['20', 'int', 'Maximum evidence file size (MB)', 'Larger files are refused at upload.', null],
+        'auth.mfa_required' => ['admins', 'enum', 'Two-step verification required for', 'admins = administrators must confirm password sign-ins with an authenticator app; all = everyone who signs in with a password; off = optional for everyone. University SSO sign-ins use the identity provider\'s own MFA.', 'off,admins,all'],
+        'security.reauth_minutes' => ['15', 'int', 'Re-confirm identity for sensitive changes (minutes)', 'Role changes, password resets, user imports and other sensitive administrator actions need a sign-in or identity confirmation within this many minutes.', null],
+        'security.new_device_alert' => ['1', 'bool', 'Tell people about sign-ins from a new device', 'The person is notified (and e-mailed) when their account is used from a browser or network not seen in the last 90 days.', null],
+        'auth.dormant_days' => ['180', 'int', 'Dormant account threshold (days)', 'Active accounts not used for this many days are listed in the Security center for review (0 = never).', null],
     ];
 
     private static ?array $cache = null;

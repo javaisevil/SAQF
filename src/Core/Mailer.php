@@ -22,6 +22,10 @@ final class Mailer
 {
     public const MAX_ATTEMPTS = 8;
 
+    /** Failed deliveries in the last flush() and the last error (used for the IT alert). */
+    public static int $lastFailures = 0;
+    public static ?string $lastError = null;
+
     public static function transport(): string
     {
         $t = strtolower((string) Config::get('SAQF_MAIL_TRANSPORT', ''));
@@ -62,6 +66,8 @@ final class Mailer
         }
         $sql = 'SELECT * FROM mail_outbox WHERE sent_at IS NULL AND attempts < ? AND next_attempt_at <= ?' . ($onlyId ? ' AND id = ?' : '') . ' ORDER BY id LIMIT ' . max(1, $limit);
         $sent = 0;
+        self::$lastFailures = 0;
+        self::$lastError = null;
         foreach (Db::all($sql, $onlyId ? [self::MAX_ATTEMPTS, Clock::stamp(), $onlyId] : [self::MAX_ATTEMPTS, Clock::stamp()]) as $m) {
             try {
                 self::deliver($m['to_email'], $m['to_name'], $m['subject'], $m['body']);
@@ -69,6 +75,8 @@ final class Mailer
                 $sent++;
             } catch (Throwable $e) {
                 $attempts = (int) $m['attempts'] + 1;
+                self::$lastFailures++;
+                self::$lastError = mb_substr($e->getMessage(), 0, 200);
                 $retry = Clock::now()->modify('+' . (2 ** min($attempts, 10)) . ' minutes')->format('Y-m-d H:i:s');
                 Db::update('mail_outbox', ['attempts' => $attempts, 'next_attempt_at' => $retry, 'last_error' => mb_substr($e->getMessage(), 0, 400)], 'id = ?', [$m['id']]);
                 if ($attempts >= self::MAX_ATTEMPTS) {

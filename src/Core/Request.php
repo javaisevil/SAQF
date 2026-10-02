@@ -17,13 +17,60 @@ final class Request
         return self::$id;
     }
 
+    /**
+     * Client address. Behind a reverse proxy, X-Forwarded-For is used only when the connection comes
+     * from a trusted proxy: SAQF_TRUSTED_PROXIES (addresses/CIDR ranges, e.g. the HTTPS proxy
+     * container) or, for older set-ups, SAQF_TRUST_PROXY=true (trust any).
+     */
     public static function ip(): string
     {
-        // Behind a trusted reverse proxy set SAQF_TRUST_PROXY=true to use X-Forwarded-For.
-        if (Config::bool('SAQF_TRUST_PROXY') && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            return trim(explode(',', (string) $_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
+        $remote = (string) ($_SERVER['REMOTE_ADDR'] ?? 'cli');
+        if (self::fromTrustedProxy() && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            // The right-most address not belonging to a trusted proxy is the client.
+            $chain = array_reverse(array_map('trim', explode(',', (string) $_SERVER['HTTP_X_FORWARDED_FOR'])));
+            $trusted = (string) Config::get('SAQF_TRUSTED_PROXIES', '');
+            foreach ($chain as $hop) {
+                if (filter_var($hop, FILTER_VALIDATE_IP) && ($trusted === '' || !self::inRanges($hop, $trusted))) {
+                    return $hop;
+                }
+            }
         }
-        return (string) ($_SERVER['REMOTE_ADDR'] ?? 'cli');
+        return $remote;
+    }
+
+    public static function fromTrustedProxy(): bool
+    {
+        $trusted = (string) Config::get('SAQF_TRUSTED_PROXIES', '');
+        if ($trusted !== '') {
+            return self::inRanges((string) ($_SERVER['REMOTE_ADDR'] ?? ''), $trusted);
+        }
+        return Config::bool('SAQF_TRUST_PROXY');
+    }
+
+    /** True when $ip is in a comma-separated list of addresses / CIDR ranges (IPv4 and IPv6). */
+    public static function inRanges(string $ip, string $ranges): bool
+    {
+        $addr = @inet_pton($ip);
+        if ($addr === false) {
+            return false;
+        }
+        foreach (array_filter(array_map('trim', explode(',', $ranges))) as $range) {
+            [$net, $bits] = array_pad(explode('/', $range, 2), 2, null);
+            $netAddr = @inet_pton((string) $net);
+            if ($netAddr === false || strlen($netAddr) !== strlen($addr)) {
+                continue;
+            }
+            $bits = $bits === null ? strlen($addr) * 8 : max(0, min(strlen($addr) * 8, (int) $bits));
+            $bytes = intdiv($bits, 8);
+            $rest = $bits % 8;
+            if (substr($addr, 0, $bytes) !== substr($netAddr, 0, $bytes)) {
+                continue;
+            }
+            if ($rest === 0 || ((ord($addr[$bytes]) ^ ord($netAddr[$bytes])) & (0xFF << (8 - $rest)) & 0xFF) === 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static function isPost(): bool
@@ -34,7 +81,7 @@ final class Request
     public static function isHttps(): bool
     {
         return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-            || (Config::bool('SAQF_TRUST_PROXY') && ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+            || (self::fromTrustedProxy() && ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     }
 
     public static function int(string $key, int $default = 0): int
