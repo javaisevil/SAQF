@@ -48,10 +48,13 @@ final class ActionCenter
         $items = [];
         $offerings = Db::all(
             'SELECT o.*, c.code, c.title, t.name AS term_name, t.status AS term_status FROM course_offerings o JOIN courses c ON c.id = o.course_id JOIN terms t ON t.id = o.term_id
-             WHERE o.instructor_id = ? AND t.status <> "closed" ORDER BY c.code',
-            [$user['id']]
+             WHERE ' . Authz::teachesSql('o') . ' AND t.status <> "closed" ORDER BY c.code',
+            [$user['id'], $user['id']]
         );
         foreach ($offerings as $o) {
+            if ((int) $o['instructor_id'] !== $user['id']) {
+                continue; // section instructor: the coordinator owns the course's quality actions
+            }
             $ctx = "{$o['code']} · {$o['term_name']}";
             $findings = array_filter(Findings::forOffering((int) $o['id']), static fn($f) => $f['status'] === 'open' && $f['owner_role'] === 'faculty' && $f['severity'] !== 'info');
             $blockers = array_filter($findings, static fn($f) => $f['severity'] === 'blocker');

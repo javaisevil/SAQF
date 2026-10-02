@@ -45,6 +45,8 @@ final class Rules
         'IMPROVEMENT_OVERDUE' => ['workflow', 'warning', 'hod', 'An improvement action passed its deadline without being completed.'],
         'INTERPRETATION_MISSING' => ['academic', 'info', 'faculty', 'The course report needs the instructor\'s interpretation of the results that missed their targets.'],
         'LOW_SAMPLE' => ['evidence', 'info', 'faculty', 'Too few students were assessed for the percentage to be statistically reliable.'],
+        'SECTION_GAP' => ['quality_risk', 'warning', 'faculty', 'Sections of one course share the same outcomes and assessments; a large difference between them points to differences in teaching or marking that the coordinator should review with the section instructors.'],
+        'EVIDENCE_REQUESTED' => ['evidence', 'info', 'faculty', 'Accreditation reviewers ask for the assessment itself (paper or brief, rubric) and samples of marked student work alongside the results.'],
         // ---------- program (scope: program) ----------
         'PROGRAM_NO_PLOS' => ['data', 'warning', 'hod', 'Without approved PLOs, course outcomes cannot be mapped and program achievement cannot be calculated.'],
         'PLO_NOT_COVERED' => ['academic', 'warning', 'hod', 'No course in the curriculum currently develops this PLO — a curriculum gap.'],
@@ -67,7 +69,7 @@ final class Rules
     {
         $groups = [
             'spec' => ['SPEC_NO_CLOS', 'CLO_VAGUE_VERB', 'CLO_VERB_UNRECOGNISED', 'CLO_DUPLICATE', 'CLO_UNMAPPED', 'CLO_UNMAPPED_ELECTIVE', 'CLO_NOT_ASSESSED', 'ASSESSMENT_NO_CLO', 'ASSESSMENT_WEIGHT_TOTAL', 'ASSESSMENT_ZERO_WEIGHT', 'ASSESSMENT_SINGLE_WEIGHT', 'MAPPING_EXCESSIVE', 'SPEC_OBJECTIVES_MISSING', 'CLO_DOMAIN_NARROW'],
-            'offering' => ['OFFERING_NO_INSTRUCTOR', 'OFFERING_NO_SPEC', 'RESULTS_OVERDUE', 'RESULTS_MISSING_ASSESSMENT', 'CLO_TARGET_MISSED', 'CLO_EARLY_WARNING', 'GAP_RECURRING', 'IMPROVEMENT_MISSING', 'IMPROVEMENT_OVERDUE', 'INTERPRETATION_MISSING', 'LOW_SAMPLE'],
+            'offering' => ['OFFERING_NO_INSTRUCTOR', 'OFFERING_NO_SPEC', 'RESULTS_OVERDUE', 'RESULTS_MISSING_ASSESSMENT', 'CLO_TARGET_MISSED', 'CLO_EARLY_WARNING', 'GAP_RECURRING', 'IMPROVEMENT_MISSING', 'IMPROVEMENT_OVERDUE', 'INTERPRETATION_MISSING', 'LOW_SAMPLE', 'SECTION_GAP', 'EVIDENCE_REQUESTED'],
             'program' => ['PROGRAM_NO_PLOS', 'PLO_NOT_COVERED', 'PLO_THIN_COVERAGE', 'PLO_BELOW_TARGET', 'PLO_PERSISTENT_BELOW'],
         ];
         return $groups[$prefixGroup] ?? [];
@@ -287,6 +289,22 @@ final class Rules
             $hasNarrative = Db::val('SELECT 1 FROM offering_narratives WHERE offering_id = ? AND section_key = "interpretation" AND TRIM(content) <> ""', [$o['id']]);
             if (!$hasNarrative) {
                 $add('INTERPRETATION_MISSING', '', "$label: results need your interpretation", 'At least one CLO missed its target and the course report has no instructor interpretation yet.', 'Write a short interpretation of the results in the Report tab.');
+            }
+        }
+
+        $checks++;
+        foreach (Sections::gaps((int) $o['id'], Policy::get('section.gap_points'), $minStudents) as $g) {
+            $add('SECTION_GAP', 'section:' . $g['lineage_key'], "{$o['course_code']} {$g['code']}: section {$g['low']} is " . self::fmt($g['gap']) . " points below section {$g['high']}", "Section {$g['high']}: " . self::fmt($g['high_value']) . "%, section {$g['low']}: " . self::fmt($g['low_value']) . '% on the same outcome, assessments and method.', 'Compare how this outcome was taught and marked in each section with the section instructors; align rubrics or share practice before the remaining assessments.', ['clo_id' => $g['clo_id']]);
+        }
+
+        // While the term runs, results that arrive prompt for the matching evidence (cleared by uploading it).
+        $checks++;
+        if (Policy::get('evidence.request_on_results') && $o['term_status'] !== 'closed' && $today <= $o['ends_on'] && $withResults) {
+            $covered = array_map('intval', Db::col('SELECT DISTINCT assessment_id FROM evidence_files WHERE offering_id = ? AND deleted_at IS NULL AND assessment_id IS NOT NULL', [$o['id']]));
+            $missing = array_values(array_filter($withResults, static fn($a) => !in_array((int) $a['id'], $covered, true)));
+            if ($missing) {
+                $names = array_column($missing, 'name');
+                $add('EVIDENCE_REQUESTED', '', "$label: evidence requested for " . implode(', ', $names), 'Results arrived for ' . implode(', ', $names) . '; the course file should hold the assessment and a sample of marked work for each.', 'Upload the paper or brief (and rubric) with a few marked samples in the Evidence tab; this request clears itself.', ['assessments' => array_map('intval', array_column($missing, 'id'))]);
             }
         }
 

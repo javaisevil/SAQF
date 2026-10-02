@@ -24,7 +24,7 @@ final class Search
             return $out;
         }
         [$cs, $cp] = Authz::courseScope($user, 'c');
-        foreach (Db::all("SELECT c.id, c.code, c.title, (SELECT o.id FROM course_offerings o JOIN terms t ON t.id = o.term_id WHERE o.course_id = c.id" . ($user['role'] === 'faculty' ? ' AND o.instructor_id = ' . (int) $user['id'] : '') . " ORDER BY t.sequence DESC LIMIT 1) AS oid FROM courses c WHERE (c.code LIKE ? OR c.title LIKE ?) AND $cs ORDER BY c.code LIMIT 12", array_merge([$like, $like], $cp)) as $c) {
+        foreach (Db::all("SELECT c.id, c.code, c.title, (SELECT o.id FROM course_offerings o JOIN terms t ON t.id = o.term_id WHERE o.course_id = c.id" . ($user['role'] === 'faculty' ? ' AND (o.instructor_id = ' . (int) $user['id'] . ' OR o.id IN (SELECT offering_id FROM offering_sections WHERE instructor_id = ' . (int) $user['id'] . '))' : '') . " ORDER BY t.sequence DESC LIMIT 1) AS oid FROM courses c WHERE (c.code LIKE ? OR c.title LIKE ?) AND $cs ORDER BY c.code LIMIT 12", array_merge([$like, $like], $cp)) as $c) {
             $out[] = ['type' => 'Course', 'title' => $c['code'] . ' — ' . $c['title'], 'sub' => $c['oid'] ? 'Open latest workspace' : 'Catalog record', 'link' => $c['oid'] ? 'workspace.php?id=' . $c['oid'] : 'course.php?id=' . $c['id']];
         }
         [$ps, $pp] = Authz::programScope($user, 'p');
