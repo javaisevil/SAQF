@@ -20,6 +20,11 @@ esac
 
 php bin/migrate.php || echo "WARNING: database migrations did not run (see message above)."
 
+# Evidence store (a volume outside the web root): readable and writable by the web server only
+# (the demo installer files its sample papers as root, so ownership is fixed after installing).
+evidence="${SAQF_STORAGE_DIR:-/var/www/saqf/storage/evidence}"
+mkdir -p "$evidence" && chown -R www-data:www-data "$evidence" && chmod 700 "$evidence"
+
 if [ "${SAQF_SCHEDULER:-on}" = "on" ]; then
   ( while true; do php bin/tick.php || true; sleep 300; done ) &
 fi

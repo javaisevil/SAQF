@@ -1,0 +1,14 @@
+# HTTPS reverse proxy for SAQF (docker compose --profile https up -d).
+# SAQF_DOMAIN: the public name (e.g. saqf.yu.edu.sa) — Caddy obtains and renews a certificate
+# automatically when the name points at this server and ports 80/443 are reachable. With the
+# default "localhost", Caddy uses its own local certificate authority (browsers will ask once).
+# To use a certificate issued by the university instead, mount it and replace the "tls" line:
+#   tls /certs/saqf.crt /certs/saqf.key
+{$SAQF_DOMAIN:localhost} {
+	encode zstd gzip
+	reverse_proxy app:80
+	header -Server
+	request_body {
+		max_size 32MB
+	}
+}

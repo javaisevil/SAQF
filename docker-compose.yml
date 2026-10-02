@@ -1,7 +1,8 @@
 # Local / demo stack:   cp .env.example .env   (edit passwords)   then   docker compose up --build
 # Open http://localhost:8080  — demo accounts are listed on the sign-in page while SAQF_DEMO is on.
 # Production: set APP_ENV=production, SAQF_AUTO_INSTALL=production and the connector, SSO and mail
-# settings in .env (see .env.example and docs/INTEGRATIONS.md), and put HTTPS in front.
+# settings in .env (see .env.example and docs/OPERATIONS.md), then start with the HTTPS proxy:
+#   docker compose --profile https up -d --build          (+ --profile antivirus for upload scanning)
 services:
   app:
     build: .
@@ -19,8 +20,16 @@ services:
       SAQF_DB_USER: ${SAQF_DB_USER:-saqf}
       SAQF_DB_PASS: ${SAQF_DB_PASS:-change-me-local}
       SAQF_TRUST_PROXY: ${SAQF_TRUST_PROXY:-false}
+      # Only the bundled HTTPS proxy (fixed address below) may tell SAQF the client's address.
+      SAQF_TRUSTED_PROXIES: ${SAQF_TRUSTED_PROXIES:-172.28.250.10}
       SAQF_BASE_URL: ${SAQF_BASE_URL:-}
       SAQF_APP_KEY: ${SAQF_APP_KEY:-}
+      # Security and operations (docs/OPERATIONS.md)
+      SAQF_ADMIN_ALLOWED_IPS: ${SAQF_ADMIN_ALLOWED_IPS:-}
+      SAQF_ALERT_WEBHOOK: ${SAQF_ALERT_WEBHOOK:-}
+      SAQF_CLAMAV_HOST: ${SAQF_CLAMAV_HOST:-}
+      SAQF_STORAGE_DIR: /var/www/saqf/storage/evidence
+      SAQF_BACKUP_MONITOR_DIR: /var/www/saqf/storage/backups
       # University systems (docs/INTEGRATIONS.md)
       SAQF_INSTITUTION_DIR: ${SAQF_INSTITUTION_DIR:-}
       SAQF_SIS_SOURCE: ${SAQF_SIS_SOURCE:-}
@@ -62,6 +71,10 @@ services:
     volumes:
       # SIS / LMS export drop folders (read-only for SAQF)
       - ./storage/inbox:/var/www/saqf/storage/inbox:ro
+      # Course-file evidence (outside the web root; included in every backup)
+      - saqf_evidence:/var/www/saqf/storage/evidence
+      # Backup status written by the backup service (System health and IT alerts read it)
+      - saqf_backup_status:/var/www/saqf/storage/backups:ro
     depends_on:
       db:
         condition: service_healthy
@@ -86,7 +99,9 @@ services:
       retries: 30
     restart: unless-stopped
 
-  # Nightly compressed backups into ./backups (kept SAQF_BACKUP_KEEP_DAYS days). Copy them off the server.
+  # Nightly backups into ./backups (database + evidence files, kept SAQF_BACKUP_KEEP_DAYS days), each
+  # verified after writing; encrypted with SAQF_BACKUP_PASSPHRASE and copied to SAQF_BACKUP_OFFSITE_PATH
+  # (a mounted network share or second disk) when those are set. Restore: docker/restore.sh.
   backup:
     image: mysql:8.0
     entrypoint: ["sh", "/usr/local/bin/saqf-backup", "--loop"]
@@ -97,14 +112,61 @@ services:
       SAQF_DB_PASS: ${SAQF_DB_PASS:-change-me-local}
       SAQF_BACKUP_KEEP_DAYS: ${SAQF_BACKUP_KEEP_DAYS:-14}
       SAQF_BACKUP_INTERVAL_HOURS: ${SAQF_BACKUP_INTERVAL_HOURS:-24}
+      SAQF_BACKUP_START_DELAY: ${SAQF_BACKUP_START_DELAY:-900}
+      SAQF_BACKUP_PASSPHRASE: ${SAQF_BACKUP_PASSPHRASE:-}
+      SAQF_BACKUP_OFFSITE_DIR: ${SAQF_BACKUP_OFFSITE_PATH:+/offsite}
       TZ: Asia/Riyadh
     volumes:
       - ./docker/backup.sh:/usr/local/bin/saqf-backup:ro
+      - ./docker/restore.sh:/usr/local/bin/saqf-restore:ro
       - ./backups:/backups
+      - ${SAQF_BACKUP_OFFSITE_PATH:-./backups/offsite-not-configured}:/offsite
+      - saqf_evidence:/evidence
+      - saqf_backup_status:/status
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
 
+  # HTTPS in front of SAQF (profile "https"): automatic certificates for a public SAQF_DOMAIN,
+  # a local certificate for "localhost". HTTP is redirected to HTTPS; HSTS is sent by SAQF.
+  proxy:
+    image: caddy:2
+    profiles: ["https"]
+    ports:
+      - "${SAQF_HTTP_PORT:-80}:80"
+      - "${SAQF_HTTPS_PORT:-443}:443"
+    environment:
+      SAQF_DOMAIN: ${SAQF_DOMAIN:-localhost}
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - saqf_caddy_data:/data
+      - saqf_caddy_config:/config
+    networks:
+      default:
+        ipv4_address: 172.28.250.10
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  # Virus scanning of evidence uploads (profile "antivirus"); set SAQF_CLAMAV_HOST=clamav:3310.
+  clamav:
+    image: clamav/clamav:stable
+    profiles: ["antivirus"]
+    restart: unless-stopped
+
+networks:
+  default:
+    ipam:
+      config:
+        # Fixed range so the HTTPS proxy has a known address (SAQF_TRUSTED_PROXIES); dynamic
+        # addresses come from the upper half only.
+        - subnet: 172.28.250.0/24
+          ip_range: 172.28.250.128/25
+
 volumes:
   saqf_mysql:
+  saqf_evidence:
+  saqf_backup_status:
+  saqf_caddy_data:
+  saqf_caddy_config:
