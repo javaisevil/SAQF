@@ -11,9 +11,11 @@ use Saqf\Integration\Gradebook;
 use Saqf\Integration\Integrations;
 use Saqf\Quality\Achievement;
 use Saqf\Quality\Catalog;
+use Saqf\Quality\Evidence;
 use Saqf\Quality\Findings;
 use Saqf\Quality\Improvements;
 use Saqf\Quality\Rules;
+use Saqf\Quality\Sections;
 use Saqf\Quality\Specs;
 use Saqf\Quality\Status;
 use Saqf\Security\Authz;
@@ -24,12 +26,42 @@ $o = Authz::offering($user, (int) ($_GET['id'] ?? 0));
 $oid = (int) $o['id'];
 $courseId = (int) $o['course_id'];
 $canEdit = Authz::canEditOffering($user, $o);
-$tab = in_array($_GET['tab'] ?? '', ['overview', 'structure', 'results', 'improve', 'report', 'history'], true) ? $_GET['tab'] : 'overview';
+$canContribute = Authz::canContribute($user, $o);
+$sections = Sections::forOffering($oid);
+$mySections = $user['role'] === 'faculty' ? Sections::taughtBy($oid, $user['id']) : [];
+$tab = in_array($_GET['tab'] ?? '', ['overview', 'structure', 'results', 'evidence', 'improve', 'report', 'history'], true) ? $_GET['tab'] : 'overview';
+
+// Assessment evidence: upload (coordinator or section instructor) and removal (with a reason).
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (isset($_FILES['evidence']) || ($_POST['op'] ?? '') === 'remove_evidence')) {
+    saqf_require_post();
+    if (!$canContribute) {
+        Authz::deny('changing evidence');
+    }
+    try {
+        if (isset($_FILES['evidence'])) {
+            \Saqf\Core\Throttle::check('upload:' . $user['id'], 30, 3600, 'Too many uploads in the last hour. Please try again later.');
+            $aid = (int) ($_POST['assessment'] ?? 0);
+            $section = (string) ($_POST['section'] ?? '') ?: (count($mySections) === 1 ? $mySections[0] : null);
+            Evidence::store($o, $_FILES['evidence'], (string) ($_POST['kind'] ?? ''), (string) ($_POST['title'] ?? ''), $aid ?: null, $section, $user);
+            Session::flash('success', 'Evidence added to the course file. Any matching evidence request cleared automatically.');
+        } else {
+            $ev = Db::one('SELECT * FROM evidence_files WHERE id = ? AND offering_id = ?', [(int) ($_POST['id'] ?? 0), $oid]);
+            if (!$ev || !($canEdit || (int) $ev['uploaded_by'] === $user['id'])) {
+                Authz::deny('removing evidence');
+            }
+            Evidence::remove((int) $ev['id'], $user, (string) ($_POST['reason'] ?? ''));
+            Session::flash('success', 'Evidence removed from the course file (kept in the audit trail).');
+        }
+    } catch (InvalidArgumentException | RuntimeException $e) {
+        Session::flash('error', $e->getMessage());
+    }
+    saqf_redirect('workspace.php?id=' . $oid . '&tab=evidence');
+}
 
 // CSV upload fallback (when results are not in the LMS). Validated strictly, never trusted.
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_FILES['results'])) {
     saqf_require_post();
-    if (!$canEdit) {
+    if (!$canContribute) {
         Authz::deny('uploading results');
     }
     $f = $_FILES['results'];
@@ -37,9 +69,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_FILES['results']
         if ($f['error'] !== UPLOAD_ERR_OK || $f['size'] > 2 * 1024 * 1024) {
             throw new InvalidArgumentException('Upload a CSV file under 2 MB.');
         }
-        $results = Gradebook::parseCsv($f['tmp_name']);
-        $r = Achievement::import($oid, $results, 'upload');
-        Session::flash('success', "{$r['rows']} results imported; achievement recalculated automatically.");
+        $parsed = Gradebook::parse($f['tmp_name']);
+        // A section instructor's file belongs to their section unless it says otherwise.
+        $tag = $parsed['sections'] ?: (!$canEdit && count($mySections) === 1 ? $mySections[0] : null);
+        $r = Achievement::import($oid, $parsed['results'], 'upload', null, $tag);
+        Session::flash('success', "{$r['rows']} results imported" . (is_string($tag) ? " for section $tag" : '') . '; achievement recalculated automatically.');
     } catch (InvalidArgumentException $e) {
         Session::flash('error', $e->getMessage());
     }
@@ -88,12 +122,21 @@ $insights = Db::all('SELECT * FROM recommendations WHERE scope_type = "offering"
 $base = 'workspace.php?id=' . $oid;
 $countBadge = static fn(int $n) => $n ? ' <span class="count">' . $n . '</span>' : '';
 $improveCount = count($draftActions);
+$evidenceFiles = Evidence::forOffering($oid);
+$evidenceRequested = [];
+foreach ($openFindings as $f) {
+    if ($f['rule_code'] === 'EVIDENCE_REQUESTED') {
+        $evidenceRequested = (json_decode((string) $f['context'], true) ?: [])['assessments'] ?? [];
+    }
+}
 
-V::header($o['course_code'] . ' · ' . $o['course_title'], $user, ['subtitle' => V::h($o['term_name']) . ' · ' . V::h($o['instructor_name'] ?? 'No instructor') . ' · ' . (int) $o['enrolled'] . ' students' . ($o['term_status'] === 'closed' ? ' · <strong>closed (read-only record)</strong>' : '')]);
+$teachingLine = count($sections) > 1 ? 'Coordinator ' . V::h($o['instructor_name'] ?? '—') . ' · ' . count($sections) . ' sections' : V::h($o['instructor_name'] ?? 'No instructor');
+V::header($o['course_code'] . ' · ' . $o['course_title'], $user, ['subtitle' => V::h($o['term_name']) . ' · ' . $teachingLine . ' · ' . (int) $o['enrolled'] . ' students' . ($mySections && !$canEdit ? ' · you teach section ' . V::h(implode(', ', $mySections)) : '') . ($o['term_status'] === 'closed' ? ' · <strong>closed (read-only record)</strong>' : '')]);
 echo V::tabs([
     'overview' => 'Overview' . $countBadge(count($blocking)),
     'structure' => 'Outcomes & assessment',
     'results' => 'Results & achievement',
+    'evidence' => 'Evidence' . $countBadge(count($evidenceRequested)),
     'improve' => 'Improvement' . $countBadge($improveCount),
     'report' => 'Course report',
     'history' => 'History',
@@ -185,7 +228,8 @@ if ($tab === 'overview'):
           <tr><td class="muted">Owner</td><td><?= V::h($o['department_name']) ?><br><span class="muted"><?= V::h($o['college_name']) ?></span></td></tr>
           <tr><td class="muted">In programs</td><td><?php foreach ($programs as $p): ?><div><a href="program.php?id=<?= (int) $p['program_id'] ?>"><?= V::h($p['code']) ?></a> · <?= V::pill($p['course_type'], $p['course_type'] === 'required' ? 'blue' : 'grey') ?> <span class="muted"><?= $p['level_no'] ? 'level ' . (int) $p['level_no'] : V::h($p['requirement_group']) ?></span></div><?php endforeach; ?></td></tr>
           <tr><td class="muted">Prerequisites</td><td><?php if (!$requisites): ?><span class="muted">None (or preparatory only)</span><?php endif; ?><?php foreach ($requisites as $r): ?><div><?= V::h($r['code']) ?> <span class="muted"><?= V::h($r['program_code']) ?><?= $r['kind'] === 'corequisite' ? ' · co-req' : '' ?></span></div><?php endforeach; ?></td></tr>
-          <tr><td class="muted">Term / instructor</td><td><?= V::h($o['term_name']) ?> · <?= V::h($o['instructor_name'] ?? '—') ?> <?= V::source('sis') ?></td></tr>
+          <tr><td class="muted">Term / instructor</td><td><?= V::h($o['term_name']) ?> · <?= V::h($o['instructor_name'] ?? '—') ?><?= count($sections) > 1 ? ' (coordinator)' : '' ?> <?= V::source('sis') ?></td></tr>
+          <?php if (count($sections) > 1): ?><tr><td class="muted">Sections</td><td><?php foreach ($sections as $s): ?><div><strong><?= V::h($s['section_code']) ?></strong> · <?= V::h($s['instructor_name'] ?? 'no instructor') ?> · <?= (int) $s['enrolled'] ?> students</div><?php endforeach; ?></td></tr><?php endif; ?>
           <tr><td class="muted">Specification</td><td><?= $o['spec_version_id'] ? 'v' . (int) Db::val('SELECT version_no FROM spec_versions WHERE id = ?', [$o['spec_version_id']]) . ' ' . V::source('inherited') : '<span class="muted">not yet defined</span>' ?></td></tr>
         </table>
         <?php if ($o['description']): ?><p style="margin-top:10px"><?= V::h($o['description']) ?><br><span class="tiny muted">Source: <?= V::h($o['description_source']) ?></span></p><?php endif; ?>
@@ -273,7 +317,7 @@ if ($tab === 'overview'):
             <?php if (!$readOnly): ?><td class="num"><button class="btn btn-sm btn-ghost" data-act="delete_assessment" data-offering="<?= $oid ?>" data-assessment="<?= (int) $a['id'] ?>" data-confirm="Remove “<?= V::h($a['name']) ?>” from the draft?">Remove</button></td><?php endif; ?></tr>
         <?php endforeach; ?>
         </tbody></table></div>
-        <?php if (!$readOnly && !empty($spec['assessments'])): ?><div class="row" style="padding:10px 14px;border-top:1px solid var(--line-2)"><span class="small muted">Change weights above, then</span><button class="btn btn-sm" type="button" onclick="var w=[];document.querySelectorAll('input[data-weight]').forEach(function(i){w.push(i.dataset.id+':'+i.value)});saqf.post('save_weights',{offering:'<?= $oid ?>',w:w});">Save weights</button></div><?php endif; ?>
+        <?php if (!$readOnly && !empty($spec['assessments'])): ?><div class="row" style="padding:10px 14px;border-top:1px solid var(--line-2)"><span class="small muted">Change weights above, then</span><button class="btn btn-sm" type="button" data-act="save_weights" data-offering="<?= $oid ?>" data-weights>Save weights</button></div><?php endif; ?>
         <?php if (!$readOnly): ?>
         <details style="padding:12px 14px;border-top:1px solid var(--line-2)"><summary class="strong" style="cursor:pointer">+ Add an assessment</summary>
           <form data-api="save_assessment" class="grid g4" style="margin-top:10px;align-items:end"><input type="hidden" name="offering" value="<?= $oid ?>">
@@ -316,7 +360,7 @@ if ($tab === 'overview'):
       <?php foreach (Db::all('SELECT sv.*, u.full_name FROM spec_versions sv LEFT JOIN users u ON u.id = sv.decided_by WHERE sv.course_id = ? ORDER BY version_no DESC', [$courseId]) as $v): ?>
         <div class="row" style="margin-bottom:6px"><strong>v<?= (int) $v['version_no'] ?></strong> <?= V::specStatus($v['status']) ?> <span class="muted"><?= V::h($v['decision_route'] ? str_replace('_', ' ', $v['decision_route']) : '') ?> <?= V::h(V::date($v['decided_at'] ?? $v['created_at'])) ?></span></div>
       <?php endforeach; ?>
-      <a href="report.php?type=spec&id=<?= (int) ($approved['id'] ?? 0) ?>">Printable specification (NCAAA-oriented)</a>
+      <?php if ($approved): ?><div class="row" style="margin-top:6px"><a href="report.php?type=spec&id=<?= (int) $approved['id'] ?>">Printable specification</a> · <a href="export.php?doc=spec&id=<?= (int) $approved['id'] ?>">Word (NCAAA layout)</a> · <a href="export.php?doc=spec&id=<?= (int) $approved['id'] ?>&lang=ar">Word, Arabic headings</a></div><?php endif; ?>
     </div></section>
   </aside>
 </div>
@@ -345,6 +389,17 @@ if ($tab === 'overview'):
       <?php foreach ($plo as $p): ?><tr><td><?= V::h($p['program_code']) ?></td><td><strong><?= V::h($p['plo_code']) ?></strong> <span class="tiny muted"><?= V::h(mb_strimwidth($p['statement'], 0, 80, '…')) ?></span></td><td><?= V::bar((float) $p['value_pct'], Policy::get('plo.target_pct'), (bool) $p['provisional']) ?></td><td class="num"><?= (int) $p['contributing_clos'] ?></td></tr><?php endforeach; ?>
       <?php if (!$plo): ?><tr><td colspan="4"><?= V::empty('No results yet', 'PLO contributions appear automatically once results arrive.') ?></td></tr><?php endif; ?>
       </tbody></table></div></section>
+    <?php $bySection = Sections::achievement($oid); if ($bySection): $gapPts = Policy::get('section.gap_points'); ?>
+    <section class="card"><div class="card-h"><h2>Achievement by section</h2><span class="muted small right"><?= V::source('calculated') ?> same method as the course figure · gaps over <?= V::h(Rules::fmt($gapPts)) ?> points are flagged</span></div>
+      <div class="card-b tight"><div class="table-wrap"><table>
+        <thead><tr><th>CLO</th><?php foreach ($bySection as $code => $s): ?><th>Section <?= V::h($code) ?><div class="tiny muted"><?= V::h($s['instructor'] ?? '—') ?> · <?= (int) $s['students'] ?> students</div></th><?php endforeach; ?><th class="num">Gap</th></tr></thead><tbody>
+        <?php foreach ($evidenceSpec['clos'] ?? [] as $c): $vals = []; foreach ($bySection as $code => $s) { if (isset($s['clos'][(int) $c['id']])) { $vals[$code] = $s['clos'][(int) $c['id']]['value']; } } if (!$vals) { continue; } $gap = count($vals) > 1 ? max($vals) - min($vals) : 0; $target = (float) ($c['target_pct'] ?? $defaultTarget); ?>
+          <tr><td><strong><?= V::h($c['code']) ?></strong></td>
+            <?php foreach ($bySection as $code => $s): $v = $vals[$code] ?? null; ?><td><?= $v === null ? '<span class="muted">—</span>' : '<span class="heat ' . ($v >= $target - 1e-9 ? 'heat-ok' : 'heat-low') . '">' . V::pct($v) . '</span>' ?></td><?php endforeach; ?>
+            <td class="num"><?= $gap > $gapPts + 1e-9 ? V::pill(Rules::fmt(round($gap, 1)) . ' pts', 'amber') : '<span class="muted">' . V::h(Rules::fmt(round($gap, 1))) . '</span>' ?></td></tr>
+        <?php endforeach; ?></tbody></table></div>
+        <div class="card-b tiny muted">Sections share one specification and one set of outcomes; the course figure above combines every section. A large gap is a prompt to compare teaching and marking between sections, not a judgement of an instructor.</div></div></section>
+    <?php endif; ?>
   </div>
   <aside class="stack">
     <section class="card"><div class="card-h"><h2>Evidence sources</h2><span class="right"><?= V::source('lms') ?></span></div>
@@ -352,14 +407,50 @@ if ($tab === 'overview'):
         <?php foreach ($batches as $b): ?><div style="margin-bottom:10px"><strong><?= V::h(strtoupper($b['source'])) ?></strong> · <?= V::h(V::date($b['imported_at'], 'j M Y H:i')) ?><br><span class="muted"><?= V::h($b['assessments']) ?> · <?= (int) $b['rows_count'] ?> rows · <?= $b['full_name'] ? 'uploaded by ' . V::h($b['full_name']) : 'imported automatically' ?></span><br><span class="mono tiny">sha256 <?= V::h(substr($b['checksum'], 0, 16)) ?>…</span></div><?php endforeach; ?>
         <?php if (!$batches): ?><p class="muted">No results have been published for this offering yet.</p><?php endif; ?>
         <?php foreach ($pendingLms as $pb): ?><p class="muted">Expected from the LMS: <strong><?= V::h($pb['label']) ?></strong> (scheduled <?= V::h(V::date($pb['published_at'])) ?>). SAQF imports it automatically when it is published.</p><?php endforeach; ?>
-        <?php if ($canEdit): ?>
+        <?php if ($canContribute): ?>
           <button class="btn btn-sm" data-act="lms_sync" data-offering="<?= $oid ?>">Check the LMS now</button>
           <details style="margin-top:12px"><summary class="small" style="cursor:pointer">Upload results instead (CSV fallback)</summary>
             <form method="post" enctype="multipart/form-data" style="margin-top:8px"><?= Csrf::field() ?><input type="file" name="results" accept=".csv,text/csv" required>
-              <div class="field-help">Columns: <span class="mono">student</span> (pseudonymous key) then one column per assessment name, values 0–100. Names must match: <?= V::h(implode(', ', array_column($evidenceSpec['assessments'] ?? [], 'name'))) ?>.</div>
+              <div class="field-help">Columns: <span class="mono">student</span> (pseudonymous key), optionally <span class="mono">section</span>, then one column per assessment name, values 0–100. Names must match: <?= V::h(implode(', ', array_column($evidenceSpec['assessments'] ?? [], 'name'))) ?>.<?= !$canEdit && count($mySections) === 1 ? ' Rows without a section count as section ' . V::h($mySections[0]) . '.' : '' ?></div>
               <button class="btn btn-sm" type="submit">Upload</button></form></details>
         <?php endif; ?>
       </div></section>
+  </aside>
+</div>
+
+<?php elseif ($tab === 'evidence'):
+    $assessmentNames = array_column($evidenceSpec['assessments'] ?? [], 'name', 'id');
+?>
+<div class="split">
+  <div class="stack">
+    <?php if ($evidenceRequested): ?><div class="alert alert-info"><strong>SAQF requests evidence for:</strong> <?= V::h(implode(', ', array_map(static fn($id) => $assessmentNames[$id] ?? '#' . $id, $evidenceRequested))) ?> — results for these assessments have arrived. Upload the assessment and a sample of marked work; the request clears itself.</div><?php endif; ?>
+    <section class="card"><div class="card-h"><h2>Course file — assessment evidence</h2><span class="muted small right"><?= count($evidenceFiles) ?> file(s) · stored outside the web server, every download audited</span></div>
+      <div class="card-b tight"><div class="table-wrap"><table>
+        <thead><tr><th>Evidence</th><th>Assessment</th><th>Section</th><th>Added</th><th class="num">File</th><?php if ($canContribute): ?><th></th><?php endif; ?></tr></thead><tbody>
+        <?php foreach ($evidenceFiles as $ev): ?>
+          <tr><td><strong><?= V::h($ev['title']) ?></strong><div class="tiny muted"><?= V::h(Evidence::KINDS[$ev['kind']] ?? $ev['kind']) ?></div></td>
+            <td class="small"><?= V::h($ev['assessment_name'] ?? '—') ?></td><td class="small"><?= V::h($ev['section_code'] ?? 'all') ?></td>
+            <td class="small"><?= V::h(V::date($ev['uploaded_at'], 'j M Y')) ?><div class="tiny muted"><?= V::h($ev['uploader'] ?? 'SAQF') ?></div></td>
+            <td class="num small"><a href="evidence.php?id=<?= (int) $ev['id'] ?>"><?= V::h(strtoupper(pathinfo($ev['original_name'], PATHINFO_EXTENSION))) ?> · <?= V::h(Evidence::size((int) $ev['size_bytes'])) ?></a><div class="tiny"><?= $ev['scan_status'] === 'clean' ? V::pill('virus-scanned', 'green') : '' ?> <span class="mono muted" title="SHA-256 fingerprint"><?= V::h(substr($ev['sha256'], 0, 10)) ?></span></div></td>
+            <?php if ($canContribute): ?><td class="num"><?php if ($canEdit || (int) $ev['uploaded_by'] === $user['id']): ?><details><summary class="btn btn-sm btn-ghost">Remove</summary><form method="post" class="row" style="margin-top:6px"><?= Csrf::field() ?><input type="hidden" name="op" value="remove_evidence"><input type="hidden" name="id" value="<?= (int) $ev['id'] ?>"><input type="text" name="reason" placeholder="Reason (audited)" required minlength="5"><button class="btn btn-sm btn-red">Remove</button></form></details><?php endif; ?></td><?php endif; ?></tr>
+        <?php endforeach; ?>
+        <?php if (!$evidenceFiles): ?><tr><td colspan="6"><?= V::empty('No evidence in the course file yet', 'Exam papers, rubrics and samples of marked work go here; reviewers find everything in one place.') ?></td></tr><?php endif; ?>
+        </tbody></table></div></div></section>
+  </div>
+  <aside class="stack">
+    <?php if ($canContribute && $evidenceSpec): ?>
+    <section class="card"><div class="card-h"><h2>Add evidence</h2></div><div class="card-b small">
+      <form method="post" enctype="multipart/form-data"><?= Csrf::field() ?>
+        <div class="field"><label>File</label><input type="file" name="evidence" required accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.txt"></div>
+        <div class="field"><label>What is it?</label><select name="kind"><?php foreach (Evidence::KINDS as $k => $l): ?><option value="<?= $k ?>"><?= V::h($l) ?></option><?php endforeach; ?></select></div>
+        <div class="field"><label>Assessment</label><select name="assessment"><option value="">— not tied to one assessment —</option><?php foreach ($evidenceSpec['assessments'] as $a): ?><option value="<?= (int) $a['id'] ?>" <?= $evidenceRequested && (int) $a['id'] === (int) $evidenceRequested[0] ? 'selected' : '' ?>><?= V::h($a['name']) ?></option><?php endforeach; ?></select></div>
+        <?php if (count($sections) > 1): ?><div class="field"><label>Section</label><select name="section"><option value="">All sections</option><?php foreach ($sections as $s): ?><option <?= in_array($s['section_code'], $mySections, true) && !$canEdit ? 'selected' : '' ?>><?= V::h($s['section_code']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
+        <div class="field"><label>Title (optional)</label><input type="text" name="title" maxlength="200" placeholder="e.g. Midterm exam paper and model answers"></div>
+        <button class="btn btn-primary btn-sm" type="submit">Upload</button>
+        <p class="tiny muted" style="margin-top:8px">PDF, Word, Excel, PowerPoint, PNG, JPEG or text, up to <?= (int) Policy::get('evidence.max_mb') ?> MB. The content is checked against the file type; macro-enabled Office files are refused. Remove student names or use pseudonymous samples.</p>
+      </form></div></section>
+    <?php endif; ?>
+    <section class="card"><div class="card-h"><h2>Why this matters</h2></div><div class="card-b small muted">Accreditation reviews ask to see the assessments behind the numbers. SAQF asks for evidence when results arrive, keeps it with the course record, and lists it in the generated course report.</div></section>
   </aside>
 </div>
 
@@ -368,7 +459,7 @@ if ($tab === 'overview'):
 ?>
 <div class="stack">
   <?php if (!$actionsCourse): ?><div class="card"><?= V::empty('No improvement actions for this course', 'When an outcome misses its target, SAQF drafts the improvement record with the evidence and asks for your academic response.') ?></div><?php endif; ?>
-  <?php foreach ($actionsCourse as $ia): $mine = $user['role'] === 'faculty' && ((int) $o['instructor_id'] === $user['id'] || (int) $ia['owner_id'] === $user['id']); ?>
+  <?php foreach ($actionsCourse as $ia): $mine = $user['role'] === 'faculty' && (Authz::isCoordinator($user, $o) || (int) $ia['owner_id'] === $user['id']); ?>
   <section class="card" id="ia-<?= (int) $ia['id'] ?>">
     <div class="card-h"><h2><?= V::h($ia['title']) ?></h2><?= V::pill(Improvements::STATUS[$ia['status']] ?? $ia['status'], ['draft' => 'red', 'open' => 'blue', 'in_progress' => 'blue', 'completed' => 'green', 'cancelled' => 'grey'][$ia['status']] ?? 'grey') ?>
       <span class="right muted small">from <?= V::h($ia['origin_term']) ?> · <?= $ia['created_by'] ? 'created by a person' : 'drafted by SAQF' ?></span></div>
@@ -411,7 +502,7 @@ if ($tab === 'overview'):
 ?>
 <div class="split">
   <div class="stack">
-    <section class="card"><div class="card-h"><h2>Course report</h2><a class="btn btn-sm right" href="report.php?type=course&id=<?= $oid ?>">Open generated report</a></div>
+    <section class="card"><div class="card-h"><h2>Course report</h2><div class="right row"><a class="btn btn-sm" href="report.php?type=course&id=<?= $oid ?>">Open generated report</a><a class="btn btn-sm btn-primary" href="export.php?doc=report&id=<?= $oid ?>">Download Word (NCAAA layout)</a><a class="btn btn-sm" href="export.php?doc=report&id=<?= $oid ?>&lang=ar">بالعربية</a></div></div>
       <div class="card-b small">
         <p>The course report is <strong>generated</strong> from the structured record: course identity, outcomes, mappings, assessment results, CLO/PLO achievement, gaps, improvement actions and their effects, and the approval history. Only the interpretation below is written by a person.</p>
         <?php if ($snap): ?><div class="alert alert-info">Frozen on <?= V::h(V::date($snap['created_at'], 'j M Y H:i')) ?> when the term closed · sha256 <span class="mono"><?= V::h(substr($snap['sha256'], 0, 20)) ?>…</span></div><?php endif; ?>
