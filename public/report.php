@@ -30,7 +30,8 @@ if ($type === 'course') {
 }
 
 V::header('Generated report', $user, ['subtitle' => 'Assembled from structured data — not a separately written document']);
-echo '<div class="row noprint" style="margin-bottom:12px"><button class="btn btn-sm" onclick="window.print()">Print / save as PDF</button><span class="muted small">Supports NCAAA-oriented reporting; field structure should be confirmed against the current official templates.</span></div>';
+$wordLink = $type === 'course' ? 'export.php?doc=report&id=' . $id : ($type === 'spec' ? 'export.php?doc=spec&id=' . $id : null);
+echo '<div class="row noprint" style="margin-bottom:12px"><button class="btn btn-sm" type="button" data-print>Print / save as PDF</button>' . ($wordLink ? '<a class="btn btn-sm btn-primary" href="' . V::h($wordLink) . '">Download Word (NCAAA layout)</a><a class="btn btn-sm" href="' . V::h($wordLink) . '&lang=ar">Word بالعربية</a>' : '') . '<span class="muted small">Laid out like the NCAAA templates; confirm the section structure against the version the university uses.</span></div>';
 
 if ($type === 'course') {
     $snap = Db::one('SELECT * FROM snapshots WHERE kind = "course_report" AND scope_id = ?', [$id]);

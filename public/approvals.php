@@ -53,8 +53,8 @@ if ($versionId) {
           <div class="card-b"><p class="small muted"><?= $canHod ? ($findings ? 'Warnings remain open, so approving routes this to QA (amber).' : 'All checks are green: approving activates it immediately without a QA step (QA keeps a random sample).') : 'Approved by the HoD and routed to you because warnings remain open.' ?></p>
             <form data-api="<?= $canHod ? 'hod_decide' : 'qa_decide' ?>"><input type="hidden" name="version" value="<?= $versionId ?>">
               <div class="field"><label>Comment (required when returning)</label><textarea name="note"></textarea></div>
-              <div class="row"><button class="btn btn-green" type="submit">Approve</button>
-                <button class="btn btn-red" type="button" onclick="saqf.post('<?= $canHod ? 'hod_decide' : 'qa_decide' ?>',{version:'<?= $versionId ?>',decision:'return',note:this.form.note.value})">Return with comment</button></div>
+              <div class="row"><button class="btn btn-green" type="submit" data-set="decision=approve">Approve</button>
+                <button class="btn btn-red" type="submit" data-set="decision=return">Return with comment</button></div>
               <input type="hidden" name="decision" value="approve">
             </form></div></section>
         <?php elseif ($isSample): ?>

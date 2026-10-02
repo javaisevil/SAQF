@@ -23,7 +23,7 @@ function finding_scope(array $user): array
         case 'dean':
             return ['f.college_id = ?', [$user['scope_college_id']]];
         default:
-            return ['f.offering_id IN (SELECT id FROM course_offerings WHERE instructor_id = ?) OR (f.scope_type = "spec" AND f.course_id IN (SELECT course_id FROM course_offerings WHERE instructor_id = ?))', [$user['id'], $user['id']]];
+            return ['f.offering_id IN (SELECT id FROM course_offerings WHERE instructor_id = ?) OR (f.scope_type = "spec" AND f.course_id IN (SELECT course_id FROM course_offerings WHERE instructor_id = ?)) OR f.offering_id IN (SELECT offering_id FROM offering_sections WHERE instructor_id = ?)', [$user['id'], $user['id'], $user['id']]];
     }
 }
 
@@ -65,7 +65,7 @@ if ($findingId) {
         <?php if ($ov['decider']): ?><p class="muted">Decision by <?= V::h($ov['decider']) ?> on <?= V::h(V::date($ov['decided_at'], 'j M Y')) ?>: “<?= V::h($ov['decision_note']) ?>”</p><?php endif; ?>
         <?php if ($ov['status'] === 'requested' && $user['role'] === 'qa'): ?>
           <form data-api="override_decide"><input type="hidden" name="id" value="<?= (int) $ov['id'] ?>"><div class="field"><label>Decision note (recorded in the audit log)</label><textarea name="note" required></textarea></div>
-            <div class="row"><button class="btn btn-green" type="submit" onclick="this.form.decision.value='approve'">Approve exception</button><button class="btn btn-red" type="submit" onclick="this.form.decision.value='reject'">Reject</button></div><input type="hidden" name="decision" value="approve"></form>
+            <div class="row"><button class="btn btn-green" type="submit" data-set="decision=approve">Approve exception</button><button class="btn btn-red" type="submit" data-set="decision=reject">Reject</button></div><input type="hidden" name="decision" value="approve"></form>
         <?php endif; ?></div></section>
       <?php endforeach; ?>
     </div><aside class="stack">
