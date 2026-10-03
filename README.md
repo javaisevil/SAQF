@@ -4,7 +4,7 @@
 
 SAQF connects university academic data, learning outcomes, assessments, achievement, validation, improvement and reporting into one continuous system. It runs routine quality-assurance work in the background, so faculty, Heads of Department, Quality staff and deans spend their time on the decisions that need academic judgement.
 
-> **Status:** SAQF 2.1, ready to deploy. It began in the FARQ hackathon (Track 2: university administration and faculty operations) and now includes connectors for the university's SIS, LMS (Moodle, Blackboard), single sign-on and e-mail, courses with several sections, bulk import of existing specifications, course-file evidence with virus scanning, NCAAA-layout Word documents, an Arabic interface, two-step verification, built-in HTTPS, encrypted off-site backups and IT alerts. Five automated test suites (392 checks) run on MySQL 8 and inside the Docker image on every change.
+> **Status:** SAQF 2.2, ready to deploy. It began in the FARQ hackathon (Track 2: university administration and faculty operations) and now includes connectors for the university's SIS, LMS (Moodle, Blackboard), single sign-on and e-mail, courses with several sections, bulk import of existing specifications, course-file evidence with virus scanning, NCAAA-layout Word documents, a complete Arabic interface (course and program names, learning outcomes and assessments in Arabic too), two-step verification, built-in HTTPS, encrypted off-site backups and IT alerts. Every screen is written in plain language: results are whole numbers next to their goal, and each page starts with what needs the person. Six automated test suites (423 checks) run on MySQL 8 and inside the Docker image on every change.
 > Out of the box it starts in **demo mode**: fictional people, teaching assignments and student results delivered through simulated SIS/LMS feeds. In **production mode** it runs on the university's own systems once IT provides access (see [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md)). It has not yet been piloted against YU's live systems.
 > Institutional data ships as a structured snapshot of Al Yamamah University's **public** study plans; the Registrar can replace it with its own export.
 > SAQF *supports NCAAA-oriented academic quality workflows*. It is not a compliance certification.
@@ -27,11 +27,12 @@ SAQF connects university academic data, learning outcomes, assessments, achievem
 | One coordinator chasing every section's instructor | handles **multi-section courses**: the coordinator owns the shared specification, section instructors add results and evidence, and achievement is compared per section (a large gap is flagged) |
 | Re-typing the university's existing specifications | **imports** approved specifications from one CSV file; each course is checked completely before anything is written |
 | Collecting exam papers for accreditation at the last minute | **asks for the evidence** when results arrive, scans and stores it outside the web server, and lists it in the course report |
-| Calculating CLO/PLO achievement by hand | imports grades as the LMS publishes them (Moodle, Blackboard or gradebook exports), then calculates CLO and PLO achievement with a configurable method |
+| Calculating CLO/PLO achievement by hand | imports grades as the LMS publishes them (Moodle, Blackboard or gradebook exports), then works out how many students met each course and program outcome with a configurable method, shown as "72% · goal 70%" |
 | Chasing people by e-mail | e-mails each person a digest of only the items that need them (they can opt out) |
-| Noticing missed targets at report time | flags the gap on import (first, recurring or worsening), drafts an improvement action with an owner and due date, and checks next term whether performance changed |
+| Noticing missed targets at report time | flags the gap on import (first, recurring or worsening), drafts an improvement action with an owner and due date, and checks next term whether results went up |
 | Writing reports | generates them from the structured data, as pages and as **NCAAA-layout Word documents** (English or Arabic); each closed term is frozen into a hash-sealed snapshot |
-| QA inspecting every record | gives QA an **Exception Center**: only data conflicts, policy exceptions, quality risks and sampled auto-approvals reach a person |
+| QA inspecting every record | gives Quality a **Problems to sort out** list: only data conflicts, exceptions to policy, risks and sampled automatic approvals reach a person |
+| Translating course names and outcomes for the Arabic version | shows the **Arabic interface with Arabic data**: names arrive in Arabic from the Registrar catalogue, instructors can type the Arabic of an outcome as they write it, and Quality fills any gap on the *Arabic wording* page (one by one or as a spreadsheet); the Arabic Word documents use the same wording |
 
 ## Architecture
 
@@ -87,7 +88,7 @@ The `https` profile adds a Caddy proxy that obtains and renews the certificate f
 database migrations on every start, answers `/health.php`, and the `backup` service writes a
 verified, encrypted backup of the database and the evidence files every night, copies it off the
 server and reports its status to SAQF. Sign in as `admin` (you will set up two-step verification
-first), change the password, open *Administration → Security center* and *Integrations → Test
+first), change the password, open *Administration → Security center* and *University systems → Test
 connections*, then add or import people under *Users & access* (or let SSO and the SIS feed
 provision them). The full go-live checklist is in [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
@@ -110,29 +111,29 @@ Eight fictional people, one per role plus two colleagues. On the sign-in page ea
 
 | Username | Role | What to look at |
 |---|---|---|
-| `f.omar` | Faculty (coordinator) | **SWE 412**: a draft revision with 4 deterministic issues — fix them and the course turns *Ready*. **SWE 401**: two sections, section 02 trails by 15.7 points; the improvement action is *improved following the intervention* (53.3% → 63.3%); the Evidence tab asks for the midterm paper. **CIS 491**: a policy-exception request waiting at QA |
+| `f.omar` | Faculty (coordinator) | **SWE 412**: a draft revision with 4 problems found by SAQF — fix them and the *Checks* card says "Everything checks out". **SWE 401**: two sections, section 02 is 16 points behind; last year's improvement shows 53% → 63%, *Results went up afterwards*; the Evidence tab asks for the midterm paper. **CIS 491**: an exception request waiting at Quality |
 | `f.sara` | Faculty (section instructor) | Teaches section 02 of SWE 401 and SWE 302 (midterm grades scheduled in the LMS: publishing them triggers an early warning) |
 | `f.noura` | Faculty, Accounting & Finance | ACC 311 and MIS 327, whose specifications reached SAQF through the bulk import |
-| `hod.ced` | Head of Department | Department exceptions only: recurring CLO gap, SWE SO2 below target; approvals by difference; specification import |
-| `qa.director` | Quality | Exception Center, CIS 491 override decision, sampled auto-approvals, policies, specification import |
-| `dean.coe` | College Dean | College health → department → program → course drill-down |
-| `vp.academic` | University leadership | Programs needing intervention, recurring issues, quality cycles |
-| `it.admin` | System administrator | Security center, health, IT alerts, users and sessions, security events, audit log (verify, CSV export), error log, integration simulator |
+| `hod.ced` | Head of Department | Only what needs a decision: the repeated CLO3 gap, SWE SO2 below its goal; approvals by difference; specification import |
+| `qa.director` | Quality | Problems to sort out, the CIS 491 exception decision, spot-checks of automatic approvals, policies, specification import, Arabic wording |
+| `dean.coe` | College Dean | College view → department → program → course |
+| `vp.academic` | University leadership | Programs that need help, problems that keep coming back, progress term by term |
+| `it.admin` | System administrator | Security center, health, IT alerts, users and sessions, security events, activity log (check, CSV export), error log, university systems simulator, Arabic wording of names |
 
 The demo clock is anchored to **Fall 2026, week 6** at install time and then runs forward, so the story looks the same whenever you install it. Set `SAQF_DEMO_CLOCK=real` to use today's date.
 
-**Live automation to show:** as `it.admin`, open *Integrations* and use the simulator. *Publish now* (LMS midterm grades) recalculates achievement and raises an early warning. *Publish assignment* (SIS) creates a new instructor's account and course workspace. *Activate term* (Spring 2027) freezes Fall 2026 reports, rolls every course forward and evaluates last term's improvement actions.
+**Live automation to show:** as `it.admin`, open *University systems* and use the simulator. *Publish now* (LMS midterm grades) recalculates achievement and raises an early warning. *Publish assignment* (SIS) creates a new instructor's account and course workspace. *Activate term* (Spring 2027) freezes Fall 2026 reports, rolls every course forward and evaluates last term's improvement actions.
 
 ## Roles
 
-- **Faculty:** an Action Center with only what needs them, and one workspace per course (overview, outcomes and assessment, results, evidence, improvement, report, history). They type only academic content. In a course with several sections, the coordinator owns the specification and section instructors contribute results and evidence.
+- **Faculty:** *What needs you* with only what needs them, a plain list of what SAQF did for them, and one page per course (overview with the course facts in sentences, outcomes and assessment, results, evidence, improvement, report, history). They type only academic content, and can add the Arabic wording of an outcome as they write it. In a course with several sections, the coordinator owns the specification and section instructors contribute results and evidence.
 - **Head of Department:** department exceptions, changed specifications (the diff only), course assignment fallback, PLO changes with impact analysis.
-- **Quality (QA):** Exception Center, override decisions with reasons, QA sample of auto-cleared approvals, configurable quality policies, bulk import of existing specifications (also open to Heads of Department for their own courses).
+- **Quality (QA):** problems to sort out, exception decisions with reasons, spot-checks of automatic approvals, configurable quality policies, bulk import of existing specifications (also open to Heads of Department for their own courses), and the *Arabic wording* page for anything still in English.
 - **Dean:** college health with drill-down. Persistent program-level problems escalate here.
 - **University leadership:** institution-wide view of interventions, recurrence, overdue actions and quality cycles.
-- **System administrator:** operations and security (Security center, IT alerts, users and sessions, audit and error logs, integrations). By design (separation of duties), administrators cannot make academic decisions.
+- **System administrator:** operations and security (Security center, IT alerts, users and sessions, activity and error logs, university systems, Arabic wording of names). By design (separation of duties), administrators cannot make academic decisions or change course content.
 
-Everyone can switch the interface between **English and Arabic** (العربية, right to left) at the top of every page; the choice is saved on their account.
+Everyone can switch the interface between **English and Arabic** (العربية, right to left) at the top of every page; the choice is saved on their account. In Arabic, the data is Arabic too: course and program names, program outcomes and study-plan groups come in Arabic with the Registrar catalogue ([`data/yu/arabic.json`](data/yu/arabic.json) in the demo), and course content (learning outcomes, assessments, topics) uses the Arabic wording entered by faculty or Quality. Search finds courses by their Arabic names, and the Arabic Word documents use the same wording.
 
 ## Tests
 
@@ -148,6 +149,7 @@ docker compose exec app sh bin/test_all.sh  # the same inside the Docker image
 | `tests/http_smoke.php` | 118 | every page as every role, cross-role and cross-scope denials, section-instructor limits, CSRF, lockout, error log, maintenance mode |
 | `tests/sso_test.php` | 29 | university sign-in end to end, including replayed, forged and wrong-audience tokens, and the administrator's two-step sign-in |
 | `tests/features_test.php` | 91 | sections, specification import, evidence (content checks, stand-in ClamAV, fail-closed), Word exports, TOTP/QR/recovery codes, password policy, sessions, step-up re-authentication, IP rules, trusted proxies, CSP, rate limits, IT alerts with a stand-in webhook, backup monitoring, Arabic interface, demo shortcuts refused in production |
+| `tests/wording_test.php` | 31 | plain wording (whole-number results, course facts in sentences, no jargon in "What needs you"), Arabic names from the Registrar catalogue, a person's correction surviving a sync, Arabic course content, the instructor's Arabic wording of an outcome, Arabic search, the *Arabic wording* page and spreadsheet (and who may use it), the Arabic Word report |
 
 Each suite reinstalls the demo first; run `php bin/install.php --demo --fresh` afterwards to reset the story. The stand-in systems live in `tests/mock/`; nothing leaves the machine. CI (`.github/workflows/ci.yml`) runs every suite on MySQL 8.0, then starts the Docker stack with the HTTPS proxy, runs the HTTP suite against Apache, checks HTTPS, writes an encrypted backup and restores it. Plain-language test cases: [`docs/TEST_CASES.md`](docs/TEST_CASES.md).
 
@@ -167,7 +169,7 @@ Each suite reinstalls the demo first; run `php bin/install.php --demo --fresh` a
 - **Policies need approval.** The achievement method (threshold 70%, default target 70%) and other thresholds are **configurable defaults, not YU-approved methodology**. The Deanship of Quality must confirm them under *Quality policies*.
 - **Program outcomes.** SWE PLOs are the ABET CAC student outcomes YU publishes. CNE and IE use ABET EAC general outcomes as placeholders. Business programs, MBA and MCS use the PLOs on their YU pages. Architecture, EMBA, LLB and LLM have no published PLOs, so SAQF flags them until Heads of Department enter them (they can, in SAQF).
 - **Sign-in** uses OpenID Connect (Microsoft Entra ID / 365, Google, Keycloak, ADFS 2019+, Okta). A SAML-only identity provider needs an OIDC bridge.
-- **Interface language:** English and Arabic (right to left). The Arabic interface translates every screen's labels, messages and automatic findings (1,100 phrases and 250 patterns, `src/Web/lang/ar.php`); course titles, outcome statements and names are shown as entered. `php bin/i18n_coverage.php <url>` lists any English left on a screen.
+- **Interface language:** English and Arabic (right to left). The Arabic interface translates every screen's labels, messages and automatic findings (about 2,000 phrases and 480 patterns, `src/Web/lang/ar.php`). Data appears in Arabic wherever its Arabic wording is known: from the Registrar catalogue, from faculty, or from Quality on the *Arabic wording* page; anything without Arabic wording is shown as entered and listed on that page. `php bin/i18n_coverage.php <url>` lists any English left on a screen.
 - **Tested** on MySQL 8.0 and PHP 8.3, directly and in the Docker stack (Apache). MariaDB is not tested.
 - Assisted insights are text-similarity and statistics heuristics. They are not AI and are never applied without a person.
 
@@ -193,7 +195,7 @@ data/yu/     YU institutional snapshot (from public study-plan PDFs) + SOURCES.m
 data/demo/   simulated SIS/LMS feeds for the demo scenario
 storage/     inbox/ for SIS and LMS export files, evidence/ (uploaded course-file evidence; runtime, not committed)
 bin/         install, migrate, tick (scheduler), verify_audit, wait_for_db, build_demo_data, test_all.sh, i18n_coverage
-tests/       automation_test, production_test, http_smoke, sso_test, features_test, mock/ (stand-in systems)
+tests/       automation_test, production_test, http_smoke, sso_test, features_test, wording_test, mock/ (stand-in systems)
 docs/        JUDGES_DEMO.md, TEST_CASES.md, TEAM_REPORT.md, ARCHITECTURE.md, INTEGRATIONS.md, OPERATIONS.md, AUDIT_BEFORE.md, demo/
 docker/      Apache/PHP hardening, entrypoint, backup and restore scripts, Caddyfile (HTTPS)
 ```
