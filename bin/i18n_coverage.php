@@ -76,6 +76,7 @@ function english(string $html): array
 {
     $html = str_replace(["\u{2068}", "\u{2069}"], '', $html);
     $html = preg_replace('#<(script|style|code|pre|textarea)\b.*?</\1>#is', ' ', $html) ?? $html;
+    $html = preg_replace('#<([a-z][a-z0-9]*)\b[^>]*\btranslate="no"[^>]*>.*?</\1>#is', ' ', $html) ?? $html;
     $found = [];
     foreach (preg_split('/<[^>]*>/', $html) ?: [] as $t) {
         $t = trim(preg_replace('/\s+/u', ' ', html_entity_decode($t, ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?? '');
@@ -98,6 +99,7 @@ $arabicNodes = 0;
 $visit = static function (string $who, string $path, string $html) use (&$counts, &$where, &$pages, &$textNodes, &$arabicNodes): void {
     $pages++;
     $clean = preg_replace('#<(script|style|code|pre|textarea)\b.*?</\1>#is', ' ', $html) ?? $html;
+    $clean = preg_replace('#<([a-z][a-z0-9]*)\b[^>]*\btranslate="no"[^>]*>.*?</\1>#is', ' ', $clean) ?? $clean;
     foreach (preg_split('/<[^>]*>/', $clean) ?: [] as $t) {
         $t = trim(html_entity_decode($t, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
         if (preg_match('/\p{Arabic}/u', $t)) {

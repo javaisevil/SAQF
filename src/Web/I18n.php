@@ -15,8 +15,10 @@ use Throwable;
  * translate(): every visible text node and the user-facing attributes (placeholder, title,
  * aria-label, alt, confirmation prompts) are looked up in src/Web/lang/ar.php — exact phrases
  * first, then patterns for text with numbers and names ("3 open", "Fall 2026 · week 6") — and the
- * document is switched to dir="rtl". Data (course titles, CLO statements, people's names) is shown
- * as entered. Scripts, styles, code and text areas are never touched.
+ * document is switched to dir="rtl". Data (course titles, outcome statements, people's names) is shown
+ * in Arabic when its Arabic wording is known (Saqf\Core\Translations: from the Registrar catalogue,
+ * from faculty, or entered by Quality); otherwise as entered. Scripts, styles, code, text areas and
+ * elements marked translate="no" are never touched.
  *
  * The choice is kept in a cookie and on the person's account (users.locale), so it follows them
  * to another device. bin/i18n_coverage.php lists any English left on each screen.
@@ -27,6 +29,8 @@ final class I18n
 
     private static ?array $strings = null;
     private static ?array $patterns = null;
+    /** @var array<string,string>|null Arabic wording of data (course names, outcomes, people) */
+    private static ?array $data = null;
     /** @var array<string,int> English phrases with no translation on this page (coverage report) */
     private static array $missing = [];
 
@@ -101,7 +105,7 @@ final class I18n
     public static function switchLink(string $class = 'langsw'): string
     {
         return self::rtl()
-            ? '<a class="' . $class . '" href="' . View::h(self::switchUrl('en')) . '" lang="en" dir="ltr">English</a>'
+            ? '<a class="' . $class . '" href="' . View::h(self::switchUrl('en')) . '" lang="en" dir="ltr" translate="no">English</a>'
             : '<a class="' . $class . '" href="' . View::h(self::switchUrl('ar')) . '" lang="ar" dir="rtl">العربية</a>';
     }
 
@@ -148,7 +152,8 @@ final class I18n
                     $out .= $p;
                     continue;
                 }
-                if (preg_match('#^<(script|style|textarea|pre|code)\b#i', $p, $m) && !str_ends_with($p, '/>')) {
+                // Never translated: code, text areas, and any element marked translate="no" (English shown on purpose).
+                if ((preg_match('#^<(script|style|textarea|pre|code)\b#i', $p, $m) || preg_match('#^<([a-z][a-z0-9]*)\b[^>]*\btranslate="no"#i', $p, $m)) && !str_ends_with($p, '/>')) {
                     $skip = strtolower($m[1]);
                     $out .= $p;
                     continue;
@@ -172,11 +177,15 @@ final class I18n
         if (isset(self::$strings[$s])) {
             return self::$strings[$s];
         }
+        if (isset(self::$data[$s])) {
+            return self::$data[$s];
+        }
         foreach (self::$patterns as $re => $to) {
             if (preg_match($re, $s, $m)) {
                 return preg_replace_callback('/\{(t?)(\d)\}/', static function (array $x) use ($m): string {
                     $v = $m[(int) $x[2]] ?? '';
-                    return $x[1] === 't' ? (self::phrase($v) ?? $v) : $v;
+                    // {t1}: translate the captured text fully; {1}: swap in known wording (names, titles) only
+                    return $x[1] === 't' ? (self::phrase($v) ?? $v) : (self::exact($v) ?? self::shortened($v) ?? $v);
                 }, $to);
             }
         }
@@ -198,6 +207,41 @@ final class I18n
                 }
             }
         }
+        // A list ("Quiz, Midterm exam"): only when every item is known or is a code.
+        if (str_contains($s, ', ')) {
+            $items = [];
+            $known = 0;
+            foreach (explode(', ', $s) as $item) {
+                $t = self::phrase($item);
+                if ($t !== null) {
+                    $items[] = $t;
+                    $known++;
+                } elseif (!preg_match('/[a-z]{3,}/', $item)) {
+                    $items[] = $item;
+                } else {
+                    $items = null;
+                    break;
+                }
+            }
+            if ($items !== null && $known > 0) {
+                return implode('، ', $items);
+            }
+        }
+        // A course or program code followed by its known title ("SWE 401 Software Quality Assurance").
+        if (preg_match('/^([A-Z]{2,5}(?: \d{3}[A-Z]?)?) (\S.*)$/u', $s, $m) && ($t = self::exact($m[2])) !== null) {
+            return $m[1] . ' ' . $t;
+        }
+        // A leading mark or separator ("✓ Verified", "+ Add", "· required course", "— detail") or a trailing one ("Skills ·").
+        if (preg_match('/^([✓✗•↻+●]\s*|[·—]\s+)(.+)$/u', $s, $m) && ($t = self::phrase($m[2])) !== null) {
+            return $m[1] . $t;
+        }
+        if (preg_match('/^(.+?)(\s+[·—])$/u', $s, $m) && ($t = self::phrase($m[1])) !== null) {
+            return $t . $m[2];
+        }
+        // Quoted text (“…” or "…").
+        if (preg_match('/^([“"])(.+)([”"])$/u', $s, $m) && ($t = self::phrase($m[2]) ?? self::shortened($m[2])) !== null) {
+            return '«' . $t . '»';
+        }
         // Trailing punctuation ("Reason:", "Saved.") and wrapping brackets.
         if (preg_match('/^(.*?)\s*([:.!?…]+)$/u', $s, $m) && $m[1] !== '' && ($t = self::phrase($m[1])) !== null) {
             return $t . str_replace(['?', ':'], ['؟', ':'], $m[2]);
@@ -208,13 +252,77 @@ final class I18n
         return null;
     }
 
+    /** Exact wording only (interface phrase or known data), no patterns. */
+    public static function exact(string $s): ?string
+    {
+        self::load();
+        $s = trim(preg_replace('/\s+/u', ' ', $s) ?? $s);
+        return self::$strings[$s] ?? self::$data[$s] ?? null;
+    }
+
+    /** Arabic for a piece of data (course title, outcome, name) when known; null otherwise. */
+    public static function data(?string $s): ?string
+    {
+        if ($s === null || $s === '') {
+            return null;
+        }
+        self::load();
+        return self::$data[trim(preg_replace('/\s+/u', ' ', $s) ?? $s)] ?? null;
+    }
+
+    /**
+     * Text shortened for display ("Describe software quality models…"): find the full English it
+     * was cut from and shorten its Arabic to a similar length.
+     */
+    private static function shortened(string $s): ?string
+    {
+        if (!preg_match('/^(.{8,}?)\s*…$/u', $s, $m)) {
+            return null;
+        }
+        $prefix = $m[1];
+        foreach ([self::$data, self::$strings] as $map) {
+            foreach ($map as $en => $ar) {
+                if (str_starts_with((string) $en, $prefix)) {
+                    $len = max(12, mb_strlen($prefix));
+                    return mb_strlen($ar) > $len + 2 ? rtrim(mb_substr($ar, 0, $len)) . '…' : $ar;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Translates the user-facing fields of a JSON reply (toasts after saving, search suggestions),
+     * which do not pass through the page filter. @param list<string> $keys
+     */
+    public static function json(array $payload, array $keys = ['message', 'error', 'cleared', 'opened', 'type', 'title', 'sub']): array
+    {
+        if (!self::rtl()) {
+            return $payload;
+        }
+        $tr = static function ($v) {
+            if (!is_string($v) || !preg_match('/[A-Za-z]/', $v)) {
+                return $v;
+            }
+            return self::phrase($v) ?? $v;
+        };
+        foreach ($payload as $k => $v) {
+            if (is_array($v)) {
+                $payload[$k] = in_array((string) $k, $keys, true) && array_is_list($v) ? array_map($tr, $v) : self::json($v, $keys);
+            } elseif (in_array((string) $k, $keys, true)) {
+                $payload[$k] = $tr($v);
+            }
+        }
+        return $payload;
+    }
+
     private static function text(string $t): string
     {
         if (trim($t) === '' || !preg_match('/[A-Za-z]/', $t)) {
             return $t;
         }
         $plain = html_entity_decode($t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $tr = self::phrase($plain);
+        $tr = self::phrase($plain) ?? self::shortened(trim(preg_replace('/\s+/u', ' ', $plain) ?? $plain));
         preg_match('/^\s*/u', $t, $lead);
         preg_match('/\s*$/u', $t, $trail);
         if ($tr === null) {
@@ -243,7 +351,7 @@ final class I18n
             if (!preg_match('/[A-Za-z]/', $plain)) {
                 return $m[0];
             }
-            $tr = self::phrase($plain);
+            $tr = self::phrase($plain) ?? self::shortened($plain);
             if ($tr === null) {
                 self::$missing[$plain] = 1;
                 return $m[0];
@@ -260,6 +368,16 @@ final class I18n
         $d = require __DIR__ . '/lang/ar.php';
         self::$strings = $d['strings'];
         self::$patterns = $d['patterns'];
+        self::$data = \Saqf\Core\Translations::all();
+    }
+
+    /** Forgets loaded wording (after Arabic names are saved in the same request, and in tests). */
+    public static function flush(): void
+    {
+        self::$strings = null;
+        self::$patterns = null;
+        self::$data = null;
+        \Saqf\Core\Translations::flush();
     }
 
     /** @return array{strings:int,patterns:int} dictionary size (shown in docs and tests) */
