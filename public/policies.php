@@ -20,7 +20,7 @@ V::header('Quality policies', $user, ['subtitle' => $canEdit ? 'Configurable ins
 <?php foreach ($groups as $g => $list): ?>
 <section class="card"><div class="card-h"><h2><?= V::h($titles[$g] ?? ucfirst($g)) ?></h2></div><div class="card-b tight"><table><tbody>
   <?php foreach ($list as $p): ?>
-  <tr><td style="width:40%"><strong><?= V::h($p['label']) ?></strong><div class="tiny muted"><?= V::h($p['help']) ?></div><div class="tiny mono muted"><?= V::h($p['policy_key']) ?></div></td>
+  <tr><td style="width:40%"><strong><?= V::h($p['label']) ?></strong><div class="tiny muted"><?= V::h($p['help']) ?></div><div class="tiny mono muted" translate="no"><?= V::h($p['policy_key']) ?></div></td>
     <td><?php if ($canEdit): ?><form data-api="policy_set" class="row"><input type="hidden" name="key" value="<?= V::h($p['policy_key']) ?>">
       <?php if ($p['value_type'] === 'bool'): ?><select name="v" style="width:auto"><option value="1" <?= $p['value'] === '1' ? 'selected' : '' ?>>On</option><option value="0" <?= $p['value'] === '0' ? 'selected' : '' ?>>Off</option></select>
       <?php elseif ($p['value_type'] === 'enum'): ?><select name="v" style="width:auto"><?php foreach (explode(',', (string) $p['options']) as $opt): ?><option <?= $p['value'] === $opt ? 'selected' : '' ?>><?= V::h($opt) ?></option><?php endforeach; ?></select>

@@ -52,35 +52,35 @@ $plan = $programId ? Db::all(
 ) : [];
 $faculty = Db::all('SELECT u.id, u.full_name, u.title, (SELECT COUNT(*) FROM course_offerings o WHERE o.instructor_id = u.id AND o.term_id = ?) AS load_n FROM users u WHERE u.role = "faculty" AND u.status = "active" AND u.department_id = ? ORDER BY u.full_name', [$termId, $dept]);
 $course = $courseId ? Catalog::course($courseId) : null;
-V::header('Assign a course', $user, ['subtitle' => 'Fallback for assignments missing from the SIS feed — normally workspaces are created automatically']);
+V::header('Assign a course', $user, ['subtitle' => 'Only for a course the university timetable missed; normally courses appear by themselves']);
 ?>
-<div class="split"><section class="card"><div class="card-h"><h2>Study-plan-aware assignment</h2></div><div class="card-b">
+<div class="split"><section class="card"><div class="card-h"><h2>Give a course to an instructor</h2></div><div class="card-b">
   <form method="get" class="grid g2">
-    <div class="field"><label>Term</label><select name="term" data-autosubmit><?php foreach ($terms as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) $t['id'] === $termId ? 'selected' : '' ?>><?= V::h($t['name']) ?> (<?= V::h($t['status']) ?>)</option><?php endforeach; ?></select></div>
+    <div class="field"><label>Term</label><select name="term" data-autosubmit><?php foreach ($terms as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) $t['id'] === $termId ? 'selected' : '' ?>><?= V::h($t['name']) ?></option><?php endforeach; ?></select></div>
     <div class="field"><label>Program</label><select name="program" data-autosubmit><option value="">Choose a program…</option>
-      <?php foreach (['Undergraduate', 'Postgraduate'] as $lvl): ?><optgroup label="<?= $lvl ?>"><?php foreach ($programs as $p): if ($p['level'] !== $lvl) { continue; } ?><option value="<?= (int) $p['id'] ?>" <?= (int) $p['id'] === $programId ? 'selected' : '' ?>><?= V::h($p['code'] . ' — ' . $p['short_name']) ?></option><?php endforeach; ?></optgroup><?php endforeach; ?></select>
-      <div class="field-help">Only programs whose study plan contains courses owned by <?= V::h($user['department_name']) ?>.</div></div>
+      <?php foreach (['Undergraduate', 'Postgraduate'] as $lvl): ?><optgroup label="<?= V::h($lvl === 'Postgraduate' ? 'Master' : 'Bachelor') ?>"><?php foreach ($programs as $p): if ($p['level'] !== $lvl) { continue; } ?><option value="<?= (int) $p['id'] ?>" <?= (int) $p['id'] === $programId ? 'selected' : '' ?>><?= V::h($p['code'] . ' — ' . $p['short_name']) ?></option><?php endforeach; ?></optgroup><?php endforeach; ?></select>
+      <div class="field-help"><?= V::h('Only programs with courses taught by your department.') ?></div></div>
   </form>
   <?php if ($programId): ?>
   <form method="post"><?= Csrf::field() ?><input type="hidden" name="term" value="<?= $termId ?>"><input type="hidden" name="program" value="<?= $programId ?>">
     <div class="field"><label>Course</label><select name="course" required data-nav="assign.php?term=<?= $termId ?>&amp;program=<?= $programId ?>&amp;course="><option value="">Choose a course from this plan…</option>
-      <?php $group = null; foreach ($plan as $e): $g = $e['plan_year'] ? ($e['plan_year'] == 0 ? 'Foundation' : 'Year ' . $e['plan_year'] . ($e['plan_semester'] == 3 ? ' · Summer' : ' · Semester ' . $e['plan_semester'])) : 'Electives · ' . $e['requirement_group']; if ($g !== $group) { echo $group ? '</optgroup>' : ''; echo '<optgroup label="' . V::h($g) . '">'; $group = $g; } ?>
-        <option value="<?= (int) $e['course_id'] ?>" <?= (int) $e['course_id'] === $courseId ? 'selected' : '' ?> <?= $e['assigned_to'] ? 'disabled' : '' ?>><?= V::h($e['code'] . ' — ' . $e['title'] . ' (' . rtrim(rtrim((string) $e['credits'], '0'), '.') . ' CR, ' . $e['course_type'] . ')' . ($e['assigned_to'] ? ' — already assigned to ' . $e['assigned_to'] : '')) ?></option>
+      <?php $group = null; foreach ($plan as $e): $g = $e['plan_year'] ? ($e['plan_year'] == 0 ? 'Foundation year' : 'Year ' . $e['plan_year'] . ($e['plan_semester'] == 3 ? ' · Summer' : ' · Semester ' . $e['plan_semester'])) : 'Electives · ' . $e['requirement_group']; if ($g !== $group) { echo $group ? '</optgroup>' : ''; echo '<optgroup label="' . V::h($g) . '">'; $group = $g; } ?>
+        <option value="<?= (int) $e['course_id'] ?>" <?= (int) $e['course_id'] === $courseId ? 'selected' : '' ?> <?= $e['assigned_to'] ? 'disabled' : '' ?>><?= V::h($e['code'] . ' — ' . $e['title']) ?><?= $e['assigned_to'] ? ' — ' . V::h('already given to') . ' ' . V::h($e['assigned_to']) : '' ?></option>
       <?php endforeach; echo $group ? '</optgroup>' : ''; ?></select>
-      <div class="field-help">Courses from other departments or other programs are not offered — invalid choices are prevented, not reported afterwards.</div></div>
+      <div class="field-help">Only your department's courses in this plan are listed, so a wrong choice is not possible.</div></div>
     <?php if ($course): ?>
-      <div class="fieldset small"><strong><?= V::h($course['code']) ?> <?= V::h($course['title']) ?></strong> <?= V::source('institution') ?><br><?= V::h(rtrim(rtrim((string) $course['credits'], '0'), '.')) ?> credit hours · <?= V::h($course['department_name']) ?><br>
-        In programs: <?= V::h(implode(', ', array_map(static fn($p) => $p['code'] . ' (' . $p['course_type'] . ')', Catalog::programsFor($courseId)))) ?><br>
-        Prerequisites: <?= V::h(implode(', ', array_unique(array_column(Catalog::requisitesFor($courseId), 'code'))) ?: 'none') ?><br>
-        Specification: <?= ($sv = \Saqf\Quality\Specs::approved($courseId)) ? 'approved v' . (int) $sv['version_no'] . ' will be inherited' : 'none yet — the instructor will be asked to define it once' ?></div>
-      <div class="grid g2"><div class="field"><label>Instructor</label><select name="instructor" required><?php foreach ($faculty as $f): ?><option value="<?= (int) $f['id'] ?>"><?= V::h($f['full_name']) ?> — <?= (int) $f['load_n'] ?> course(s) this term</option><?php endforeach; ?></select><div class="field-help">Only faculty of the owning department.</div></div>
-        <div class="field"><label>Expected enrolment (optional)</label><input type="number" name="enrolled" min="0" max="500"></div></div>
-      <button class="btn btn-primary" type="submit">Create workspace</button>
+      <div class="fieldset small"><strong><?= V::h($course['code']) ?> <?= V::h($course['title']) ?></strong> <?= V::source('institution') ?><br><?= V::h(rtrim(rtrim((string) $course['credits'], '0'), '.') . ' credit hours') ?> · <?= V::h($course['department_name']) ?><br>
+        <?= V::h('Part of') ?>: <?php foreach (Catalog::programsFor($courseId) as $cp): ?><span class="tag"><?= V::h($cp['code']) ?> · <?= V::h($cp['course_type'] === 'required' ? 'required course' : 'elective') ?></span><?php endforeach; ?><br>
+        <?= V::h('Take first') ?>: <?= V::h(implode(', ', array_unique(array_column(Catalog::requisitesFor($courseId), 'code'))) ?: 'nothing') ?><br>
+        <?= V::h('Course specification') ?>: <?= \Saqf\Quality\Specs::approved($courseId) ? V::h('the approved one carries over automatically') : V::h('none yet; the instructor will be asked to write it once') ?></div>
+      <div class="grid g2"><div class="field"><label>Instructor</label><select name="instructor" required><?php foreach ($faculty as $f): ?><option value="<?= (int) $f['id'] ?>"><?= V::h($f['full_name']) ?> — <?= V::h((int) $f['load_n'] === 1 ? '1 course this term' : (int) $f['load_n'] . ' courses this term') ?></option><?php endforeach; ?></select><div class="field-help">Only instructors of your department.</div></div>
+        <div class="field"><label>Expected number of students (optional)</label><input type="number" name="enrolled" min="0" max="500"></div></div>
+      <button class="btn btn-primary" type="submit">Give the course</button>
     <?php endif; ?>
   </form>
   <?php endif; ?>
 </div></section>
 <aside class="card"><div class="card-h"><h2>What you don't need to enter</h2></div><div class="card-b small">
-  <p>Course code, title, credit hours, owning department, college, programs, required/elective status, plan level and prerequisites all come from the Registrar's study plans.</p>
-  <p>The approved specification (outcomes, PLO mapping, assessment plan) and open improvement actions are inherited automatically.</p></div></aside></div>
+  <p>The course name, credit hours, department, programs, whether it is required, its semester and what to take first all come from the Registrar's study plans.</p>
+  <p>The approved course specification (learning outcomes, links to program outcomes, assessments) and any improvements under way carry over automatically.</p></div></aside></div>
 <?php V::footer();
