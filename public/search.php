@@ -10,8 +10,8 @@ use Saqf\Web\View as V;
 $user = Auth::user();
 $q = trim((string) ($_GET['q'] ?? ''));
 if (($_GET['format'] ?? '') === 'json') {
-    header('Content-Type: application/json');
-    echo json_encode($user ? Search::run($user, $q) : []);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(\Saqf\Web\I18n::json($user ? Search::run($user, $q) : []), JSON_UNESCAPED_UNICODE);
     exit;
 }
 $user = saqf_page(['faculty', 'hod', 'qa', 'dean', 'leadership', 'admin']);

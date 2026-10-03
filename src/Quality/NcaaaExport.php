@@ -9,9 +9,11 @@ use Saqf\Web\Docx;
 
 /**
  * Word documents laid out like the NCAAA course specification and course report templates
- * (sections A–G), filled entirely from SAQF's structured record. Headings are in English or Arabic;
- * course content stays in the language it was written in. The section structure follows the
- * published NCAAA templates and should be checked against the version the university uses.
+ * (sections A–G), filled entirely from SAQF's structured record. In the Arabic document the headings
+ * are Arabic, and so is every name and piece of course content whose Arabic wording is known
+ * (Registrar catalogue, faculty, the "Arabic wording" page); anything else appears as written. The
+ * section structure follows the published NCAAA templates and should be checked against the version
+ * the university uses.
  */
 final class NcaaaExport
 {
@@ -99,6 +101,21 @@ final class NcaaaExport
         'frozen' => ['Frozen record of the closed term · SHA-256 %s', 'سجل مُجمّد للفصل المغلق · SHA-256 %s'],
         'required' => ['required', 'إجباري'],
         'elective' => ['elective', 'اختياري'],
+        'level_n' => ['level %s', 'المستوى %s'],
+        'version_n' => ['Version %s', 'الإصدار %s'],
+        'n_students' => ['%s students', '%s طالباً'],
+        'F1' => ['Achievement of course learning outcomes', 'تحقق نواتج التعلم للمقرر'],
+        'F1a' => ['Course coordinator; Quality', 'منسق المقرر؛ الجودة'],
+        'F1m' => ['Direct: calculated each term from assessment results (%s method, institutional policy)', 'مباشر: يُحسب كل فصل من نتائج التقييمات (طريقة %s، سياسة مؤسسية)'],
+        'F2' => ['Quality of the course specification', 'جودة توصيف المقرر'],
+        'F2a' => ['Head of Department', 'رئيس القسم'],
+        'F2m' => ['Continuous rule checks in SAQF and review of every academic change', 'فحوص مستمرة بالقواعد في SAQF ومراجعة كل تغيير أكاديمي'],
+        'F3' => ['Effectiveness of improvement actions', 'فاعلية إجراءات التحسين'],
+        'F3a' => ['Head of Department; Quality', 'رئيس القسم؛ الجودة'],
+        'F3m' => ['Comparison of achievement before and after each action, term by term', 'مقارنة التحقق قبل كل إجراء وبعده، فصلاً بعد فصل'],
+        'F4' => ['Consistency between sections', 'الاتساق بين الشعب'],
+        'F4a' => ['Course coordinator', 'منسق المقرر'],
+        'F4m' => ['Achievement compared per section on the same outcomes and assessments', 'مقارنة التحقق لكل شعبة على المخرجات والتقييمات نفسها'],
     ];
 
     public static function t(string $key, string $lang): string
@@ -106,10 +123,30 @@ final class NcaaaExport
         return self::L[$key][$lang === 'ar' ? 1 : 0] ?? $key;
     }
 
+    /** A name or piece of course content: its Arabic wording in the Arabic document when known. */
+    public static function w(?string $text, string $lang): string
+    {
+        $text = (string) $text;
+        if ($lang !== 'ar' || $text === '' || !preg_match('/[A-Za-z]/', $text)) {
+            return $text;
+        }
+        return \Saqf\Web\I18n::phrase($text) ?? $text;
+    }
+
+    private static function date(?string $d, string $lang): string
+    {
+        if (!$d) {
+            return '—';
+        }
+        $out = date('j M Y', strtotime($d));
+        return $lang === 'ar' ? strtr($out, \Saqf\Web\View::MONTHS_AR) : $out;
+    }
+
     /** NCAAA-style course specification for an approved (or in-progress) specification version. */
     public static function specification(int $versionId, string $lang = 'en'): Docx
     {
         $t = static fn(string $k) => self::t($k, $lang);
+        $w = static fn(?string $x) => self::w($x, $lang);
         $s = Specs::load($versionId);
         $v = $s['version'];
         $c = $s['course'];
@@ -117,14 +154,14 @@ final class NcaaaExport
         $dept = Db::one('SELECT d.name AS department, col.name AS college FROM departments d JOIN colleges col ON col.id = d.college_id WHERE d.id = ?', [$c['owner_department_id']]);
         $doc = new Docx($t('spec') . ' — ' . $c['code'], $lang === 'ar');
         $doc->heading($t('spec'), 0);
-        $doc->paragraph($c['code'] . ' — ' . $c['title'], ['bold' => true]);
+        $doc->paragraph($c['code'] . ' — ' . $w($c['title']), ['bold' => true]);
         $doc->fields([
-            $t('institution') => 'Al Yamamah University',
-            $t('college') => (string) ($dept['college'] ?? ''),
-            $t('department') => (string) ($dept['department'] ?? ''),
+            $t('institution') => $w('Al Yamamah University'),
+            $t('college') => $w((string) ($dept['college'] ?? '')),
+            $t('department') => $w((string) ($dept['department'] ?? '')),
             $t('programs') => implode(' · ', array_map(static fn($p) => $p['code'] . ' (' . self::t($p['course_type'] === 'required' ? 'required' : 'elective', $lang) . ')', $s['programs'])),
-            $t('version') => 'v' . $v['version_no'] . ' · ' . $v['status'],
-            $t('approved_on') => $v['decided_at'] ? date('j M Y', strtotime((string) $v['decided_at'])) : '—',
+            $t('version') => sprintf($t('version_n'), $v['version_no']) . ' · ' . $w(['draft' => 'Draft', 'pending_hod' => 'With the Head of Department', 'pending_qa' => 'With Quality', 'approved' => 'Approved', 'superseded' => 'Older version'][$v['status']] ?? (string) $v['status']),
+            $t('approved_on') => self::date($v['decided_at'], $lang),
         ]);
 
         $doc->heading($t('A'), 1);
@@ -132,16 +169,16 @@ final class NcaaaExport
         $doc->fields([
             $t('credits') => rtrim(rtrim((string) $c['credits'], '0'), '.'),
             $t('type') => implode(' · ', array_map(static fn($p) => $p['code'] . ': ' . self::t($p['course_type'] === 'required' ? 'required' : 'elective', $lang), $s['programs'])),
-            $t('level') => implode(' · ', array_map(static fn($p) => $p['code'] . ': ' . ($p['level_no'] ? 'level ' . $p['level_no'] : (string) $p['requirement_group']), $s['programs'])),
-            $t('description') => (string) ($c['description'] ?? '—'),
+            $t('level') => implode(' · ', array_map(static fn($p) => $p['code'] . ': ' . ($p['level_no'] ? sprintf(self::t('level_n', $lang), $p['level_no']) : self::w((string) $p['requirement_group'], $lang)), $s['programs'])),
+            $t('description') => $w((string) ($c['description'] ?? '—')),
             $t('prereq') => implode(', ', array_unique(array_column(array_filter($req, static fn($r) => $r['kind'] !== 'corequisite'), 'code'))) ?: '—',
             $t('coreq') => implode(', ', array_unique(array_column(array_filter($req, static fn($r) => $r['kind'] === 'corequisite'), 'code'))) ?: '—',
-            $t('objective') => (string) ($v['objectives'] ?: '—'),
+            $t('objective') => $w((string) ($v['objectives'] ?: '—')),
             $t('contact') => rtrim(rtrim(number_format(Catalog::contactHours((float) $c['credits']), 1), '0'), '.'),
         ]);
 
         $doc->heading($t('B'), 1);
-        $names = array_column($s['assessments'], 'name', 'id');
+        $names = array_map($w, array_column($s['assessments'], 'name', 'id'));
         foreach (Specs::DOMAINS as $i => $domain) {
             $rows = [];
             foreach ($s['clos'] as $clo) {
@@ -154,22 +191,22 @@ final class NcaaaExport
                         $plos[] = Db::val('SELECT code FROM programs WHERE id = ?', [$m['program_id']]) . ' ' . $m['code'];
                     }
                 }
-                $rows[] = [($i + 1) . '.' . (count($rows) + 1) . ' ' . $clo['code'], $clo['statement'], implode(', ', $plos), implode(', ', array_map(static fn($id) => $names[$id] ?? '', $clo['assessments']))];
+                $rows[] = [($i + 1) . '.' . (count($rows) + 1) . ' ' . $clo['code'], $w($clo['statement']), implode(', ', $plos), implode($lang === 'ar' ? '، ' : ', ', array_map(static fn($id) => $names[$id] ?? '', $clo['assessments']))];
             }
             if ($rows) {
-                $doc->heading(($i + 1) . '.0 ' . $domain, 3);
+                $doc->heading(($i + 1) . '.0 ' . $w($domain), 3);
                 $doc->table([$t('code'), $t('clo'), $t('plos'), $t('methods')], $rows, [12, 48, 18, 22]);
             }
         }
         if ($v['teaching_strategies']) {
-            $doc->paragraph($t('strategies') . ': ' . $v['teaching_strategies']);
+            $doc->paragraph($t('strategies') . ': ' . $w($v['teaching_strategies']));
         }
 
         $doc->heading($t('C'), 1);
         $rows = [];
         $sum = 0.0;
         foreach ($s['topics'] as $n => $tp) {
-            $rows[] = [(string) ($n + 1), $tp['topic'], $tp['contact_hours'] === null ? '' : rtrim(rtrim((string) $tp['contact_hours'], '0'), '.')];
+            $rows[] = [(string) ($n + 1), $w($tp['topic']), $tp['contact_hours'] === null ? '' : rtrim(rtrim((string) $tp['contact_hours'], '0'), '.')];
             $sum += (float) $tp['contact_hours'];
         }
         $rows[] = ['', $t('total'), rtrim(rtrim(number_format($sum, 1), '0'), '.')];
@@ -179,7 +216,7 @@ final class NcaaaExport
         $rows = [];
         $sum = 0.0;
         foreach ($s['assessments'] as $n => $a) {
-            $rows[] = [(string) ($n + 1), $a['name'], (string) ($a['week'] ?? ''), rtrim(rtrim((string) $a['weight_pct'], '0'), '.') . '%'];
+            $rows[] = [(string) ($n + 1), $w($a['name']), (string) ($a['week'] ?? ''), rtrim(rtrim((string) $a['weight_pct'], '0'), '.') . '%'];
             $sum += (float) $a['weight_pct'];
         }
         $rows[] = ['', $t('total'), '', rtrim(rtrim(number_format($sum, 2), '0'), '.') . '%'];
@@ -190,25 +227,25 @@ final class NcaaaExport
         foreach (Specs::RESOURCE_CATEGORIES as $k => $label) {
             $items = array_column(array_filter($s['resources'], static fn($r) => $r['category'] === $k), 'reference_text');
             if ($items) {
-                $rows[] = [$label, implode("\n", $items)];
+                $rows[] = [$w($label), implode("\n", array_map($w, $items))];
             }
         }
         $rows ? $doc->table([], $rows, [30, 70], true) : $doc->paragraph('—');
 
         $doc->heading($t('F'), 1);
         $doc->table([$t('area'), $t('assessor'), $t('method')], [
-            ['Achievement of course learning outcomes', 'Course coordinator; Quality', 'Direct: calculated each term from assessment results (' . Policy::get('achievement.method') . ' method, institutional policy)'],
-            ['Quality of the course specification', 'Head of Department', 'Continuous rule checks in SAQF and review of every academic change'],
-            ['Effectiveness of improvement actions', 'Head of Department; Quality', 'Comparison of achievement before and after each action, term by term'],
-            ['Consistency between sections', 'Course coordinator', 'Achievement compared per section on the same outcomes and assessments'],
+            [$t('F1'), $t('F1a'), sprintf($t('F1m'), Policy::get('achievement.method'))],
+            [$t('F2'), $t('F2a'), $t('F2m')],
+            [$t('F3'), $t('F3a'), $t('F3m')],
+            [$t('F4'), $t('F4a'), $t('F4m')],
         ], [30, 25, 45]);
 
         $doc->heading($t('G'), 1);
         $decider = $v['decided_by'] ? Db::val('SELECT full_name FROM users WHERE id = ?', [$v['decided_by']]) : null;
         $doc->fields([
-            $t('council') => $decider ? $decider . ' (' . str_replace('_', ' ', (string) $v['decision_route']) . ')' : str_replace('_', ' ', (string) ($v['decision_route'] ?: '—')),
-            $t('reference') => 'SAQF ' . $c['code'] . ' specification v' . $v['version_no'],
-            $t('date') => $v['decided_at'] ? date('j M Y', strtotime((string) $v['decided_at'])) : '—',
+            $t('council') => $decider ? $w($decider) . ' (' . $w(\Saqf\Web\View::route($v['decision_route'])) . ')' : ($v['decision_route'] ? $w(\Saqf\Web\View::route($v['decision_route'])) : '—'),
+            $t('reference') => 'SAQF ' . $c['code'] . ' · ' . sprintf($t('version_n'), $v['version_no']),
+            $t('date') => self::date($v['decided_at'], $lang),
         ]);
         $doc->paragraph(sprintf($t('generated'), \Saqf\Core\Clock::now()->format('j M Y H:i'), Policy::get('achievement.method'), Policy::get('achievement.student_threshold_pct'), Policy::get('clo.default_target_pct')), ['small' => true, 'color' => '6B7280']);
         return $doc;
@@ -218,21 +255,22 @@ final class NcaaaExport
     public static function courseReport(int $offeringId, string $lang = 'en'): Docx
     {
         $t = static fn(string $k) => self::t($k, $lang);
+        $w = static fn(?string $x) => self::w($x, $lang);
         $r = Reports::courseReport($offeringId);
         $o = $r['offering'];
-        $doc = new Docx($t('report') . ' — ' . $o['code'] . ' ' . $o['term_name'], $lang === 'ar');
+        $doc = new Docx($t('report') . ' — ' . $o['code'] . ' ' . $w($o['term_name']), $lang === 'ar');
         $doc->heading($t('report'), 0);
-        $doc->paragraph($o['code'] . ' — ' . $o['title'] . ' · ' . $o['term_name'], ['bold' => true]);
+        $doc->paragraph($o['code'] . ' — ' . $w($o['title']) . ' · ' . $w($o['term_name']), ['bold' => true]);
 
         $doc->heading($t('R_A'), 1);
-        $sectionText = implode("\n", array_map(static fn($s) => self::t('section', $lang) . ' ' . $s['section_code'] . ': ' . ($s['instructor_name'] ?? '—') . ' (' . $s['enrolled'] . ')', $r['sections'])) ?: ($o['instructor'] ?? '—');
+        $sectionText = implode("\n", array_map(static fn($s) => self::t('section', $lang) . ' ' . $s['section_code'] . ': ' . self::w($s['instructor_name'] ?? '—', $lang) . ' (' . sprintf(self::t('n_students', $lang), $s['enrolled']) . ')', $r['sections'])) ?: $w($o['instructor'] ?? '—');
         $doc->fields([
-            $t('institution') => 'Al Yamamah University',
-            $t('college') => (string) $o['college'],
-            $t('department') => (string) $o['department'],
+            $t('institution') => $w('Al Yamamah University'),
+            $t('college') => $w((string) $o['college']),
+            $t('department') => $w((string) $o['department']),
             $t('programs') => implode(' · ', array_map(static fn($p) => $p['code'] . ' (' . self::t($p['course_type'] === 'required' ? 'required' : 'elective', $lang) . ')', $r['programs'])),
-            $t('term') => (string) $o['term_name'],
-            $t('coordinator') => (string) ($o['instructor'] ?? '—'),
+            $t('term') => $w((string) $o['term_name']),
+            $t('coordinator') => $w((string) ($o['instructor'] ?? '—')),
             $t('sections') => $sectionText,
             $t('students') => (int) $o['enrolled'] . ' / ' . (int) $r['assessed_students'],
         ]);
@@ -244,51 +282,51 @@ final class NcaaaExport
         } else {
             $doc->paragraph($t('no_grades'), ['italic' => true]);
         }
-        $doc->table([$t('assessment'), $t('weight'), $t('results'), $t('mean')], array_map(static fn($a) => [$a['name'], self::num($a['weight']) . '%', (string) $a['n'], $a['mean'] === null ? '—' : self::num($a['mean']) . '%'], $r['assessments']), [46, 18, 18, 18]);
+        $doc->table([$t('assessment'), $t('weight'), $t('results'), $t('mean')], array_map(static fn($a) => [self::w($a['name'], $lang), self::num($a['weight']) . '%', (string) $a['n'], $a['mean'] === null ? '—' : Rules::whole((float) $a['mean']) . '%'], $r['assessments']), [46, 18, 18, 18]);
 
         $doc->heading($t('R_C'), 1);
         $rows = [];
         foreach ($r['clos'] as $c) {
             $comment = $c['value'] === null ? $t('no_results') : ($c['provisional'] ? $t('provisional') : ($c['met'] ? $t('met') : $t('below')));
-            $rows[] = [$c['code'], $c['statement'], implode(', ', $c['plos']), implode(', ', $c['assessments']), self::num($c['target']) . '%', $c['value'] === null ? '—' : self::num($c['value']) . '%' . ($c['students'] ? ' (n=' . $c['students'] . ')' : ''), $comment];
+            $rows[] = [$c['code'], $w($c['statement']), implode(', ', $c['plos']), implode($lang === 'ar' ? '، ' : ', ', array_map($w, $c['assessments'])), Rules::whole((float) $c['target']) . '%', $c['value'] === null ? '—' : Rules::whole((float) $c['value']) . '%' . ($c['students'] ? ' (' . sprintf($t('n_students'), $c['students']) . ')' : ''), $comment];
         }
         $doc->table([$t('code'), $t('clo'), $t('plos'), $t('methods'), $t('target'), $t('actual'), $t('comment')], $rows, [8, 28, 11, 15, 10, 13, 15]);
         if ($r['by_section']) {
             $doc->heading($t('by_section'), 3);
             $header = [$t('code')];
             foreach ($r['by_section'] as $code => $s) {
-                $header[] = $t('section') . ' ' . $code . ' (' . ($s['instructor'] ?? '—') . ')';
+                $header[] = $t('section') . ' ' . $code . ' (' . $w($s['instructor'] ?? '—') . ')';
             }
             $rows = [];
             foreach ($r['clos'] as $c) {
                 $row = [$c['code']];
                 foreach ($r['by_section'] as $s) {
                     $v = $s['clos'][$c['id']] ?? null;
-                    $row[] = $v === null ? '—' : self::num($v['value']) . '% (n=' . $v['n'] . ')';
+                    $row[] = $v === null ? '—' : Rules::whole((float) $v['value']) . '% (' . sprintf($t('n_students'), $v['n']) . ')';
                 }
                 $rows[] = $row;
             }
             $doc->table($header, $rows);
         }
         $doc->heading($t('interpretation'), 3);
-        $doc->paragraph($r['narrative']['interpretation'] ?? $t('none'));
+        $doc->paragraph(isset($r['narrative']['interpretation']) ? $w($r['narrative']['interpretation']) : $t('none'));
 
         $doc->heading($t('R_D'), 1);
         $doc->heading($t('difficulties'), 3);
-        $doc->paragraph($r['narrative']['difficulties'] ?? $t('none'));
+        $doc->paragraph(isset($r['narrative']['difficulties']) ? $w($r['narrative']['difficulties']) : $t('none'));
         $doc->heading($t('recommendations'), 3);
-        $doc->paragraph($r['narrative']['recommendations'] ?? $t('none'));
+        $doc->paragraph(isset($r['narrative']['recommendations']) ? $w($r['narrative']['recommendations']) : $t('none'));
 
         $doc->heading($t('R_E'), 1);
-        $rows = array_map(static fn($a) => [$a['title'], (string) ($a['action_text'] ?? '—'), (string) ($a['owner_name'] ?? '—'), $a['due_on'] ? date('j M Y', strtotime((string) $a['due_on'])) : '—', (string) (Improvements::STATUS[$a['status']] ?? $a['status'])], $r['actions']);
+        $rows = array_map(static fn($a) => [self::w($a['title'], $lang), self::w((string) ($a['action_text'] ?? '—'), $lang), self::w((string) ($a['owner_name'] ?? '—'), $lang), self::date($a['due_on'], $lang), self::w((string) (Improvements::STATUS[$a['status']] ?? $a['status']), $lang)], $r['actions']);
         $rows ? $doc->table([$t('clo'), $t('action'), $t('owner'), $t('due'), $t('status')], $rows, [20, 40, 15, 12, 13]) : $doc->paragraph($t('none'));
         if ($r['followups']) {
             $doc->heading($t('followup'), 3);
-            $doc->table([$t('action'), $t('effect')], array_map(static fn($a) => [$a['title'] . ' (' . $a['origin_term'] . ')', (Improvements::EFFECT[$a['effect']] ?? (string) $a['effect']) . ($a['followup_pct'] !== null ? ': ' . self::num($a['baseline_pct']) . '% → ' . self::num($a['followup_pct']) . '%' : '')], $r['followups']), [60, 40]);
+            $doc->table([$t('action'), $t('effect')], array_map(static fn($a) => [self::w($a['title'], $lang) . ' (' . self::w($a['origin_term'], $lang) . ')', self::w(Improvements::EFFECT[$a['effect']] ?? (string) $a['effect'], $lang) . ($a['followup_pct'] !== null ? ': ' . Rules::whole((float) $a['baseline_pct']) . '% → ' . Rules::whole((float) $a['followup_pct']) . '%' : '')], $r['followups']), [60, 40]);
         }
 
         $doc->heading($t('R_F'), 1);
-        $rows = array_map(static fn($e) => [$e['title'], Evidence::KINDS[$e['kind']] ?? $e['kind'], (string) ($e['assessment_name'] ?? '—'), date('j M Y', strtotime((string) $e['uploaded_at']))], $r['evidence_files']);
+        $rows = array_map(static fn($e) => [self::w($e['title'], $lang), self::w(Evidence::KINDS[$e['kind']] ?? $e['kind'], $lang), self::w((string) ($e['assessment_name'] ?? '—'), $lang), self::date($e['uploaded_at'], $lang)], $r['evidence_files']);
         $rows ? $doc->table([$t('evidence'), $t('kind'), $t('assessment'), $t('added')], $rows, [40, 25, 20, 15]) : $doc->paragraph($t('no_evidence'));
 
         $doc->paragraph(sprintf($t('generated'), \Saqf\Core\Clock::now()->format('j M Y H:i'), $r['method']['achievement'], $r['method']['student_threshold'], $r['method']['default_target']), ['small' => true, 'color' => '6B7280']);
