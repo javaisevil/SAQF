@@ -11,6 +11,8 @@
     setTimeout(function () { t.remove(); }, ms || 5200);
   }
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+  // Interface words rendered by the server (so the Arabic interface translates them too).
+  function L(key, fallback) { var e = document.querySelector('#ui-text [data-k="' + key + '"]'); return e ? e.textContent : fallback; }
 
   // Show a toast stored before a reload (keeps the feedback after the page refreshes).
   try {
@@ -21,9 +23,9 @@
   } catch (e) { /* storage unavailable */ }
 
   function describe(res) {
-    var out = '<div>' + esc(res.message || 'Saved') + '</div>';
-    if (res.cleared && res.cleared.length) out += '<div class="ok">✓ Cleared automatically: ' + res.cleared.map(esc).join(' · ') + '</div>';
-    if (res.opened && res.opened.length) out += '<div class="bad">• New check: ' + res.opened.map(esc).join(' · ') + '</div>';
+    var out = '<div>' + esc(res.message || L('saved', 'Saved')) + '</div>';
+    if (res.cleared && res.cleared.length) out += '<div class="ok">✓ ' + esc(L('cleared', 'Cleared automatically:')) + ' ' + res.cleared.map(esc).join(' · ') + '</div>';
+    if (res.opened && res.opened.length) out += '<div class="bad">• ' + esc(L('opened', 'New check:')) + ' ' + res.opened.map(esc).join(' · ') + '</div>';
     return out;
   }
 
@@ -41,13 +43,13 @@
         method: 'POST', credentials: 'same-origin',
         headers: { 'X-CSRF-Token': csrf, 'Content-Type': 'application/x-www-form-urlencoded' }, body: body
       }).then(function (r) { return r.json(); }).then(function (res) {
-        if (!res.ok) { toast('<span class="bad">' + esc(res.error || 'Could not save') + '</span>', 7000); return res; }
+        if (!res.ok) { toast('<span class="bad">' + esc(res.error || L('failed', 'Could not save')) + '</span>', 7000); return res; }
         if (opts.reload !== false) {
           try { sessionStorage.setItem('saqf.toast', describe(res)); sessionStorage.setItem('saqf.scroll', String(window.scrollY)); } catch (e) {}
           if (res.redirect) location.href = res.redirect; else location.reload();
         } else { toast(describe(res)); }
         return res;
-      }).catch(function () { toast('<span class="bad">Network error — nothing was changed.</span>'); });
+      }).catch(function () { toast('<span class="bad">' + esc(L('network', 'Network error — nothing was changed.')) + '</span>'); });
     },
     toast: toast
   };
@@ -122,7 +124,7 @@
     function recalc() {
       var sum = 0;
       document.querySelectorAll('input[data-weight]').forEach(function (i) { sum += parseFloat(i.value) || 0; });
-      box.textContent = (Math.round(sum * 100) / 100) + '% of ' + target + '%';
+      box.textContent = L('total', 'Total') + ' ' + (Math.round(sum * 100) / 100) + '% · ' + L('must', 'must be') + ' ' + target + '%';
       box.className = 'pill ' + (Math.abs(sum - target) < 0.01 ? 'pill-green' : 'pill-red');
     }
     document.addEventListener('input', function (e) { if (e.target.matches('input[data-weight]')) recalc(); });
@@ -138,7 +140,7 @@
       if (q.length < 2) { pop.style.display = 'none'; return; }
       timer = setTimeout(function () {
         fetch('search.php?format=json&q=' + encodeURIComponent(q), { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (rows) {
-          if (!rows.length) { pop.innerHTML = '<a>No matches</a>'; } else {
+          if (!rows.length) { pop.innerHTML = '<a>' + esc(L('nomatch', 'No matches')) + '</a>'; } else {
             pop.innerHTML = rows.slice(0, 12).map(function (r) { return '<a href="' + esc(r.link) + '"><b>' + esc(r.type) + '</b> · ' + esc(r.title) + '<small>' + esc(r.sub) + '</small></a>'; }).join('');
           }
           pop.style.display = 'block';

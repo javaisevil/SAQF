@@ -24,7 +24,7 @@ header('Cache-Control: no-store');
 function out(array $data, int $code = 200): void
 {
     http_response_code($code);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    echo json_encode(\Saqf\Web\I18n::json($data), JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -90,8 +90,15 @@ try {
         case 'save_clo':
             [$o, $draft] = $draftContext();
             $cloId = $int('clo') ? $inDraft('clos', $int('clo'), $draft) : null;
-            Specs::saveClo($draft, $cloId, ['statement' => $in('statement'), 'domain' => $in('domain'), 'target_pct' => $in('target_pct'), 'skills' => $_POST['skills'] ?? []]);
+            $savedId = Specs::saveClo($draft, $cloId, ['statement' => $in('statement'), 'domain' => $in('domain'), 'target_pct' => $in('target_pct'), 'skills' => $_POST['skills'] ?? []]);
             $message = $cloId ? 'Outcome updated.' : 'Outcome added.';
+            if (isset($_POST['statement_ar'])) {
+                // Optional Arabic wording of the outcome (Arabic interface and Arabic Word documents).
+                $statement = (string) Db::val('SELECT statement FROM clos WHERE id = ?', [(int) ($savedId ?: $cloId)]);
+                if ($statement !== '' && \Saqf\Core\Translations::set($statement, $in('statement_ar'), 'content', $user['id'])) {
+                    Audit::record('translation.saved', 'clo', (int) ($savedId ?: $cloId), 'Arabic wording of an outcome saved', null, ['english' => $statement, 'arabic' => $in('statement_ar')]);
+                }
+            }
             break;
         case 'delete_clo':
             [$o, $draft] = $draftContext();
@@ -238,7 +245,7 @@ try {
             }
             Improvements::commit((int) $ia['id'], $user, $in('action_text'), $int('owner') ?: null, $in('due_on'));
             $offeringId = (int) $ia['origin_offering_id'];
-            $message = 'Improvement action committed. SAQF will compare the next offering\'s results with the ' . \Saqf\Quality\Rules::fmt((float) $ia['baseline_pct']) . '% baseline.';
+            $message = 'Plan saved. Next term SAQF compares the results with today\'s ' . \Saqf\Quality\Rules::whole((float) $ia['baseline_pct']) . '%.';
             break;
         case 'improvement_status':
             $ia = Improvements::find($int('id'));
