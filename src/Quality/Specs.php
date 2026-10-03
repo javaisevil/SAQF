@@ -535,7 +535,7 @@ final class Specs
         Engine::evaluateSpec($versionId);
         $blockers = Db::all('SELECT title, detail FROM findings WHERE scope_type = "spec" AND scope_id = ? AND status = "open" AND severity = "blocker"', [$versionId]);
         if ($blockers) {
-            return ['ok' => false, 'message' => count($blockers) . ' deterministic check(s) must pass before this can be submitted.', 'blockers' => $blockers];
+            return ['ok' => false, 'message' => count($blockers) === 1 ? 'Fix the 1 item marked Must fix before sending.' : 'Fix the ' . count($blockers) . ' items marked Must fix before sending.', 'blockers' => $blockers];
         }
         $diff = self::diff($versionId);
         $course = Catalog::course((int) $v['course_id']);
@@ -551,10 +551,10 @@ final class Specs
         }
         Db::update('spec_versions', ['status' => 'pending_hod'], 'id = ?', [$versionId]);
         Audit::record('spec.submitted', 'spec_version', $versionId, "{$course['code']} v{$v['version_no']} submitted to HoD: " . count($academic) . ' academic change(s)', null, ['changes' => count($diff)]);
-        Notify::role('hod', (int) $course['owner_department_id'], null, 'decision', "{$course['code']}: " . count($academic) . ' academic change(s) need approval', 'Review the difference and impact; everything else was validated automatically.', 'approvals.php?version=' . $versionId, 'spec-submit:' . $versionId . ':' . Clock::stamp());
+        Notify::role('hod', (int) $course['owner_department_id'], null, 'decision', "{$course['code']}: " . (count($academic) === 1 ? '1 change needs your approval' : count($academic) . ' changes need your approval'), 'SAQF has already checked everything else; look at the changes and what they affect.', 'approvals.php?version=' . $versionId, 'spec-submit:' . $versionId . ':' . Clock::stamp());
         Ledger::add('routed', 1, null, (int) $v['course_id'], 'Specification change routed to HoD');
         Events::emit('spec.submitted', ['version_id' => $versionId, 'course_id' => (int) $v['course_id']]);
-        return ['ok' => true, 'route' => 'hod', 'message' => 'Submitted. Your Head of Department sees only the ' . count($diff) . ' change(s) and their impact — not the whole specification.'];
+        return ['ok' => true, 'route' => 'hod', 'message' => count($diff) === 1 ? 'Sent. Your Head of Department sees only the 1 change and what it affects, not the whole specification.' : 'Sent. Your Head of Department sees only the ' . count($diff) . ' changes and what they affect, not the whole specification.'];
     }
 
     public static function hodDecide(int $versionId, array $user, string $decision, string $note): string
@@ -571,7 +571,7 @@ final class Specs
             Db::update('spec_versions', ['status' => 'draft', 'decided_by' => $user['id'], 'decided_at' => Clock::stamp(), 'decision_note' => $note, 'decision_route' => 'returned_hod'], 'id = ?', [$versionId]);
             Audit::record('spec.returned', 'spec_version', $versionId, "{$course['code']} v{$v['version_no']} returned by HoD", null, null, $note);
             if ($v['submitted_by']) {
-                Notify::user((int) $v['submitted_by'], 'decision', "{$course['code']} revision returned by your HoD", mb_strimwidth($note, 0, 300, '…'), self::workspaceLink((int) $v['course_id']), 'spec-return:' . $versionId . ':' . Clock::stamp());
+                Notify::user((int) $v['submitted_by'], 'decision', "{$course['code']}: your Head of Department sent the changes back", mb_strimwidth($note, 0, 300, '…'), self::workspaceLink((int) $v['course_id']), 'spec-return:' . $versionId . ':' . Clock::stamp());
             }
             return 'Returned to the instructor with your comment.';
         }
@@ -579,7 +579,7 @@ final class Specs
         Audit::record('spec.hod_approved', 'spec_version', $versionId, "{$course['code']} v{$v['version_no']} approved by HoD", null, null, $note ?: null);
         if ($warnings > 0 || !Policy::get('spec.auto_clear_green')) {
             Db::update('spec_versions', ['status' => 'pending_qa', 'decision_note' => $note ?: null], 'id = ?', [$versionId]);
-            Notify::role('qa', null, null, 'decision', "{$course['code']} revision: $warnings open warning(s) need QA review", 'Approved by the HoD; routed to Quality because warnings remain.', 'approvals.php?version=' . $versionId, 'spec-qa:' . $versionId);
+            Notify::role('qa', null, null, 'decision', "{$course['code']}: changes need a Quality decision", 'The Head of Department approved them, but some checks still show warnings.', 'approvals.php?version=' . $versionId, 'spec-qa:' . $versionId);
             Ledger::add('routed', 1, null, (int) $v['course_id'], 'Amber revision routed to QA');
             return "Approved. $warnings warning(s) remain, so SAQF routed it to Quality Assurance for a decision.";
         }
@@ -602,7 +602,7 @@ final class Specs
             Db::update('spec_versions', ['status' => 'draft', 'decided_by' => $user['id'], 'decided_at' => Clock::stamp(), 'decision_note' => $note, 'decision_route' => 'returned_qa'], 'id = ?', [$versionId]);
             Audit::record('spec.returned', 'spec_version', $versionId, "{$course['code']} v{$v['version_no']} returned by QA", null, null, $note);
             if ($v['submitted_by']) {
-                Notify::user((int) $v['submitted_by'], 'decision', "{$course['code']} revision returned by Quality Assurance", mb_strimwidth($note, 0, 300, '…'), self::workspaceLink((int) $v['course_id']), 'spec-return:' . $versionId . ':' . Clock::stamp());
+                Notify::user((int) $v['submitted_by'], 'decision', "{$course['code']}: Quality sent the changes back", mb_strimwidth($note, 0, 300, '…'), self::workspaceLink((int) $v['course_id']), 'spec-return:' . $versionId . ':' . Clock::stamp());
             }
             return 'Returned to the instructor with your comment.';
         }
@@ -634,7 +634,7 @@ final class Specs
         $labels = ['auto_minor' => 'auto-approved (non-academic change)', 'auto_green' => 'approved by HoD and auto-cleared (all checks green)', 'qa' => 'approved by Quality Assurance', 'seed' => 'baseline imported', 'import' => 'imported as the approved baseline', 'hod' => 'approved by HoD'];
         Audit::record('spec.approved', 'spec_version', $versionId, "{$course['code']} v{$v['version_no']} " . ($labels[$route] ?? $route), null, ['route' => $route, 'qa_sampled' => $sampled]);
         if ($v['submitted_by'] && !in_array($route, ['seed', 'import'], true)) {
-            Notify::user((int) $v['submitted_by'], 'info', "{$course['code']} specification v{$v['version_no']} approved", $labels[$route] ?? $route, self::workspaceLink((int) $v['course_id']), 'spec-approved:' . $versionId);
+            Notify::user((int) $v['submitted_by'], 'info', "{$course['code']}: your specification changes were approved", \Saqf\Web\View::route($route), self::workspaceLink((int) $v['course_id']), 'spec-approved:' . $versionId);
         }
         Events::emit('spec.approved', ['version_id' => $versionId, 'course_id' => (int) $v['course_id']]);
     }
