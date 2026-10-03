@@ -54,6 +54,8 @@ jobs:
         run: php bin/install.php --demo --fresh && php tests/sso_test.php
       - name: Sections, import, evidence, Word exports, two-step sign-in, alerts, Arabic
         run: php bin/install.php --demo --fresh && php tests/features_test.php
+      - name: Plain wording, whole numbers, Arabic course content
+        run: php bin/install.php --demo --fresh && php tests/wording_test.php
       - name: Upgrade path (migrations are idempotent)
         run: php bin/migrate.php && php bin/migrate.php --status
 
