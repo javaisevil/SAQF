@@ -19,13 +19,14 @@ use Saqf\Core\Policy;
  */
 final class Improvements
 {
-    public const STATUS = ['draft' => 'Awaiting academic response', 'open' => 'Committed', 'in_progress' => 'In progress', 'completed' => 'Completed', 'cancelled' => 'Cancelled'];
+    public const STATUS = ['draft' => 'Waiting for the instructor', 'open' => 'Planned', 'in_progress' => 'Under way', 'completed' => 'Done', 'cancelled' => 'Cancelled'];
+    /** Next-term comparison, in plain words. It shows what followed the action, never claims the action caused it. */
     public const EFFECT = [
-        'pending' => 'Awaiting next measurement',
-        'improved' => 'Performance improved following the intervention',
-        'similar' => 'Performance remained similar after the intervention',
-        'declined' => 'Performance declined after the intervention',
-        'not_measurable' => 'Not measurable (outcome no longer assessed)',
+        'pending' => 'Results next term',
+        'improved' => 'Results went up afterwards',
+        'similar' => 'Results stayed about the same',
+        'declined' => 'Results went down afterwards',
+        'not_measurable' => 'Cannot be compared (the outcome is no longer assessed)',
     ];
 
     public static function draftForGaps(int $offeringId): int
@@ -74,18 +75,47 @@ final class Improvements
             [$g['lineage_key'], $o['id'], $o['term_id']]
         );
         $prior = Db::all('SELECT ia.title, ia.action_text, ia.status, ia.effect, t.name FROM improvement_actions ia JOIN course_offerings oo ON oo.id = ia.origin_offering_id JOIN terms t ON t.id = oo.term_id WHERE ia.clo_lineage_key = ? AND ia.origin_offering_id <> ? AND ia.status <> "cancelled" ORDER BY t.sequence DESC LIMIT 2', [$g['lineage_key'], $o['id']]);
-        $method = Policy::get('achievement.method') === 'average' ? 'mean CLO score' : '% of students scoring ≥ ' . Policy::get('achievement.student_threshold_pct') . '% on CLO-linked assessments';
-        $s = "{$g['code']} (\"" . mb_strimwidth($g['statement'], 0, 140, '…') . "\") achieved " . Rules::fmt((float) $g['value_pct']) . '% against a ' . Rules::fmt((float) $g['target_pct']) . "% target in {$o['term_name']} ({$g['students_assessed']} students; method: $method).";
+        $s = "{$g['code']} reached " . round((float) $g['value_pct']) . "% in {$o['term_name']}; the goal is " . round((float) $g['target_pct']) . '%.';
+        $s .= " {$g['code']}: \"" . mb_strimwidth($g['statement'], 0, 140, '…') . "\" ({$g['students_assessed']} students).";
         $s .= ' Measured by: ' . ($links ? implode(', ', $links) : 'no linked assessments') . '.';
         if ($history) {
-            $s .= ' Earlier offerings: ' . implode('; ', array_map(static fn($h) => $h['name'] . ' ' . Rules::fmt((float) $h['value_pct']) . '%' . ((int) $h['met'] ? ' (met)' : ' (below)'), $history)) . '.';
+            $s .= ' Earlier terms: ' . implode('; ', array_map(static fn($h) => $h['name'] . ' ' . round((float) $h['value_pct']) . '%' . ((int) $h['met'] ? ' (met the goal)' : ' (below the goal)'), $history)) . '.';
         } else {
-            $s .= ' No earlier measurement of this outcome in SAQF.';
+            $s .= ' SAQF has no earlier result for this outcome.';
         }
         if ($prior) {
-            $s .= ' Previous actions: ' . implode('; ', array_map(static fn($p) => '"' . mb_strimwidth((string) ($p['action_text'] ?: $p['title']), 0, 90, '…') . "\" ({$p['name']}, " . (self::EFFECT[$p['effect']] ?? $p['effect']) . ')', $prior)) . '.';
+            $s .= ' Tried before: ' . implode('; ', array_map(static fn($p) => '"' . mb_strimwidth((string) ($p['action_text'] ?: $p['title']), 0, 90, '…') . "\" ({$p['name']}, " . (self::EFFECT[$p['effect']] ?? $p['effect']) . ')', $prior)) . '.';
         }
         return $s;
+    }
+
+    /**
+     * The facts behind an improvement record, kept apart so each page can lay them out plainly
+     * (and the Arabic interface can translate each part): the outcome, its result and goal,
+     * the assessments that measure it, earlier terms and anything tried before.
+     */
+    public static function facts(array $ia): array
+    {
+        $clo = Db::one('SELECT cl.id, cl.code, cl.statement FROM clos cl JOIN course_offerings o ON o.spec_version_id = cl.spec_version_id WHERE o.id = ? AND cl.lineage_key = ? LIMIT 1', [$ia['origin_offering_id'], $ia['clo_lineage_key']])
+            ?: Db::one('SELECT id, code, statement FROM clos WHERE lineage_key = ? ORDER BY id DESC LIMIT 1', [$ia['clo_lineage_key']]);
+        $now = Db::one('SELECT value_pct, target_pct, students_assessed FROM clo_achievement WHERE offering_id = ? AND lineage_key = ?', [$ia['origin_offering_id'], $ia['clo_lineage_key']]);
+        $assessments = $clo ? Db::all('SELECT a.name, a.weight_pct FROM assessment_clo ac JOIN assessments a ON a.id = ac.assessment_id WHERE ac.clo_id = ? ORDER BY a.sort_order', [$clo['id']]) : [];
+        $history = Db::all(
+            'SELECT t.name, ca.value_pct, ca.met FROM clo_achievement ca JOIN course_offerings oo ON oo.id = ca.offering_id JOIN terms t ON t.id = oo.term_id
+             WHERE ca.lineage_key = ? AND ca.provisional = 0 AND t.sequence < (SELECT t2.sequence FROM course_offerings o2 JOIN terms t2 ON t2.id = o2.term_id WHERE o2.id = ?) ORDER BY t.sequence DESC LIMIT 3',
+            [$ia['clo_lineage_key'], $ia['origin_offering_id']]
+        );
+        $prior = Db::all('SELECT ia.title, ia.action_text, ia.effect, t.name FROM improvement_actions ia JOIN course_offerings oo ON oo.id = ia.origin_offering_id JOIN terms t ON t.id = oo.term_id WHERE ia.clo_lineage_key = ? AND ia.id <> ? AND ia.status <> "cancelled" AND t.sequence < (SELECT t2.sequence FROM course_offerings o2 JOIN terms t2 ON t2.id = o2.term_id WHERE o2.id = ?) ORDER BY t.sequence DESC LIMIT 2', [$ia['clo_lineage_key'], $ia['id'], $ia['origin_offering_id']]);
+        return [
+            'code' => $clo['code'] ?? ($ia['clo_code'] ?? ''),
+            'statement' => $clo['statement'] ?? '',
+            'value' => $now['value_pct'] ?? $ia['baseline_pct'],
+            'target' => $now['target_pct'] ?? $ia['target_pct'],
+            'students' => (int) ($now['students_assessed'] ?? 0),
+            'assessments' => $assessments,
+            'history' => $history,
+            'prior' => $prior,
+        ];
     }
 
     public static function find(int $id): ?array
@@ -175,7 +205,7 @@ final class Improvements
             $delta = (float) $now['value_pct'] - (float) $ia['baseline_pct'];
             $effect = $delta > $band ? 'improved' : ($delta < -$band ? 'declined' : 'similar');
             Db::update('improvement_actions', ['followup_offering_id' => $offeringId, 'followup_pct' => $now['value_pct'], 'effect' => $effect, 'evaluated_at' => Clock::stamp()], 'id = ?', [$ia['id']]);
-            Audit::asSystem(static fn() => Audit::record('improvement.evaluated', 'improvement', $ia['id'], 'Follow-up measurement: ' . Rules::fmt((float) $ia['baseline_pct']) . '% → ' . Rules::fmt((float) $now['value_pct']) . '% — ' . self::EFFECT[$effect]));
+            Audit::asSystem(static fn() => Audit::record('improvement.evaluated', 'improvement', $ia['id'], 'Follow-up measurement: ' . Rules::whole((float) $ia['baseline_pct']) . '% → ' . Rules::whole((float) $now['value_pct']) . '% — ' . self::EFFECT[$effect]));
             $n++;
         }
         return $n;

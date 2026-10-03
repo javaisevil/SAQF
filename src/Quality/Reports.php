@@ -193,10 +193,10 @@ final class Reports
             'matrix' => $matrix,
             'series' => $series,
             'kpis' => [
-                ['label' => 'Required courses with an approved specification', 'value' => count($required) ? round(count($withSpec) / count($required) * 100) . '%' : '—', 'detail' => count($withSpec) . ' of ' . count($required)],
-                ['label' => 'CLO targets met' . ($lastTerm ? ' (' . $lastTerm['name'] . ')' : ''), 'value' => $met && $met['n'] ? round($met['m'] / $met['n'] * 100) . '%' : '—', 'detail' => $met ? ((int) $met['m'] . ' of ' . (int) $met['n'] . ' measured CLOs') : 'no final results yet'],
-                ['label' => 'Improvement actions completed', 'value' => $committed ? round(count($completed) / count($committed) * 100) . '%' : '—', 'detail' => count($completed) . ' of ' . count($committed) . ' committed'],
-                ['label' => 'Improved at next measurement', 'value' => $evaluated ? round(count($improved) / count($evaluated) * 100) . '%' : '—', 'detail' => count($improved) . ' of ' . count($evaluated) . ' evaluated actions (association, not causation)'],
+                ['label' => 'of required courses have an approved specification', 'value' => count($required) ? round(count($withSpec) / count($required) * 100) . '%' : '—', 'detail' => count($withSpec) . ' of ' . count($required) . ' courses'],
+                ['label' => 'of course learning outcomes met their goal', 'value' => $met && $met['n'] ? round($met['m'] / $met['n'] * 100) . '%' : '—', 'detail' => $met && $met['n'] ? ((int) $met['m'] . ' of ' . (int) $met['n'] . ($lastTerm ? ' · ' . $lastTerm['name'] : '')) : 'no final results yet'],
+                ['label' => 'of planned improvements finished', 'value' => $committed ? round(count($completed) / count($committed) * 100) . '%' : '—', 'detail' => count($completed) . ' of ' . count($committed)],
+                ['label' => 'of finished improvements were followed by better results', 'value' => $evaluated ? round(count($improved) / count($evaluated) * 100) . '%' : '—', 'detail' => count($improved) . ' of ' . count($evaluated)],
             ],
             'generated_at' => Clock::stamp(),
         ];

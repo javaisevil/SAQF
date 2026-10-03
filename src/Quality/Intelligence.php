@@ -75,15 +75,15 @@ final class Intelligence
                 $keepMap[] = $fp;
                 $why = [];
                 if ($best['shared']) {
-                    $why[] = 'shared concepts: ' . implode(', ', array_slice($best['shared'], 0, 5));
+                    $why[] = 'Both mention: ' . implode(', ', array_slice($best['shared'], 0, 5));
                 }
                 if ($best['plo']['domain'] === $clo['domain']) {
-                    $why[] = 'same learning domain (' . $clo['domain'] . ')';
+                    $why[] = 'Same kind of outcome: ' . $clo['domain'];
                 }
                 self::upsert($fp, [
                     'kind' => 'mapping', 'scope_type' => 'spec', 'scope_id' => $versionId,
-                    'title' => "{$clo['code']} may align with {$p['code']} {$best['plo']['code']}",
-                    'rationale' => ucfirst(implode('; ', $why)) . '. "' . mb_strimwidth($best['plo']['statement'], 0, 140, '…') . '"',
+                    'title' => "{$clo['code']} may support {$p['code']} {$best['plo']['code']}",
+                    'rationale' => implode(' · ', $why),
                     'method' => self::MAPPING_METHOD,
                     'confidence' => min(0.99, round($best['score'], 2)),
                     'payload' => ['clo_id' => $clo['id'], 'plo_id' => $best['plo']['id'], 'program' => $p['code']],
@@ -103,7 +103,7 @@ final class Intelligence
                     self::upsert($fp, [
                         'kind' => 'overlap', 'scope_type' => 'spec', 'scope_id' => $versionId,
                         'title' => "Possible overlap between {$clos[$i]['code']} and {$clos[$j]['code']}",
-                        'rationale' => 'The two statements share most of their key terms (' . implode(', ', array_slice($sim['shared'], 0, 5)) . '). Consider whether they assess distinct learning.',
+                        'rationale' => 'Both use: ' . implode(', ', array_slice($sim['shared'], 0, 5)) . ' · check that they measure different things',
                         'method' => 'Text similarity between CLO statements',
                         'confidence' => $sim['score'],
                         'payload' => ['a' => $clos[$i]['id'], 'b' => $clos[$j]['id']],
@@ -143,8 +143,8 @@ final class Intelligence
                 $keep[] = $fp;
                 self::upsert($fp, [
                     'kind' => 'trend', 'scope_type' => 'offering', 'scope_id' => $offeringId, 'offering_id' => $offeringId,
-                    'title' => "{$o['course_code']} {$a['code']} has declined across $n offerings",
-                    'rationale' => 'Measured values ' . implode(' → ', array_map(static fn($h) => $h['term_name'] . ' ' . Rules::fmt((float) $h['value_pct']) . '%', $series)) . ' (about ' . Rules::fmt(abs($slope)) . ' points per offering).',
+                    'title' => "{$o['course_code']} {$a['code']} has gone down $n terms in a row",
+                    'rationale' => implode(' · ', array_map(static fn($h) => $h['term_name'] . ': ' . Rules::whole((float) $h['value_pct']) . '%', $series)) . ' · down about ' . max(1, (int) round(abs($slope))) . ' points each term',
                     'method' => 'Least-squares trend over historical achievement',
                     'confidence' => null,
                     'payload' => ['lineage' => $a['lineage_key'], 'slope' => round($slope, 2)],
@@ -163,7 +163,7 @@ final class Intelligence
                 self::upsert($fp, [
                     'kind' => 'anomaly', 'scope_type' => 'offering', 'scope_id' => $offeringId, 'offering_id' => $offeringId,
                     'title' => "Unusual results in \"{$as['name']}\"",
-                    'rationale' => $mean >= 95 ? 'Average score ' . Rules::fmt($mean) . '% — the assessment may not discriminate between levels of achievement.' : Rules::fmt($failRate) . '% of students scored below 50% — check the assessment design, timing or marking.',
+                    'rationale' => $mean >= 95 ? 'Average mark ' . Rules::whole($mean) . '% · the assessment may not separate strong from weak students' : Rules::whole($failRate) . '% of students scored below 50% · check the assessment design, timing or marking',
                     'method' => 'Distribution check on assessment results',
                     'confidence' => null,
                     'payload' => ['assessment_id' => $as['id']],
