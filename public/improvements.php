@@ -40,18 +40,18 @@ $rows = Db::all(
     $params
 );
 $tones = ['draft' => 'red', 'open' => 'blue', 'in_progress' => 'blue', 'completed' => 'green', 'cancelled' => 'grey'];
-V::header('Improvement actions', $user, ['subtitle' => 'Gaps become tracked institutional data — with owners, deadlines and measured follow-up']);
+V::header('Improvements', $user, ['subtitle' => 'When an outcome misses its goal, SAQF opens an improvement with an owner and a deadline, then checks next term whether results went up']);
 ?>
-<nav class="tabs"><?php foreach (['active' => 'Active', 'draft' => 'Awaiting response', 'completed' => 'Completed', 'all' => 'All'] as $k => $l): ?><a class="<?= $status === $k ? 'on' : '' ?>" href="?status=<?= $k ?>"><?= $l ?></a><?php endforeach; ?></nav>
+<nav class="tabs"><?php foreach (['active' => 'Current', 'draft' => 'Waiting for the instructor', 'completed' => 'Done', 'all' => 'All'] as $k => $l): ?><a class="<?= $status === $k ? 'on' : '' ?>" href="?status=<?= $k ?>"><?= $l ?></a><?php endforeach; ?></nav>
 <section class="card"><div class="card-b tight"><div class="table-wrap"><table>
-<thead><tr><th>Course</th><th>Action</th><th>Owner</th><th>Due</th><th>Status</th><th>Measured effect</th></tr></thead><tbody>
+<thead><tr><th>Course</th><th>What will change</th><th>Who</th><th>By</th><th>Status</th><th>Did it help?</th></tr></thead><tbody>
 <?php foreach ($rows as $ia): $overdue = in_array($ia['status'], ['open', 'in_progress'], true) && $ia['due_on'] && $ia['due_on'] < Clock::today(); ?>
   <tr><td><strong><?= V::h($ia['code']) ?></strong><div class="tiny muted"><?= V::h($ia['origin_term']) ?></div></td>
-    <td><a href="improvements.php?id=<?= (int) $ia['id'] ?>"><?= V::h($ia['title']) ?></a><div class="tiny muted"><?= V::h(mb_strimwidth((string) ($ia['action_text'] ?: $ia['evidence_summary']), 0, 120, '…')) ?></div></td>
-    <td class="small"><?= V::h($ia['owner_name'] ?? '—') ?></td><td class="small nowrap"><?= V::h(V::date($ia['due_on'])) ?><?= $overdue ? ' ' . V::pill('overdue', 'red') : '' ?></td>
+    <td><a href="improvements.php?id=<?= (int) $ia['id'] ?>"><?= V::h($ia['title']) ?></a><div class="tiny muted"><?= $ia['action_text'] ? V::h(mb_strimwidth((string) $ia['action_text'], 0, 120, '…')) : V::h('Not written yet') ?></div></td>
+    <td class="small"><?= V::h($ia['owner_name'] ?? '—') ?></td><td class="small nowrap"><?= V::h(V::date($ia['due_on'])) ?><?= $overdue ? ' ' . V::pill('late', 'red') : '' ?></td>
     <td><?= V::pill(Improvements::STATUS[$ia['status']] ?? $ia['status'], $tones[$ia['status']] ?? 'grey') ?></td>
-    <td class="small"><?php if ($ia['followup_pct'] !== null): ?><?= V::pct($ia['baseline_pct']) ?> → <strong><?= V::pct($ia['followup_pct']) ?></strong> <?= V::pill(ucfirst($ia['effect']), ['improved' => 'green', 'declined' => 'red', 'similar' => 'amber'][$ia['effect']] ?? 'grey') ?><div class="tiny muted"><?= V::h($ia['followup_term']) ?></div><?php else: ?><span class="muted">baseline <?= V::pct($ia['baseline_pct']) ?> · awaiting next measurement</span><?php endif; ?></td></tr>
+    <td class="small"><?php if ($ia['followup_pct'] !== null): ?><?= V::pct($ia['baseline_pct']) ?> → <strong><?= V::pct($ia['followup_pct']) ?></strong> <?= V::pill(['improved' => 'Went up', 'declined' => 'Went down', 'similar' => 'About the same'][$ia['effect']] ?? ucfirst((string) $ia['effect']), ['improved' => 'green', 'declined' => 'red', 'similar' => 'amber'][$ia['effect']] ?? 'grey') ?><div class="tiny muted"><?= V::h($ia['followup_term']) ?></div><?php else: ?><span class="muted"><?= V::h('now ' . V::pct($ia['baseline_pct'])) ?> · <?= V::h('results next term') ?></span><?php endif; ?></td></tr>
 <?php endforeach; ?>
-<?php if (!$rows): ?><tr><td colspan="6"><?= V::empty('No improvement actions in this view') ?></td></tr><?php endif; ?>
+<?php if (!$rows): ?><tr><td colspan="6"><?= V::empty('No improvements here') ?></td></tr><?php endif; ?>
 </tbody></table></div></div></section>
 <?php V::footer();
