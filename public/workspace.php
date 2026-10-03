@@ -155,9 +155,9 @@ if ($tab === 'overview'):
     </div>
 
     <section class="card">
-      <div class="card-h"><h2>Quality checks</h2><span class="muted small right">Run continuously — <?= count($blocking) ?> need attention</span></div>
-      <?php if (!$openFindings && !$overridden): ?>
-        <div class="allclear"><strong>✓</strong><div><strong>All deterministic checks pass.</strong><div class="muted small">Outcomes, mappings, assessment coverage, weights and evidence were validated automatically.</div></div></div>
+      <div class="card-h"><h2>What needs attention</h2><span class="muted small right">SAQF re-checks this course after every change</span></div>
+      <?php if (!$blocking && !$overridden): ?>
+        <div class="allclear"><strong>✓</strong><div><strong>Everything checks out.</strong><div class="muted small">Outcomes, links to the program, assessments, weights and evidence were all checked automatically.</div></div></div>
       <?php endif; ?>
       <?php foreach (array_merge($blocking, $overridden) as $f): $pending = Db::one('SELECT * FROM overrides WHERE finding_id = ? ORDER BY id DESC LIMIT 1', [$f['id']]); ?>
         <div class="check sev-<?= V::h($f['severity']) ?> st-<?= V::h($f['status']) ?>">
@@ -165,14 +165,14 @@ if ($tab === 'overview'):
           <div style="flex:1">
             <div class="row"><span class="check-title"><?= V::h($f['title']) ?></span><?= V::category($f['category']) ?><?= $f['status'] === 'overridden' ? V::source('overridden', (string) $f['resolution_note']) : '' ?><?= $f['owner_role'] !== 'faculty' ? V::pill('with ' . strtoupper($f['owner_role']), 'grey') : '' ?></div>
             <div class="check-detail"><?= V::h($f['detail']) ?></div>
-            <?php if ($f['why']): ?><div class="check-why"><strong>Why it matters:</strong> <?= V::h($f['why']) ?></div><?php endif; ?>
             <?php if ($f['remedy'] && $f['status'] === 'open'): ?><div class="check-fix"><strong>What to do:</strong> <?= V::h($f['remedy']) ?></div><?php endif; ?>
-            <?php if ($pending && $pending['status'] === 'requested'): ?><div class="small muted" style="margin-top:4px">Exception requested on <?= V::h(V::date($pending['requested_at'])) ?> — waiting for Quality Assurance.</div>
+            <?php if ($f['why']): ?><details class="why"><summary>Why does this matter?</summary><div class="check-why"><?= V::h($f['why']) ?></div></details><?php endif; ?>
+            <?php if ($pending && $pending['status'] === 'requested'): ?><div class="small muted" style="margin-top:4px">Exception requested on <?= V::h(V::date($pending['requested_at'])) ?> — waiting for Quality.</div>
             <?php elseif ($canEdit && $f['status'] === 'open' && in_array($f['category'], ['policy', 'quality_risk', 'evidence'], true)): ?>
-              <details style="margin-top:6px"><summary class="small" style="cursor:pointer;color:var(--accent-ink)">Request a justified exception from QA</summary>
+              <details style="margin-top:6px"><summary class="small" style="cursor:pointer;color:var(--accent-ink)">Ask Quality for an exception</summary>
                 <form data-api="override_request" style="margin-top:8px"><input type="hidden" name="finding" value="<?= (int) $f['id'] ?>"><input type="hidden" name="offering" value="<?= $oid ?>">
-                  <textarea name="justification" required minlength="20" placeholder="Explain why this course should be treated as an exception (QA sees this, and it is kept in the audit log)."></textarea>
-                  <button class="btn btn-sm" type="submit">Send to QA</button></form></details>
+                  <textarea name="justification" required minlength="20" placeholder="Explain why this course should be treated as an exception (Quality sees this, and it is kept in the audit log)."></textarea>
+                  <button class="btn btn-sm" type="submit">Send to Quality</button></form></details>
             <?php endif; ?>
           </div>
           <?php if ($f['status'] === 'open' && in_array($f['category'], ['validation'], true) && $canEdit): ?><a class="btn btn-sm" href="<?= $base ?>&tab=structure">Fix</a><?php endif; ?>
@@ -180,59 +180,54 @@ if ($tab === 'overview'):
         </div>
       <?php endforeach; ?>
       <?php $info = array_filter($openFindings, static fn($f) => $f['severity'] === 'info'); if ($info): ?>
-        <details class="more"><summary>+ <?= count($info) ?> advisory note(s)</summary>
+        <details class="more"><summary>+ <?= V::h(count($info) === 1 ? '1 note for information' : count($info) . ' notes for information') ?></summary>
           <?php foreach ($info as $f): ?><div class="check sev-info"><div class="check-ico">i</div><div><div class="check-title"><?= V::h($f['title']) ?></div><div class="check-detail"><?= V::h($f['detail']) ?></div></div></div><?php endforeach; ?>
         </details>
       <?php endif; ?>
     </section>
 
     <section class="card">
-      <div class="card-h"><h2>Outcome achievement — <?= V::h($o['term_name']) ?></h2><a class="right small" href="<?= $base ?>&tab=results">Details</a></div>
+      <div class="card-h"><h2>How students are doing — <?= V::h($o['term_name']) ?></h2><a class="right small" href="<?= $base ?>&tab=results">Details</a></div>
       <div class="card-b tight"><table>
-        <thead><tr><th style="width:70px">CLO</th><th>Outcome</th><th style="width:260px">Achievement vs target</th></tr></thead><tbody>
+        <thead><tr><th>Learning outcome</th><th style="width:270px">Students who met it</th></tr></thead><tbody>
         <?php foreach ($evidenceSpec['clos'] ?? [] as $c): $a = $ach[$c['lineage_key']] ?? null; ?>
-          <tr><td class="strong"><?= V::h($c['code']) ?></td><td><?= V::h($c['statement']) ?></td>
+          <tr><td><strong><?= V::h($c['code']) ?></strong> <?= V::h($c['statement']) ?></td>
             <td><?= V::bar($a ? (float) $a['value_pct'] : null, $a ? (float) $a['target_pct'] : (float) ($c['target_pct'] ?? $defaultTarget), $a ? (bool) $a['provisional'] : false) ?></td></tr>
         <?php endforeach; ?>
-        <?php if (!$evidenceSpec): ?><tr><td colspan="3"><?= V::empty('No specification yet', 'Define the outcomes and assessment plan once — SAQF will reuse them every term.') ?></td></tr><?php endif; ?>
-        </tbody></table></div>
+        <?php if (!$evidenceSpec): ?><tr><td colspan="2"><?= V::empty('No specification yet', 'Define the outcomes and assessment plan once — SAQF will reuse them every term.') ?></td></tr><?php endif; ?>
+        </tbody></table>
+        <?php if ($evidenceSpec): ?><div class="card-b tiny muted">Each bar is the share of students who met that outcome; the line marks the goal. “So far” means more grades are still to come.</div><?php endif; ?></div>
     </section>
 
     <?php if ($insights): ?>
-    <section class="card"><div class="card-h"><?= V::icon('spark') ?><h2>Assisted insights</h2><span class="muted small right">Statistical heuristics · for your judgement, not facts</span></div>
-      <?php foreach ($insights as $r): ?><div class="check sev-info"><div class="check-ico">?</div><div style="flex:1"><div class="check-title"><?= V::h($r['title']) ?></div><div class="check-detail"><?= V::h($r['rationale']) ?></div><div class="tiny muted">Method: <?= V::h($r['method']) ?></div></div>
+    <section class="card"><div class="card-h"><?= V::icon('spark') ?><h2>Patterns SAQF noticed</h2><span class="muted small right">Simple statistics to support your judgement — not conclusions</span></div>
+      <?php foreach ($insights as $r): ?><div class="check sev-info"><div class="check-ico">?</div><div style="flex:1"><div class="check-title"><?= V::h($r['title']) ?></div><div class="check-detail"><?= V::h($r['rationale']) ?></div><div class="tiny muted" title="<?= V::h($r['method']) ?>">How was this worked out? (hover)</div></div>
         <?php if ($user['role'] === 'faculty'): ?><button class="btn btn-sm" data-act="insight" data-id="<?= (int) $r['id'] ?>" data-accept="0">Dismiss</button><?php endif; ?></div><?php endforeach; ?>
     </section>
     <?php endif; ?>
   </div>
 
   <aside class="stack">
-    <section class="card"><div class="card-h"><?= V::icon('cpu') ?><h2>Prepared automatically</h2></div>
+    <section class="card"><div class="card-h"><?= V::icon('cpu') ?><h2>Set up for you</h2></div>
       <div class="card-b small">
-        <p class="muted">SAQF initialised this workspace on <?= V::h(V::date($o['initialized_at'], 'j M Y, H:i')) ?> from the <?= $o['source'] === 'sis' ? 'SIS teaching assignment' : 'manual assignment' ?> — nobody created it by hand.</p>
-        <div class="ledger">
-          <div><b><?= (int) ($ledger['field_populated'] ?? 0) ?></b><span>fields populated</span></div>
-          <div><b><?= (int) ($ledger['record_inherited'] ?? 0) ?></b><span>records inherited</span></div>
-          <div><b><?= (int) ($ledger['check_run'] ?? 0) ?></b><span>checks run</span></div>
-          <div><b><?= (int) ($ledger['calculation'] ?? 0) ?></b><span>values calculated</span></div>
-          <div><b><?= (int) ($ledger['auto_resolved'] ?? 0) ?></b><span>issues auto-cleared</span></div>
-          <div><b><?= (int) ($ledger['evidence_linked'] ?? 0) ?></b><span>evidence links</span></div>
-        </div>
+        <p><?= $o['source'] === 'sis' ? 'SAQF created this course record from the timetable on ' . V::h(V::date($o['initialized_at'])) . ' — nobody typed it.' : 'This course record was created on ' . V::h(V::date($o['initialized_at'])) . ' when the course was assigned.' ?></p>
+        <p class="muted" style="margin:0"><?= V::h('So far SAQF has filled in ' . (int) ($ledger['field_populated'] ?? 0) . ' details, carried over ' . (int) ($ledger['record_inherited'] ?? 0) . ' items from the approved specification and run ' . (int) ($ledger['check_run'] ?? 0) . ' checks.') ?></p>
       </div>
     </section>
-    <section class="card"><div class="card-h"><h2>Course identity</h2><span class="right"><?= V::source('institution') ?></span></div>
+    <?php $specVersion = $o['spec_version_id'] ? Db::one('SELECT version_no, decided_at, status FROM spec_versions WHERE id = ?', [$o['spec_version_id']]) : null; ?>
+    <section class="card"><div class="card-h"><h2>About this course</h2><span class="right"><?= V::source('institution') ?></span></div>
       <div class="card-b small">
-        <table>
-          <tr><td class="muted">Code / title</td><td><strong><?= V::h($o['course_code']) ?></strong> <?= V::h($o['course_title']) ?></td></tr>
-          <tr><td class="muted">Credit hours</td><td><?= V::h(rtrim(rtrim((string) $o['credits'], '0'), '.')) ?> · <?= V::h(rtrim(rtrim(number_format(Catalog::contactHours((float) $o['credits']), 1), '0'), '.')) ?> contact h <?= V::source('derived', 'Credits × ' . Policy::get('contact.weeks_per_term') . ' teaching weeks (policy)') ?></td></tr>
-          <tr><td class="muted">Owner</td><td><?= V::h($o['department_name']) ?><br><span class="muted"><?= V::h($o['college_name']) ?></span></td></tr>
-          <tr><td class="muted">In programs</td><td><?php foreach ($programs as $p): ?><div><a href="program.php?id=<?= (int) $p['program_id'] ?>"><?= V::h($p['code']) ?></a> · <?= V::pill($p['course_type'], $p['course_type'] === 'required' ? 'blue' : 'grey') ?> <span class="muted"><?= $p['level_no'] ? 'level ' . (int) $p['level_no'] : V::h($p['requirement_group']) ?></span></div><?php endforeach; ?></td></tr>
-          <tr><td class="muted">Prerequisites</td><td><?php if (!$requisites): ?><span class="muted">None (or preparatory only)</span><?php endif; ?><?php foreach ($requisites as $r): ?><div><?= V::h($r['code']) ?> <span class="muted"><?= V::h($r['program_code']) ?><?= $r['kind'] === 'corequisite' ? ' · co-req' : '' ?></span></div><?php endforeach; ?></td></tr>
-          <tr><td class="muted">Term / instructor</td><td><?= V::h($o['term_name']) ?> · <?= V::h($o['instructor_name'] ?? '—') ?><?= count($sections) > 1 ? ' (coordinator)' : '' ?> <?= V::source('sis') ?></td></tr>
-          <?php if (count($sections) > 1): ?><tr><td class="muted">Sections</td><td><?php foreach ($sections as $s): ?><div><strong><?= V::h($s['section_code']) ?></strong> · <?= V::h($s['instructor_name'] ?? 'no instructor') ?> · <?= (int) $s['enrolled'] ?> students</div><?php endforeach; ?></td></tr><?php endif; ?>
-          <tr><td class="muted">Specification</td><td><?= $o['spec_version_id'] ? 'v' . (int) Db::val('SELECT version_no FROM spec_versions WHERE id = ?', [$o['spec_version_id']]) . ' ' . V::source('inherited') : '<span class="muted">not yet defined</span>' ?></td></tr>
+        <table class="facts">
+          <tr><td class="muted">Course</td><td><strong><?= V::h($o['course_code']) ?></strong> <?= V::h($o['course_title']) ?></td></tr>
+          <tr><td class="muted">Credit hours</td><td><span title="<?= V::h('Worked out: credit hours × ' . Policy::get('contact.weeks_per_term') . ' teaching weeks') ?>"><?= V::h(rtrim(rtrim((string) $o['credits'], '0'), '.') . ' credit hours (about ' . rtrim(rtrim(number_format(Catalog::contactHours((float) $o['credits']), 1), '0'), '.') . ' hours of class time)') ?></span></td></tr>
+          <tr><td class="muted">Department</td><td><?= V::h($o['department_name']) ?><br><span class="muted"><?= V::h($o['college_name']) ?></span></td></tr>
+          <tr><td class="muted">Part of</td><td><?php foreach ($programs as $p): ?><div><a href="program.php?id=<?= (int) $p['program_id'] ?>"><?= V::h($p['short_name'] ?? $p['code']) ?></a> · <?= V::h($p['course_type'] === 'required' ? 'required course' : 'elective') ?><?= $p['level_no'] ? ' · ' . V::h('semester ' . (int) $p['level_no']) : '' ?></div><?php endforeach; ?></td></tr>
+          <tr><td class="muted">Take first</td><td><?php if (!$requisites): ?><span class="muted">No prerequisite</span><?php endif; ?><?php foreach (array_values(array_column($requisites, null, 'code')) as $r): ?><div><strong><?= V::h($r['code']) ?></strong> <?= V::h($r['title'] ?? '') ?><?= $r['kind'] === 'corequisite' ? ' ' . V::pill('at the same time', 'grey') : '' ?></div><?php endforeach; ?></td></tr>
+          <tr><td class="muted">This term</td><td><?= V::h($o['term_name']) ?><div><?= V::h($o['instructor_name'] ?? 'No instructor yet') ?><?= count($sections) > 1 ? ' ' . V::pill('Coordinator', 'blue') : '' ?></div><div class="muted"><?= V::h((int) $o['enrolled'] . ' students') ?></div></td></tr>
+          <?php if (count($sections) > 1): ?><tr><td class="muted">Sections</td><td><?php foreach ($sections as $s): ?><div><strong><?= V::h($s['section_code']) ?></strong> · <?= V::h($s['instructor_name'] ?? 'no instructor') ?> · <?= V::h((int) $s['enrolled'] . ' students') ?></div><?php endforeach; ?></td></tr><?php endif; ?>
+          <tr><td class="muted">Specification</td><td><?= $specVersion ? V::h('Version ' . (int) $specVersion['version_no']) . ' · ' . V::h('approved ' . V::date($specVersion['decided_at'])) . '<div class="muted">' . V::h('Carried over to this term automatically') . '</div>' : '<span class="muted">Not written yet</span>' ?></td></tr>
         </table>
-        <?php if ($o['description']): ?><p style="margin-top:10px"><?= V::h($o['description']) ?><br><span class="tiny muted">Source: <?= V::h($o['description_source']) ?></span></p><?php endif; ?>
+        <?php if ($o['description']): ?><p style="margin-top:10px"><?= V::h($o['description']) ?></p><p class="tiny muted" style="margin:0">From the university's course descriptions</p><?php endif; ?>
       </div>
     </section>
   </aside>
@@ -243,44 +238,45 @@ if ($tab === 'overview'):
     $readOnly = !$canEdit || ($working && in_array($working['status'], ['pending_hod', 'pending_qa'], true));
 ?>
 <?php if ($working && in_array($working['status'], ['pending_hod', 'pending_qa'], true)): ?>
-  <div class="alert alert-info">Revision v<?= (int) $working['version_no'] ?> is <?= $working['status'] === 'pending_hod' ? 'with the Head of Department' : 'with Quality Assurance' ?>. It is read-only until a decision is made; <?= $approved ? 'v' . (int) $approved['version_no'] . ' stays in effect.' : '' ?></div>
+  <div class="alert alert-info"><?= V::h('Version ' . (int) $working['version_no'] . ' is ' . ($working['status'] === 'pending_hod' ? 'with the Head of Department' : 'with Quality') . ' for a decision, so it cannot be edited right now.') ?><?= $approved ? ' ' . V::h('Version ' . (int) $approved['version_no'] . ' stays in use meanwhile.') : '' ?></div>
 <?php elseif ($isDraft): ?>
-  <div class="card" style="margin-bottom:16px"><div class="card-h"><h2>Draft revision v<?= (int) $working['version_no'] ?></h2><?= V::specStatus('draft') ?>
+  <div class="card" style="margin-bottom:16px"><div class="card-h"><h2><?= V::h('Your changes — version ' . (int) $working['version_no']) ?></h2><?= V::pill('Not submitted yet', 'grey') ?>
       <?php if ($working['decision_note']): ?><span class="pill pill-red">Returned: <?= V::h(mb_strimwidth((string) $working['decision_note'], 0, 90, '…')) ?></span><?php endif; ?>
       <div class="right row"><?php if ($canEdit): ?><button class="btn btn-sm btn-ghost" data-act="discard_draft" data-offering="<?= $oid ?>" data-confirm="Discard this draft? The approved specification stays in effect.">Discard draft</button>
-        <button class="btn btn-sm btn-primary" data-act="submit_spec" data-offering="<?= $oid ?>" <?= $blocking && array_filter($blocking, static fn($f) => $f['severity'] === 'blocker') ? 'disabled title="Fix the items marked Must fix first — red records are never sent"' : '' ?>>Submit changes</button><?php endif; ?></div></div>
+        <button class="btn btn-sm btn-primary" data-act="submit_spec" data-offering="<?= $oid ?>" <?= $blocking && array_filter($blocking, static fn($f) => $f['severity'] === 'blocker') ? 'disabled title="Fix the items marked Must fix first — SAQF never sends an incomplete record"' : '' ?>>Submit changes</button><?php endif; ?></div></div>
     <div class="card-b">
       <?php if ($working['decision_note']): ?><div class="alert alert-warning"><strong>Reviewer comment:</strong> <?= V::h($working['decision_note']) ?></div><?php endif; ?>
-      <?php if (!$diff): ?><p class="muted small" style="margin:0">No differences from the approved v<?= (int) ($approved['version_no'] ?? 0) ?> yet. Edit anything below — only what changes will be reviewed.</p>
+      <?php if (!$diff): ?><p class="muted small" style="margin:0"><?= V::h('Nothing differs from the approved version ' . (int) ($approved['version_no'] ?? 0) . ' yet. Edit anything below — reviewers will see only what you change.') ?></p>
       <?php else: ?>
-        <p class="small muted">Reviewers will see only these <?= count($diff) ?> change(s) — not the whole specification.</p>
-        <div class="diff"><?php foreach ($diff as $d): ?><div class="diff-row"><div class="diff-label"><?= V::h($d['label']) ?><br><?= $d['academic'] ? V::pill('academic — needs approval', 'blue') : V::pill('minor — auto-approved', 'grey') ?></div><div class="diff-before"><?= $d['before'] === null ? '<span class="muted">—</span>' : V::h($d['before']) ?></div><div class="diff-after"><?= $d['after'] === null ? '<span class="muted">removed</span>' : V::h($d['after']) ?></div></div><?php endforeach; ?></div>
+        <p class="small muted"><?= V::h(count($diff) === 1 ? 'Reviewers will see only this 1 change, not the whole specification.' : 'Reviewers will see only these ' . count($diff) . ' changes, not the whole specification.') ?></p>
+        <div class="diff"><?php foreach ($diff as $d): ?><div class="diff-row"><div class="diff-label"><?= V::h($d['label']) ?><br><?= $d['academic'] ? V::pill('needs approval', 'blue') : V::pill('approved automatically', 'grey') ?></div><div class="diff-before"><?= $d['before'] === null ? '<span class="muted">—</span>' : V::h($d['before']) ?></div><div class="diff-after"><?= $d['after'] === null ? '<span class="muted">Removed</span>' : V::h($d['after']) ?></div></div><?php endforeach; ?></div>
       <?php endif; ?>
     </div></div>
 <?php elseif ($canEdit && $approved): ?>
-  <div class="alert alert-info">You are viewing approved specification v<?= (int) $approved['version_no'] ?>, inherited automatically this term. Any edit starts a draft revision; students continue under v<?= (int) $approved['version_no'] ?> until the change is approved.</div>
+  <div class="alert alert-info"><?= V::h('This is the approved course specification (version ' . (int) $approved['version_no'] . '), carried over to this term automatically. Editing anything starts a new draft; the approved version stays in use until your changes are approved.') ?></div>
 <?php endif; ?>
 
 <div class="split">
   <div class="stack">
-    <section class="card"><div class="card-h"><h2>Course learning outcomes</h2><span class="muted small">Mapped only to PLOs of programs whose study plan contains <?= V::h($o['course_code']) ?></span></div>
+    <section class="card"><div class="card-h"><h2>Learning outcomes</h2><span class="muted small">What students should be able to do by the end of the course</span></div>
       <div class="card-b">
         <?php foreach ($spec['clos'] ?? [] as $c): $issues = $byClo[(int) $c['id']] ?? []; ?>
           <div class="clo <?= $issues ? 'has-issue' : '' ?>" id="clo-<?= (int) $c['id'] ?>">
             <div class="clo-head"><div class="clo-code"><?= V::h($c['code']) ?></div>
               <div class="clo-text"><div><?= V::h($c['statement']) ?></div>
-                <div class="tiny muted"><?= V::h($c['domain']) ?> · target <?= V::pct($c['target_pct'] ?? $defaultTarget) ?> <?= $c['target_pct'] === null ? V::source('policy', 'Institutional default target') : V::source('faculty') ?><?= $c['skills_tags'] ? ' · Jahiziah skills: ' . V::h($c['skills_tags']) : '' ?></div></div>
+                <div class="tiny muted"><?= V::h($c['domain']) ?> · <?= V::h('goal ' . V::pct($c['target_pct'] ?? $defaultTarget) . ' of students') ?> <?= $c['target_pct'] === null ? V::source('policy') : V::source('faculty') ?><?= $c['skills_tags'] ? ' · ' . V::h('Jahiziah skills: ' . $c['skills_tags']) : '' ?></div></div>
               <?php if (!$readOnly): ?><details><summary class="btn btn-sm">Edit</summary>
                 <form data-api="save_clo" style="margin-top:8px;min-width:320px"><input type="hidden" name="offering" value="<?= $oid ?>"><input type="hidden" name="clo" value="<?= (int) $c['id'] ?>">
                   <div class="field"><textarea name="statement" required><?= V::h($c['statement']) ?></textarea></div>
+                  <div class="field"><label class="tiny muted">Arabic wording (optional — shown in the Arabic interface and Word documents)</label><textarea name="statement_ar" dir="rtl" lang="ar" rows="2"><?= V::h(\Saqf\Core\Translations::get($c['statement']) ?? '') ?></textarea></div>
                   <div class="field"><select name="domain"><?php foreach (Specs::DOMAINS as $d): ?><option <?= $d === $c['domain'] ? 'selected' : '' ?>><?= V::h($d) ?></option><?php endforeach; ?></select></div>
-                  <div class="field"><input type="number" name="target_pct" min="0" max="100" step="0.5" placeholder="Target % (blank = policy default <?= V::h((string) $defaultTarget) ?>%)" value="<?= V::h($c['target_pct']) ?>"></div>
+                  <div class="field"><input type="number" name="target_pct" min="0" max="100" step="0.5" placeholder="Goal % (blank = university default <?= V::h((string) $defaultTarget) ?>%)" value="<?= V::h($c['target_pct']) ?>"></div>
                   <div class="field small"><span class="tiny muted" style="display:block;margin-bottom:4px">Jahiziah skill tags (classification only — no approval needed)</span><?php foreach (Specs::SKILL_TAGS as $t): ?><label class="inline" style="font-weight:400;margin-right:8px"><input type="checkbox" name="skills[]" value="<?= V::h($t) ?>" <?= in_array($t, explode(',', (string) $c['skills_tags']), true) ? 'checked' : '' ?>> <?= V::h($t) ?></label><?php endforeach; ?></div>
                   <div class="row"><button class="btn btn-sm btn-primary" type="submit">Save</button><button class="btn btn-sm btn-red" type="button" data-act="delete_clo" data-offering="<?= $oid ?>" data-clo="<?= (int) $c['id'] ?>" data-confirm="Remove <?= V::h($c['code']) ?> from the draft?">Remove</button></div>
                 </form></details><?php endif; ?>
             </div>
             <?php foreach ($programs as $p): $pid = (int) $p['program_id']; $plos = $spec['plos'][$pid] ?? []; if (!$plos) { continue; } $mapped = array_map('intval', array_column($c['maps'][$pid] ?? [], 'id')); ?>
-              <div class="maprow"><span class="prog"><?= V::h($p['code']) ?> <?= $p['course_type'] === 'required' ? '' : '(elective)' ?></span>
+              <div class="maprow"><span class="prog" title="<?= V::h('Program outcomes of ' . ($p['short_name'] ?? $p['code']) . ' this outcome helps develop. Click to link or unlink; hover over a code to read it.') ?>"><?= V::h($p['short_name'] ?? $p['code']) ?></span>
                 <?php foreach ($plos as $pl): $on = in_array((int) $pl['id'], $mapped, true); $sug = $recByClo[(int) $c['id']][(int) $pl['id']] ?? null; ?>
                   <button class="chip <?= $on ? 'on' : '' ?> <?= $sug && !$on ? 'sugg' : '' ?>" title="<?= V::h($pl['code'] . ' · ' . $pl['domain'] . ' — ' . $pl['statement']) ?>" <?= $readOnly ? 'disabled' : 'data-act="map" data-offering="' . $oid . '" data-clo="' . (int) $c['id'] . '" data-plo="' . (int) $pl['id'] . '" data-on="' . ($on ? '0' : '1') . '"' ?>><?= V::h($pl['code']) ?></button>
                 <?php endforeach; ?>
@@ -288,9 +284,9 @@ if ($tab === 'overview'):
             <?php endforeach; ?>
             <?php foreach ($recByClo[(int) $c['id']] ?? [] as $sug): ?>
               <div class="small" style="margin-top:8px;padding:8px 10px;border:1px dashed #E3A0C0;border-radius:8px;background:#FFF8FB">
-                <?= V::source('suggested', 'Assisted suggestion — not applied until you confirm') ?> <strong><?= V::h($sug['title']) ?></strong> · <span class="muted"><?= V::h($sug['rationale']) ?></span>
-                <div class="tiny muted">Method: <?= V::h($sug['method']) ?> · score <?= V::h($sug['confidence']) ?></div>
-                <?php if (!$readOnly): ?><div class="row" style="margin-top:6px"><button class="btn btn-sm" data-act="suggestion" data-offering="<?= $oid ?>" data-id="<?= (int) $sug['id'] ?>" data-accept="1">Accept mapping</button><button class="btn btn-sm btn-ghost" data-act="suggestion" data-offering="<?= $oid ?>" data-id="<?= (int) $sug['id'] ?>" data-accept="0">Dismiss</button></div><?php endif; ?>
+                <?= V::source('suggested') ?> <strong><?= V::h($sug['title']) ?></strong><div class="muted"><?= V::h($sug['rationale']) ?></div><?php $sp = json_decode((string) $sug['payload'], true) ?: []; $spText = !empty($sp['plo_id']) ? Db::val('SELECT statement FROM plos WHERE id = ?', [(int) $sp['plo_id']]) : null; ?><?php if ($spText): ?><div class="tiny">“<?= V::h($spText) ?>”</div><?php endif; ?>
+                <div class="tiny muted" title="<?= V::h($sug['method'] . ' · similarity ' . $sug['confidence']) ?>">Suggested from the wording of the outcomes (hover for details)</div>
+                <?php if (!$readOnly): ?><div class="row" style="margin-top:6px"><button class="btn btn-sm" data-act="suggestion" data-offering="<?= $oid ?>" data-id="<?= (int) $sug['id'] ?>" data-accept="1">Accept</button><button class="btn btn-sm btn-ghost" data-act="suggestion" data-offering="<?= $oid ?>" data-id="<?= (int) $sug['id'] ?>" data-accept="0">Dismiss</button></div><?php endif; ?>
               </div>
             <?php endforeach; ?>
             <?php foreach ($issues as $f): if ($f['severity'] === 'info') { continue; } ?><div class="small" style="color:var(--red);margin-top:6px">● <?= V::h($f['title']) ?> — <?= V::h($f['remedy']) ?></div><?php endforeach; ?>
@@ -300,8 +296,9 @@ if ($tab === 'overview'):
           <details class="clo" <?= empty($spec['clos']) ? 'open' : '' ?>><summary class="strong" style="cursor:pointer">+ Add a learning outcome</summary>
             <form data-api="save_clo" style="margin-top:10px"><input type="hidden" name="offering" value="<?= $oid ?>">
               <div class="field"><label>Outcome statement</label><textarea name="statement" required placeholder="Start with an observable verb, e.g. “Analyze…”, “Design…”, “Evaluate…”"></textarea></div>
+              <div class="field"><label>Arabic wording (optional)</label><textarea name="statement_ar" dir="rtl" lang="ar" rows="2"></textarea></div>
               <div class="grid g2"><div class="field"><label>Learning domain</label><select name="domain"><?php foreach (Specs::DOMAINS as $d): ?><option><?= V::h($d) ?></option><?php endforeach; ?></select></div>
-              <div class="field"><label>Target % (optional)</label><input type="number" name="target_pct" min="0" max="100" step="0.5" placeholder="Policy default <?= V::h((string) $defaultTarget) ?>%"></div></div>
+              <div class="field"><label>Goal % (optional)</label><input type="number" name="target_pct" min="0" max="100" step="0.5" placeholder="University default <?= V::h((string) $defaultTarget) ?>%"></div></div>
               <button class="btn btn-primary btn-sm" type="submit">Add outcome</button></form></details>
         <?php endif; ?>
       </div>
@@ -309,7 +306,7 @@ if ($tab === 'overview'):
 
     <section class="card"><div class="card-h"><h2>Assessment plan</h2><span class="right" data-weight-total="<?= V::h((string) Policy::get('assessment.weight_total_pct')) ?>"></span></div>
       <div class="card-b tight"><div class="table-wrap"><table>
-        <thead><tr><th>Assessment</th><th>Type</th><th style="width:90px">Week</th><th style="width:110px">Weight %</th><th>Measures</th><?php if (!$readOnly): ?><th></th><?php endif; ?></tr></thead><tbody>
+        <thead><tr><th>Assessment</th><th>Type</th><th style="width:90px">Week</th><th style="width:110px">Weight %</th><th>Outcomes it measures</th><?php if (!$readOnly): ?><th></th><?php endif; ?></tr></thead><tbody>
         <?php foreach ($spec['assessments'] ?? [] as $a): ?>
           <tr><td class="strong"><?= V::h($a['name']) ?></td><td><?= V::h(Specs::ASSESSMENT_KINDS[$a['kind']] ?? $a['kind']) ?></td><td><?= V::h($a['week'] ?? '—') ?></td>
             <td><?php if ($readOnly): ?><?= V::pct($a['weight_pct']) ?><?php else: ?><input type="number" min="0" max="100" step="0.5" data-weight data-id="<?= (int) $a['id'] ?>" value="<?= V::h(rtrim(rtrim((string) $a['weight_pct'], '0'), '.')) ?>" style="width:80px"><?php endif; ?></td>
@@ -330,7 +327,7 @@ if ($tab === 'overview'):
       </div>
     </section>
 
-    <section class="card"><div class="card-h"><h2>Specification text</h2><span class="muted small">Objectives, strategies, content and resources (non-academic edits are auto-approved)</span></div>
+    <section class="card"><div class="card-h"><h2>Course description and teaching</h2><span class="muted small">Objective, teaching approach, topics and resources — changes here are approved automatically</span></div>
       <div class="card-b">
         <form data-api="save_spec_text"><input type="hidden" name="offering" value="<?= $oid ?>">
           <div class="field"><label>Main objective</label><textarea name="objectives" <?= $readOnly ? 'readonly' : '' ?>><?= V::h($spec['version']['objectives'] ?? '') ?></textarea></div>
@@ -350,68 +347,71 @@ if ($tab === 'overview'):
     </section>
   </div>
   <aside class="stack">
-    <section class="card"><div class="card-h"><h2>Live validation</h2></div>
+    <section class="card"><div class="card-h"><h2>Checks</h2></div>
       <?php $specChecks = array_filter($openFindings, static fn($f) => $f['scope_type'] === 'spec' && $f['severity'] !== 'info'); ?>
-      <?php if (!$specChecks): ?><div class="allclear"><strong>✓</strong><div><strong>Structure is valid</strong><div class="muted small">Every CLO is measurable, mapped and assessed; weights total <?= V::h((string) Policy::get('assessment.weight_total_pct')) ?>%.</div></div></div><?php endif; ?>
+      <?php if (!$specChecks): ?><div class="allclear"><strong>✓</strong><div><strong>Everything checks out</strong><div class="muted small"><?= V::h('Every outcome can be measured, is linked to the program and is assessed; the weights add up to ' . Policy::get('assessment.weight_total_pct') . '%.') ?></div></div></div><?php endif; ?>
       <?php foreach ($specChecks as $f): ?><div class="check sev-<?= V::h($f['severity']) ?>"><div class="check-ico">!</div><div><div class="check-title"><?= V::h($f['title']) ?></div><div class="check-fix"><?= V::h($f['remedy']) ?></div></div></div><?php endforeach; ?>
-      <div class="card-b tiny muted">Checks re-run on every change. You cannot submit while any “Must fix” item remains — SAQF never sends a red record to reviewers.</div>
+      <div class="card-b tiny muted">Checked again after every change. Changes can be submitted once nothing marked “Must fix” is left.</div>
     </section>
     <section class="card"><div class="card-h"><h2>Versions</h2></div><div class="card-b small">
       <?php foreach (Db::all('SELECT sv.*, u.full_name FROM spec_versions sv LEFT JOIN users u ON u.id = sv.decided_by WHERE sv.course_id = ? ORDER BY version_no DESC', [$courseId]) as $v): ?>
-        <div class="row" style="margin-bottom:6px"><strong>v<?= (int) $v['version_no'] ?></strong> <?= V::specStatus($v['status']) ?> <span class="muted"><?= V::h($v['decision_route'] ? str_replace('_', ' ', $v['decision_route']) : '') ?> <?= V::h(V::date($v['decided_at'] ?? $v['created_at'])) ?></span></div>
+        <div style="margin-bottom:8px"><div class="row"><strong><?= V::h('Version ' . (int) $v['version_no']) ?></strong> <?= V::specStatus($v['status']) ?></div><div class="tiny muted"><?= $v['decision_route'] ? V::h(V::route($v['decision_route'])) . ' · ' : '' ?><?= V::h(V::date($v['decided_at'] ?? $v['created_at'])) ?></div></div>
       <?php endforeach; ?>
-      <?php if ($approved): ?><div class="row" style="margin-top:6px"><a href="report.php?type=spec&id=<?= (int) $approved['id'] ?>">Printable specification</a> · <a href="export.php?doc=spec&id=<?= (int) $approved['id'] ?>">Word (NCAAA layout)</a> · <a href="export.php?doc=spec&id=<?= (int) $approved['id'] ?>&lang=ar">Word, Arabic headings</a></div><?php endif; ?>
+      <?php if ($approved): ?><div style="margin-top:10px"><div class="tiny muted">Download the approved specification</div><div class="row" style="margin-top:4px"><a class="btn btn-sm" href="export.php?doc=spec&id=<?= (int) $approved['id'] ?>">Word (English)</a><a class="btn btn-sm" href="export.php?doc=spec&id=<?= (int) $approved['id'] ?>&lang=ar">Word (Arabic)</a><a class="btn btn-sm btn-ghost" href="report.php?type=spec&id=<?= (int) $approved['id'] ?>">Print view</a></div></div><?php endif; ?>
     </div></section>
   </aside>
 </div>
 
 <?php elseif ($tab === 'results'):
     $batches = Db::all('SELECT rb.*, u.full_name FROM result_batches rb LEFT JOIN users u ON u.id = rb.imported_by WHERE rb.offering_id = ? ORDER BY rb.imported_at', [$oid]);
-    $plo = Db::all('SELECT pa.*, p.code AS plo_code, p.statement, pr.code AS program_code FROM plo_achievement pa JOIN plos p ON p.id = pa.plo_id JOIN programs pr ON pr.id = pa.program_id WHERE pa.offering_id = ? ORDER BY pr.code, p.code', [$oid]);
+    $plo = Db::all('SELECT pa.*, p.code AS plo_code, p.statement, pr.code AS program_code, pr.short_name AS program_name FROM plo_achievement pa JOIN plos p ON p.id = pa.plo_id JOIN programs pr ON pr.id = pa.program_id WHERE pa.offering_id = ? ORDER BY pr.code, p.code', [$oid]);
     $pendingLms = array_filter(Integrations::lms()->pending(), static fn($b) => $b['course'] === $o['course_code'] && $b['term'] === $o['term_code']);
 ?>
 <div class="split">
   <div class="stack">
-    <section class="card"><div class="card-h"><h2>CLO achievement</h2><span class="muted small right"><?= V::source('calculated') ?> recalculated automatically whenever results arrive</span></div>
+    <section class="card"><div class="card-h"><h2>Learning outcomes — how students did</h2><span class="muted small right"><?= V::source('calculated') ?> updated automatically whenever grades arrive</span></div>
       <div class="card-b tight"><div class="table-wrap"><table>
-        <thead><tr><th>CLO</th><th>Measured by</th><th style="width:280px">Achievement</th><th class="num">Students</th><th class="num">Evidence coverage</th></tr></thead><tbody>
+        <thead><tr><th>Learning outcome</th><th>Assessed by</th><th style="width:280px">Students who met it</th><th class="num">Students</th><th class="num">Graded so far</th></tr></thead><tbody>
         <?php foreach ($evidenceSpec['clos'] ?? [] as $c): $a = $ach[$c['lineage_key']] ?? null; $names = array_map(static fn($aid) => current(array_filter($evidenceSpec['assessments'], static fn($x) => (int) $x['id'] === $aid))['name'] ?? '', $c['assessments']); ?>
           <tr><td><strong><?= V::h($c['code']) ?></strong><div class="tiny muted"><?= V::h(mb_strimwidth($c['statement'], 0, 70, '…')) ?></div></td><td class="small"><?= V::h(implode(', ', $names)) ?></td>
             <td><?= V::bar($a ? (float) $a['value_pct'] : null, $a ? (float) $a['target_pct'] : (float) ($c['target_pct'] ?? $defaultTarget), $a ? (bool) $a['provisional'] : false) ?></td>
-            <td class="num"><?= $a ? (int) $a['students_assessed'] : '—' ?></td><td class="num"><?= $a ? V::pct($a['coverage_pct'], 0) : '—' ?></td></tr>
+            <td class="num"><?= $a ? (int) $a['students_assessed'] : '—' ?></td><td class="num" title="Share of this outcome's assessment weight that has grades"><?= $a ? ((float) $a['coverage_pct'] >= 99.95 ? 'All' : V::pct($a['coverage_pct'])) : '—' ?></td></tr>
         <?php endforeach; ?>
         </tbody></table></div>
-        <div class="card-b tiny muted">Method (policy): <?= Policy::get('achievement.method') === 'average' ? 'mean of students\' CLO scores' : '% of students scoring ≥ ' . V::h((string) Policy::get('achievement.student_threshold_pct')) . '% on the CLO\'s assessments (weighted by assessment weight)' ?>. Target: course target or the <?= V::h((string) $defaultTarget) ?>% institutional default. “Provisional” means not all of the CLO's assessments have results yet.</div>
+        <div class="card-b tiny muted"><span><?= V::h(Policy::get('achievement.method') === 'average'
+            ? 'How this is calculated: the average of students\' marks on each outcome\'s assessments.'
+            : 'How this is calculated: a student meets an outcome when their marks on its assessments average ' . Policy::get('achievement.student_threshold_pct') . '% or more (each assessment counted by its weight).') ?></span> <span><?= V::h('The goal is ' . V::pct($defaultTarget) . ' of students unless the course sets its own.') ?></span> <span><?= V::h('“So far” means some of the outcome\'s assessments are not graded yet.') ?></span></div>
       </div>
     </section>
-    <section class="card"><div class="card-h"><h2>Contribution to program outcomes</h2><span class="muted small right">Mean of mapped CLOs, per program</span></div>
-      <div class="card-b tight"><table><thead><tr><th>Program</th><th>PLO</th><th style="width:280px">Contribution</th><th class="num">CLOs</th></tr></thead><tbody>
-      <?php foreach ($plo as $p): ?><tr><td><?= V::h($p['program_code']) ?></td><td><strong><?= V::h($p['plo_code']) ?></strong> <span class="tiny muted"><?= V::h(mb_strimwidth($p['statement'], 0, 80, '…')) ?></span></td><td><?= V::bar((float) $p['value_pct'], Policy::get('plo.target_pct'), (bool) $p['provisional']) ?></td><td class="num"><?= (int) $p['contributing_clos'] ?></td></tr><?php endforeach; ?>
-      <?php if (!$plo): ?><tr><td colspan="4"><?= V::empty('No results yet', 'PLO contributions appear automatically once results arrive.') ?></td></tr><?php endif; ?>
+    <section class="card"><div class="card-h"><h2>What this course adds to program outcomes</h2><span class="muted small right">Average of this course's outcomes linked to each program outcome</span></div>
+      <div class="card-b tight"><table><thead><tr><th>Program</th><th>Program outcome</th><th style="width:280px">Average</th><th class="num">Course outcomes</th></tr></thead><tbody>
+      <?php foreach ($plo as $p): ?><tr><td><?= V::h($p['program_name'] ?? $p['program_code']) ?></td><td><strong><?= V::h($p['plo_code']) ?></strong> <span class="tiny muted"><?= V::h(mb_strimwidth($p['statement'], 0, 80, '…')) ?></span></td><td><?= V::bar((float) $p['value_pct'], Policy::get('plo.target_pct'), (bool) $p['provisional']) ?></td><td class="num"><?= (int) $p['contributing_clos'] ?></td></tr><?php endforeach; ?>
+      <?php if (!$plo): ?><tr><td colspan="4"><?= V::empty('No grades yet', 'Program outcome figures appear automatically once grades arrive.') ?></td></tr><?php endif; ?>
       </tbody></table></div></section>
     <?php $bySection = Sections::achievement($oid); if ($bySection): $gapPts = Policy::get('section.gap_points'); ?>
-    <section class="card"><div class="card-h"><h2>Achievement by section</h2><span class="muted small right"><?= V::source('calculated') ?> same method as the course figure · gaps over <?= V::h(Rules::fmt($gapPts)) ?> points are flagged</span></div>
+    <section class="card"><div class="card-h"><h2>Achievement by section</h2><span class="muted small right"><?= V::h('Same calculation as above, per section · a difference of more than ' . Rules::fmt($gapPts) . ' points is flagged') ?></span></div>
       <div class="card-b tight"><div class="table-wrap"><table>
-        <thead><tr><th>CLO</th><?php foreach ($bySection as $code => $s): ?><th>Section <?= V::h($code) ?><div class="tiny muted"><?= V::h($s['instructor'] ?? '—') ?> · <?= (int) $s['students'] ?> students</div></th><?php endforeach; ?><th class="num">Gap</th></tr></thead><tbody>
+        <thead><tr><th>Outcome</th><?php foreach ($bySection as $code => $s): ?><th><?= V::h('Section ' . $code) ?><div class="tiny muted"><?= V::h($s['instructor'] ?? '—') ?> · <?= V::h((int) $s['students'] . ' students') ?></div></th><?php endforeach; ?><th class="num">Difference</th></tr></thead><tbody>
         <?php foreach ($evidenceSpec['clos'] ?? [] as $c): $vals = []; foreach ($bySection as $code => $s) { if (isset($s['clos'][(int) $c['id']])) { $vals[$code] = $s['clos'][(int) $c['id']]['value']; } } if (!$vals) { continue; } $gap = count($vals) > 1 ? max($vals) - min($vals) : 0; $target = (float) ($c['target_pct'] ?? $defaultTarget); ?>
           <tr><td><strong><?= V::h($c['code']) ?></strong></td>
             <?php foreach ($bySection as $code => $s): $v = $vals[$code] ?? null; ?><td><?= $v === null ? '<span class="muted">—</span>' : '<span class="heat ' . ($v >= $target - 1e-9 ? 'heat-ok' : 'heat-low') . '">' . V::pct($v) . '</span>' ?></td><?php endforeach; ?>
-            <td class="num"><?= $gap > $gapPts + 1e-9 ? V::pill(Rules::fmt(round($gap, 1)) . ' pts', 'amber') : '<span class="muted">' . V::h(Rules::fmt(round($gap, 1))) . '</span>' ?></td></tr>
+            <td class="num"><?= $gap > $gapPts + 1e-9 ? V::pill(Rules::whole($gap) . ' points', 'amber') : '<span class="muted">' . V::h(Rules::whole($gap) . ' points') . '</span>' ?></td></tr>
         <?php endforeach; ?></tbody></table></div>
         <div class="card-b tiny muted">Sections share one specification and one set of outcomes; the course figure above combines every section. A large gap is a prompt to compare teaching and marking between sections, not a judgement of an instructor.</div></div></section>
     <?php endif; ?>
   </div>
   <aside class="stack">
-    <section class="card"><div class="card-h"><h2>Evidence sources</h2><span class="right"><?= V::source('lms') ?></span></div>
+    <section class="card"><div class="card-h"><h2>Grades received</h2><span class="right"><?= V::source('lms') ?></span></div>
       <div class="card-b small">
-        <?php foreach ($batches as $b): ?><div style="margin-bottom:10px"><strong><?= V::h(strtoupper($b['source'])) ?></strong> · <?= V::h(V::date($b['imported_at'], 'j M Y H:i')) ?><br><span class="muted"><?= V::h($b['assessments']) ?> · <?= (int) $b['rows_count'] ?> rows · <?= $b['full_name'] ? 'uploaded by ' . V::h($b['full_name']) : 'imported automatically' ?></span><br><span class="mono tiny">sha256 <?= V::h(substr($b['checksum'], 0, 16)) ?>…</span></div><?php endforeach; ?>
-        <?php if (!$batches): ?><p class="muted">No results have been published for this offering yet.</p><?php endif; ?>
-        <?php foreach ($pendingLms as $pb): ?><p class="muted">Expected from the LMS: <strong><?= V::h($pb['label']) ?></strong> (scheduled <?= V::h(V::date($pb['published_at'])) ?>). SAQF imports it automatically when it is published.</p><?php endforeach; ?>
+        <?php foreach ($batches as $b): ?><div style="margin-bottom:10px"><strong><?= V::h($b['assessments']) ?></strong><div class="muted"><?= V::h(V::date($b['imported_at'], 'j M Y, H:i')) ?> · <?= V::h((int) $b['rows_count'] . ' grades') ?></div><div class="muted"><?= $b['full_name'] ? V::h('Uploaded by ' . $b['full_name']) : V::h($b['source'] === 'upload' ? 'Uploaded from a file' : 'Received automatically from the gradebook') ?> <?= V::verified($b['checksum']) ?></div></div><?php endforeach; ?>
+        <?php if (!$batches): ?><p class="muted">No grades have been published for this course yet.</p><?php endif; ?>
+        <?php foreach ($pendingLms as $pb): ?><p class="muted"><?= V::h('Coming from the gradebook: ' . $pb['label'] . ' (expected ' . V::date($pb['published_at']) . '). SAQF imports it as soon as it is published.') ?></p><?php endforeach; ?>
         <?php if ($canContribute): ?>
-          <button class="btn btn-sm" data-act="lms_sync" data-offering="<?= $oid ?>">Check the LMS now</button>
-          <details style="margin-top:12px"><summary class="small" style="cursor:pointer">Upload results instead (CSV fallback)</summary>
+          <button class="btn btn-sm" data-act="lms_sync" data-offering="<?= $oid ?>">Check for new grades now</button>
+          <details style="margin-top:12px"><summary class="small" style="cursor:pointer">Upload grades from a file instead</summary>
             <form method="post" enctype="multipart/form-data" style="margin-top:8px"><?= Csrf::field() ?><input type="file" name="results" accept=".csv,text/csv" required>
-              <div class="field-help">Columns: <span class="mono">student</span> (pseudonymous key), optionally <span class="mono">section</span>, then one column per assessment name, values 0–100. Names must match: <?= V::h(implode(', ', array_column($evidenceSpec['assessments'] ?? [], 'name'))) ?>.<?= !$canEdit && count($mySections) === 1 ? ' Rows without a section count as section ' . V::h($mySections[0]) . '.' : '' ?></div>
+              <div class="field-help"><?= V::h('A CSV file with one row per student: the student number (SAQF replaces it with a code before storing), optionally the section, then one column per assessment with marks from 0 to 100.') ?><?= !$canEdit && count($mySections) === 1 ? ' ' . V::h('Rows without a section count as section ' . $mySections[0] . '.') : '' ?>
+                <div class="mono tiny" translate="no" style="margin-top:4px">student, section, <?= V::h(implode(', ', array_column($evidenceSpec['assessments'] ?? [], 'name'))) ?></div></div>
               <button class="btn btn-sm" type="submit">Upload</button></form></details>
         <?php endif; ?>
       </div></section>
@@ -423,15 +423,15 @@ if ($tab === 'overview'):
 ?>
 <div class="split">
   <div class="stack">
-    <?php if ($evidenceRequested): ?><div class="alert alert-info"><strong>SAQF requests evidence for:</strong> <?= V::h(implode(', ', array_map(static fn($id) => $assessmentNames[$id] ?? '#' . $id, $evidenceRequested))) ?> — results for these assessments have arrived. Upload the assessment and a sample of marked work; the request clears itself.</div><?php endif; ?>
-    <section class="card"><div class="card-h"><h2>Course file — assessment evidence</h2><span class="muted small right"><?= count($evidenceFiles) ?> file(s) · stored outside the web server, every download audited</span></div>
+    <?php if ($evidenceRequested): ?><div class="alert alert-info"><strong>Please add the papers for:</strong> <?= V::h(implode(', ', array_map(static fn($id) => $assessmentNames[$id] ?? '#' . $id, $evidenceRequested))) ?><div class="small">The grades for these are in. Upload the exam or assignment and a few marked samples; this reminder goes away by itself.</div></div><?php endif; ?>
+    <section class="card"><div class="card-h"><h2>Course file</h2><span class="muted small right"><?= V::h(V::count(count($evidenceFiles), 'file', 'files')) ?> · kept securely, every download is recorded</span></div>
       <div class="card-b tight"><div class="table-wrap"><table>
-        <thead><tr><th>Evidence</th><th>Assessment</th><th>Section</th><th>Added</th><th class="num">File</th><?php if ($canContribute): ?><th></th><?php endif; ?></tr></thead><tbody>
+        <thead><tr><th>Document</th><th>For</th><th>Section</th><th>Added</th><th class="num">File</th><?php if ($canContribute): ?><th></th><?php endif; ?></tr></thead><tbody>
         <?php foreach ($evidenceFiles as $ev): ?>
           <tr><td><strong><?= V::h($ev['title']) ?></strong><div class="tiny muted"><?= V::h(Evidence::KINDS[$ev['kind']] ?? $ev['kind']) ?></div></td>
-            <td class="small"><?= V::h($ev['assessment_name'] ?? '—') ?></td><td class="small"><?= V::h($ev['section_code'] ?? 'all') ?></td>
+            <td class="small"><?= V::h($ev['assessment_name'] ?? '—') ?></td><td class="small"><?= V::h($ev['section_code'] ?? 'All sections') ?></td>
             <td class="small"><?= V::h(V::date($ev['uploaded_at'], 'j M Y')) ?><div class="tiny muted"><?= V::h($ev['uploader'] ?? 'SAQF') ?></div></td>
-            <td class="num small"><a href="evidence.php?id=<?= (int) $ev['id'] ?>"><?= V::h(strtoupper(pathinfo($ev['original_name'], PATHINFO_EXTENSION))) ?> · <?= V::h(Evidence::size((int) $ev['size_bytes'])) ?></a><div class="tiny"><?= $ev['scan_status'] === 'clean' ? V::pill('virus-scanned', 'green') : '' ?> <span class="mono muted" title="SHA-256 fingerprint"><?= V::h(substr($ev['sha256'], 0, 10)) ?></span></div></td>
+            <td class="num small"><a href="evidence.php?id=<?= (int) $ev['id'] ?>"><?= V::h(strtoupper(pathinfo($ev['original_name'], PATHINFO_EXTENSION))) ?> · <?= V::h(Evidence::size((int) $ev['size_bytes'])) ?></a><div class="tiny"><?= $ev['scan_status'] === 'clean' ? V::pill('Virus-checked', 'green') : '' ?> <?= V::verified($ev['sha256'], 'Unchanged') ?></div></td>
             <?php if ($canContribute): ?><td class="num"><?php if ($canEdit || (int) $ev['uploaded_by'] === $user['id']): ?><details><summary class="btn btn-sm btn-ghost">Remove</summary><form method="post" class="row" style="margin-top:6px"><?= Csrf::field() ?><input type="hidden" name="op" value="remove_evidence"><input type="hidden" name="id" value="<?= (int) $ev['id'] ?>"><input type="text" name="reason" placeholder="Reason (audited)" required minlength="5"><button class="btn btn-sm btn-red">Remove</button></form></details><?php endif; ?></td><?php endif; ?></tr>
         <?php endforeach; ?>
         <?php if (!$evidenceFiles): ?><tr><td colspan="6"><?= V::empty('No evidence in the course file yet', 'Exam papers, rubrics and samples of marked work go here; reviewers find everything in one place.') ?></td></tr><?php endif; ?>
@@ -443,14 +443,14 @@ if ($tab === 'overview'):
       <form method="post" enctype="multipart/form-data"><?= Csrf::field() ?>
         <div class="field"><label>File</label><input type="file" name="evidence" required accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.txt"></div>
         <div class="field"><label>What is it?</label><select name="kind"><?php foreach (Evidence::KINDS as $k => $l): ?><option value="<?= $k ?>"><?= V::h($l) ?></option><?php endforeach; ?></select></div>
-        <div class="field"><label>Assessment</label><select name="assessment"><option value="">— not tied to one assessment —</option><?php foreach ($evidenceSpec['assessments'] as $a): ?><option value="<?= (int) $a['id'] ?>" <?= $evidenceRequested && (int) $a['id'] === (int) $evidenceRequested[0] ? 'selected' : '' ?>><?= V::h($a['name']) ?></option><?php endforeach; ?></select></div>
+        <div class="field"><label>Assessment</label><select name="assessment"><option value="">General (not one assessment)</option><?php foreach ($evidenceSpec['assessments'] as $a): ?><option value="<?= (int) $a['id'] ?>" <?= $evidenceRequested && (int) $a['id'] === (int) $evidenceRequested[0] ? 'selected' : '' ?>><?= V::h($a['name']) ?></option><?php endforeach; ?></select></div>
         <?php if (count($sections) > 1): ?><div class="field"><label>Section</label><select name="section"><option value="">All sections</option><?php foreach ($sections as $s): ?><option <?= in_array($s['section_code'], $mySections, true) && !$canEdit ? 'selected' : '' ?>><?= V::h($s['section_code']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
         <div class="field"><label>Title (optional)</label><input type="text" name="title" maxlength="200" placeholder="e.g. Midterm exam paper and model answers"></div>
         <button class="btn btn-primary btn-sm" type="submit">Upload</button>
-        <p class="tiny muted" style="margin-top:8px">PDF, Word, Excel, PowerPoint, PNG, JPEG or text, up to <?= (int) Policy::get('evidence.max_mb') ?> MB. The content is checked against the file type; macro-enabled Office files are refused. Remove student names or use pseudonymous samples.</p>
+        <p class="tiny muted" style="margin-top:8px">PDF, Word, Excel, PowerPoint, images or text, up to <?= (int) Policy::get('evidence.max_mb') ?> MB. Files are checked for safety before they are stored. Please remove student names from samples.</p>
       </form></div></section>
     <?php endif; ?>
-    <section class="card"><div class="card-h"><h2>Why this matters</h2></div><div class="card-b small muted">Accreditation reviews ask to see the assessments behind the numbers. SAQF asks for evidence when results arrive, keeps it with the course record, and lists it in the generated course report.</div></section>
+    <section class="card"><div class="card-h"><h2>Why this matters</h2></div><div class="card-b small muted">Accreditation reviewers ask to see the exams and assignments behind the results. SAQF reminds you when grades arrive, keeps the files with the course, and lists them in the course report for you.</div></section>
   </aside>
 </div>
 
@@ -462,30 +462,37 @@ if ($tab === 'overview'):
   <?php foreach ($actionsCourse as $ia): $mine = $user['role'] === 'faculty' && (Authz::isCoordinator($user, $o) || (int) $ia['owner_id'] === $user['id']); ?>
   <section class="card" id="ia-<?= (int) $ia['id'] ?>">
     <div class="card-h"><h2><?= V::h($ia['title']) ?></h2><?= V::pill(Improvements::STATUS[$ia['status']] ?? $ia['status'], ['draft' => 'red', 'open' => 'blue', 'in_progress' => 'blue', 'completed' => 'green', 'cancelled' => 'grey'][$ia['status']] ?? 'grey') ?>
-      <span class="right muted small">from <?= V::h($ia['origin_term']) ?> · <?= $ia['created_by'] ? 'created by a person' : 'drafted by SAQF' ?></span></div>
+      <span class="right muted small"><?= V::h($ia['origin_term']) ?> · <?= $ia['created_by'] ? 'added by a person' : 'prepared by SAQF' ?></span></div>
     <div class="card-b">
-      <p class="small"><?= V::source('calculated', 'Evidence assembled automatically from results, history and earlier actions') ?> <?= V::h($ia['evidence_summary']) ?></p>
+      <?php $fx = Improvements::facts($ia); ?>
+      <div class="small stack-tight">
+        <div><strong><?= V::h($fx['code']) ?></strong> <?= V::h($fx['statement']) ?></div>
+        <div><?= V::h('Students who met it') ?>: <strong><?= V::pct($fx['value']) ?></strong> · <?= V::h('goal ' . V::pct($fx['target'])) ?> · <?= V::h($ia['origin_term']) ?><?= $fx['students'] ? ' · ' . V::h(V::count($fx['students'], 'student', 'students')) : '' ?> <?= V::source('calculated', 'Put together automatically from this course\'s results, its history and earlier actions') ?></div>
+        <?php if ($fx['assessments']): ?><div class="muted"><?= V::h('Measured by') ?>: <?php foreach ($fx['assessments'] as $fa): ?><span class="tag"><?= V::h($fa['name']) ?> · <?= V::pct($fa['weight_pct']) ?></span><?php endforeach; ?></div><?php endif; ?>
+        <?php if ($fx['history']): ?><div class="muted"><?= V::h('Earlier terms') ?>: <?php foreach ($fx['history'] as $fh): ?><span class="tag"><?= V::h($fh['name']) ?> · <?= V::pct($fh['value_pct']) ?> <?= (int) $fh['met'] ? '✓' : '✗' ?></span><?php endforeach; ?></div><?php endif; ?>
+        <?php foreach ($fx['prior'] as $fp): ?><div class="muted"><?= V::h('Tried before') ?> (<?= V::h($fp['name']) ?>): “<?= V::h(mb_strimwidth((string) ($fp['action_text'] ?: $fp['title']), 0, 120, '…')) ?>” · <?= V::h(Improvements::EFFECT[$fp['effect']] ?? $fp['effect']) ?></div><?php endforeach; ?>
+      </div>
       <?php if ($ia['status'] === 'draft'): ?>
         <?php if ($mine || Authz::canDecideCourse($user, $courseId)): ?>
         <form data-api="improvement_commit" class="fieldset"><input type="hidden" name="id" value="<?= (int) $ia['id'] ?>">
-          <div class="field"><label>Academic response — what will change, and where <?= V::source('faculty') ?></label><textarea name="action_text" required minlength="15" placeholder="e.g. Add a formative checkpoint on test planning in week 9 with rubric feedback…"></textarea>
-            <div class="field-help">SAQF does not invent the academic solution. It will measure the next offering against the <?= V::pct($ia['baseline_pct']) ?> baseline.</div></div>
+          <div class="field"><label>What will you change, and when? <?= V::source('faculty') ?></label><textarea name="action_text" required minlength="15" placeholder="e.g. Add a formative checkpoint on test planning in week 9 with rubric feedback…"></textarea>
+            <div class="field-help">Only you can decide the teaching change. Next term SAQF compares the result with today's <?= V::pct($ia['baseline_pct']) ?> and tells you whether it helped.</div></div>
           <div class="grid g2"><div class="field"><label>Owner</label><select name="owner"><?php foreach ($owners as $ow): ?><option value="<?= (int) $ow['id'] ?>" <?= (int) $ow['id'] === (int) $ia['owner_id'] ? 'selected' : '' ?>><?= V::h($ow['full_name']) ?></option><?php endforeach; ?></select></div>
           <div class="field"><label>Deadline</label><input type="date" name="due_on" required value="<?= V::h($ia['due_on']) ?>"></div></div>
-          <button class="btn btn-primary btn-sm" type="submit">Commit improvement action</button></form>
-        <?php else: ?><p class="muted small">Waiting for the instructor's academic response.</p><?php endif; ?>
+          <button class="btn btn-primary btn-sm" type="submit">Save the plan</button></form>
+        <?php else: ?><p class="muted small">Waiting for the instructor to say what will change.</p><?php endif; ?>
       <?php else: ?>
         <div class="grid g3 small">
-          <div><div class="muted">Academic response</div><div><?= V::h($ia['action_text']) ?></div></div>
-          <div><div class="muted">Owner · deadline</div><div><?= V::h($ia['owner_name']) ?> · <?= V::h(V::date($ia['due_on'])) ?></div><?php if ($ia['completion_note']): ?><div class="muted" style="margin-top:6px">Completion: <?= V::h($ia['completion_note']) ?></div><?php endif; ?></div>
-          <div><div class="muted">Measured effect</div>
+          <div><div class="muted">What will change</div><div><?= V::h($ia['action_text']) ?></div></div>
+          <div><div class="muted">Who · by when</div><div><?= V::h($ia['owner_name']) ?> · <?= V::h(V::date($ia['due_on'])) ?></div><?php if ($ia['completion_note']): ?><div class="muted" style="margin-top:6px">Done: <?= V::h($ia['completion_note']) ?></div><?php endif; ?></div>
+          <div><div class="muted">Did it help?</div>
             <div><?= V::pill(Improvements::EFFECT[$ia['effect']] ?? $ia['effect'], ['improved' => 'green', 'declined' => 'red', 'similar' => 'amber'][$ia['effect']] ?? 'grey') ?></div>
-            <?php if ($ia['followup_pct'] !== null): ?><div class="small" style="margin-top:4px"><?= V::pct($ia['baseline_pct']) ?> (<?= V::h($ia['origin_term']) ?>) → <strong><?= V::pct($ia['followup_pct']) ?></strong> (<?= V::h($ia['followup_term']) ?>), target <?= V::pct($ia['target_pct']) ?></div><div class="tiny muted">Association over time, not proof of causation.</div><?php endif; ?></div>
+            <?php if ($ia['followup_pct'] !== null): ?><div class="small" style="margin-top:4px"><?= V::h($ia['origin_term']) ?>: <?= V::pct($ia['baseline_pct']) ?> → <?= V::h($ia['followup_term']) ?>: <strong><?= V::pct($ia['followup_pct']) ?></strong> · goal <?= V::pct($ia['target_pct']) ?></div><div class="tiny muted">Results changed after the action; other things may also have played a part.</div><?php endif; ?></div>
         </div>
         <?php if (in_array($ia['status'], ['open', 'in_progress'], true) && ((int) $ia['owner_id'] === $user['id'] || Authz::canDecideCourse($user, $courseId))): ?>
           <form data-api="improvement_status" class="row" style="margin-top:12px"><input type="hidden" name="id" value="<?= (int) $ia['id'] ?>">
             <select name="status" style="width:auto"><?php if ($ia['status'] === 'open'): ?><option value="in_progress">Mark in progress</option><?php endif; ?><option value="completed">Mark completed</option><option value="cancelled">Cancel</option></select>
-            <input type="text" name="note" placeholder="Evidence of completion / reason" style="flex:1;min-width:240px"><button class="btn btn-sm" type="submit">Update</button></form>
+            <input type="text" name="note" placeholder="What was done (or why it was cancelled)" style="flex:1;min-width:240px"><button class="btn btn-sm" type="submit">Update</button></form>
         <?php endif; ?>
       <?php endif; ?>
     </div>
@@ -502,12 +509,12 @@ if ($tab === 'overview'):
 ?>
 <div class="split">
   <div class="stack">
-    <section class="card"><div class="card-h"><h2>Course report</h2><div class="right row"><a class="btn btn-sm" href="report.php?type=course&id=<?= $oid ?>">Open generated report</a><a class="btn btn-sm btn-primary" href="export.php?doc=report&id=<?= $oid ?>">Download Word (NCAAA layout)</a><a class="btn btn-sm" href="export.php?doc=report&id=<?= $oid ?>&lang=ar">بالعربية</a></div></div>
+    <section class="card"><div class="card-h"><h2>Course report</h2><div class="right row"><a class="btn btn-sm" href="report.php?type=course&id=<?= $oid ?>">View report</a><a class="btn btn-sm btn-primary" href="export.php?doc=report&id=<?= $oid ?>">Word (English)</a><a class="btn btn-sm" href="export.php?doc=report&id=<?= $oid ?>&lang=ar">Word (Arabic)</a></div></div>
       <div class="card-b small">
-        <p>The course report is <strong>generated</strong> from the structured record: course identity, outcomes, mappings, assessment results, CLO/PLO achievement, gaps, improvement actions and their effects, and the approval history. Only the interpretation below is written by a person.</p>
-        <?php if ($snap): ?><div class="alert alert-info">Frozen on <?= V::h(V::date($snap['created_at'], 'j M Y H:i')) ?> when the term closed · sha256 <span class="mono"><?= V::h(substr($snap['sha256'], 0, 20)) ?>…</span></div><?php endif; ?>
+        <p>SAQF writes the course report for you from what is already in the system: the course details, learning outcomes, grades, how students did, what fell short, what was done about it and who approved what. You only add your own comments below.</p>
+        <?php if ($snap): ?><div class="alert alert-info">Sealed on <?= V::h(V::date($snap['created_at'])) ?> when the term closed, so it can no longer change. <?= V::verified($snap['sha256'], 'Unchanged since') ?></div><?php endif; ?>
       </div></section>
-    <?php foreach (['interpretation' => 'Interpretation of results', 'difficulties' => 'Difficulties encountered (optional)', 'recommendations' => 'Recommendations for the next offering (optional)'] as $key => $label): ?>
+    <?php foreach (['interpretation' => 'What the results mean', 'difficulties' => 'Difficulties this term (optional)', 'recommendations' => 'Suggestions for next time (optional)'] as $key => $label): ?>
       <section class="card"><div class="card-h"><h2><?= V::h($label) ?></h2><?= V::source('faculty') ?></div><div class="card-b">
         <?php if ($canEdit): ?><form data-api="narrative"><input type="hidden" name="offering" value="<?= $oid ?>"><input type="hidden" name="section" value="<?= $key ?>"><textarea name="content" rows="4"><?= V::h($narr[$key]['content'] ?? '') ?></textarea><button class="btn btn-sm" type="submit" style="margin-top:8px">Save</button></form>
         <?php else: ?><p><?= isset($narr[$key]) ? nl2br(V::h($narr[$key]['content'])) : '<span class="muted">Not provided.</span>' ?></p><?php endif; ?>
@@ -522,17 +529,17 @@ if ($tab === 'overview'):
     $events = Db::all("SELECT * FROM audit_log WHERE (object_type = 'offering' AND object_id = ?) OR (object_type = 'spec_version' AND object_id IN (SELECT id FROM spec_versions WHERE course_id = ?)) OR (object_type = 'improvement' AND object_id IN (SELECT id FROM improvement_actions WHERE course_id = ?)) ORDER BY id DESC LIMIT 60", [(string) $oid, $courseId, $courseId]);
 ?>
 <div class="stack">
-  <section class="card"><div class="card-h"><h2>Achievement across terms</h2><span class="muted small right">Institutional memory — survives staff changes</span></div>
+  <section class="card"><div class="card-h"><h2>How students did, term by term</h2><span class="muted small right">Kept even when the instructor changes</span></div>
     <div class="card-b tight"><div class="table-wrap"><table class="matrix">
-      <thead><tr><th>CLO</th><?php foreach ($terms as $t): ?><th><?= V::h($t['name']) ?></th><?php endforeach; ?><th>Trend</th></tr></thead><tbody>
+      <thead><tr><th>Learning outcome</th><?php foreach ($terms as $t): ?><th><?= V::h($t['name']) ?></th><?php endforeach; ?><th>Trend</th></tr></thead><tbody>
       <?php foreach ($lineages as $c): $hist = []; foreach (Achievement::history($c['lineage_key']) as $h) { $hist[(int) $h['sequence']] = $h; } ?>
         <tr><td><strong><?= V::h($c['code']) ?></strong> <span class="tiny muted"><?= V::h(mb_strimwidth($c['statement'], 0, 60, '…')) ?></span></td>
           <?php foreach ($terms as $t): $h = $hist[(int) $t['sequence']] ?? null; ?><td><?php if ($h): ?><span class="heat <?= (int) $h['provisional'] ? 'heat-prov' : ((int) $h['met'] ? 'heat-ok' : 'heat-low') ?>"><?= V::pct($h['value_pct']) ?></span><?php else: ?><span class="heat heat-none">—</span><?php endif; ?></td><?php endforeach; ?>
           <td><?= V::spark(array_map(static fn($h) => (int) $h['provisional'] ? null : (float) $h['value_pct'], array_values($hist)), (float) ($c['target_pct'] ?? $defaultTarget)) ?></td></tr>
       <?php endforeach; ?></tbody></table></div></div></section>
-  <section class="card"><div class="card-h"><h2>Audit trail for this course</h2><a class="right small" href="report.php?type=course&id=<?= $oid ?>">Report</a></div>
+  <section class="card"><div class="card-h"><h2>Everything that happened</h2><a class="right small" href="report.php?type=course&id=<?= $oid ?>">Course report</a></div>
     <div class="card-b"><ul class="timeline">
-      <?php foreach ($events as $e): ?><li class="<?= $e['actor_type'] === 'user' ? 'usr' : ($e['actor_type'] === 'integration' ? 'int' : 'sys') ?>"><div class="when"><?= V::h(V::date($e['occurred_at'], 'j M Y H:i')) ?> · <?= V::h($e['actor_name']) ?><?= $e['actor_type'] !== 'user' ? ' (' . V::h($e['actor_type']) . ')' : '' ?></div><div><?= V::h($e['summary']) ?></div><?php if ($e['reason']): ?><div class="small muted">Reason: <?= V::h($e['reason']) ?></div><?php endif; ?></li><?php endforeach; ?>
+      <?php foreach ($events as $e): ?><li class="<?= $e['actor_type'] === 'user' ? 'usr' : ($e['actor_type'] === 'integration' ? 'int' : 'sys') ?>"><div class="when"><?= V::h(V::date($e['occurred_at'], 'j M Y H:i')) ?> · <span><?= V::h($e['actor_name']) ?></span><?= $e['actor_type'] === 'integration' ? ' <span class="pill pill-grey">' . V::h('University system') . '</span>' : ($e['actor_type'] === 'system' ? ' <span class="pill pill-grey">' . V::h('Automatic') . '</span>' : '') ?></div><div><?= V::h($e['summary']) ?></div><?php if ($e['reason']): ?><div class="small muted">Reason: <?= V::h($e['reason']) ?></div><?php endif; ?></li><?php endforeach; ?>
     </ul></div></section>
 </div>
 <?php endif;
