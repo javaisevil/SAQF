@@ -25,7 +25,8 @@ final class View
         return Request::url($path);
     }
 
-    public static function pct($v, int $dec = 1): string
+    /** A percentage for people: whole numbers ("72%"), unless more precision is asked for. */
+    public static function pct($v, int $dec = 0): string
     {
         if ($v === null || $v === '') {
             return '—';
@@ -34,9 +35,31 @@ final class View
         return (str_contains($s, '.') ? rtrim(rtrim($s, '0'), '.') : $s) . '%';
     }
 
+    public const MONTHS_AR = ['Jan' => 'يناير', 'Feb' => 'فبراير', 'Mar' => 'مارس', 'Apr' => 'أبريل', 'May' => 'مايو', 'Jun' => 'يونيو',
+        'Jul' => 'يوليو', 'Aug' => 'أغسطس', 'Sep' => 'سبتمبر', 'Oct' => 'أكتوبر', 'Nov' => 'نوفمبر', 'Dec' => 'ديسمبر'];
+
     public static function date(?string $d, string $fmt = 'j M Y'): string
     {
-        return $d ? date($fmt, strtotime($d)) : '—';
+        if (!$d) {
+            return '—';
+        }
+        $out = date($fmt, strtotime($d));
+        return I18n::rtl() ? strtr($out, self::MONTHS_AR) : $out;
+    }
+
+    /** "Verified ✓" with the technical fingerprint kept in the tooltip (people never need to read it). */
+    public static function verified(?string $sha256, string $label = 'Verified'): string
+    {
+        if (!$sha256) {
+            return '';
+        }
+        return '<span class="pill pill-green" title="' . self::h('Integrity check: SHA-256 fingerprint ' . $sha256) . '">✓ ' . self::h($label) . '</span>';
+    }
+
+    /** A number with a short explanation, e.g. "3 of 4 courses". */
+    public static function count(int $n, string $one, string $many): string
+    {
+        return $n . ' ' . ($n === 1 ? $one : $many);
     }
 
     public static function ago(?string $d): string
@@ -69,17 +92,17 @@ final class View
     public static function source(string $kind, string $title = ''): string
     {
         $labels = [
-            'institution' => ['Registrar', 'Synced from institutional master data'],
-            'sis' => ['SIS', 'From the Student Information System feed'],
-            'lms' => ['LMS', 'Imported from the learning management system'],
-            'inherited' => ['Inherited', 'Carried forward from the approved specification'],
-            'calculated' => ['Calculated', 'Computed by SAQF from structured data'],
-            'derived' => ['Derived', 'Derived from other records (no manual entry)'],
-            'policy' => ['Policy default', 'Institutional policy value'],
-            'faculty' => ['Faculty input', 'Entered by the instructor (academic judgement)'],
-            'suggested' => ['Suggested', 'Assisted suggestion confirmed by a person'],
-            'overridden' => ['Overridden', 'Rule set aside by an authorised person with a recorded reason'],
-            'seed' => ['Prototype seed', 'Prototype data — replace from the real source'],
+            'institution' => ['University records', 'From the Registrar\'s catalogue — nobody typed it'],
+            'sis' => ['Timetable', 'From the university\'s student information system (teaching assignments)'],
+            'lms' => ['Gradebook', 'Grades received from the learning management system'],
+            'inherited' => ['Carried over', 'Copied from the approved course specification — nothing to re-enter'],
+            'calculated' => ['Calculated', 'Worked out by SAQF from the grades and the course plan'],
+            'derived' => ['Worked out', 'Worked out from other records — nobody typed it'],
+            'policy' => ['University default', 'The university\'s standard value (set by Quality); the course can set its own'],
+            'faculty' => ['Instructor', 'Written by the instructor (academic judgement)'],
+            'suggested' => ['Suggestion', 'A suggestion from SAQF — applied only if a person accepts it'],
+            'overridden' => ['Exception approved', 'Rule set aside by an authorised person, with the reason recorded'],
+            'seed' => ['Sample data', 'Sample data — replace from the real source'],
         ];
         [$label, $default] = $labels[$kind] ?? [$kind, ''];
         return '<span class="src src-' . self::h($kind) . '" title="' . self::h($title ?: $default) . '">' . self::h($label) . '</span>';
@@ -87,22 +110,53 @@ final class View
 
     public static function severity(string $sev): string
     {
-        $map = ['blocker' => ['Must fix', 'red'], 'warning' => ['Attention', 'amber'], 'info' => ['Advisory', 'grey']];
+        $map = ['blocker' => ['Must fix', 'red'], 'warning' => ['Needs attention', 'amber'], 'info' => ['For information', 'grey']];
         [$l, $t] = $map[$sev] ?? [$sev, 'grey'];
         return self::pill($l, $t);
     }
 
     public static function category(string $cat): string
     {
-        $map = ['validation' => 'Validation', 'data' => 'Data exception', 'academic' => 'Academic', 'policy' => 'Policy exception', 'evidence' => 'Evidence', 'workflow' => 'Workflow', 'quality_risk' => 'Quality risk'];
+        $map = ['validation' => 'To fix', 'data' => 'Data problem', 'academic' => 'Academic decision', 'policy' => 'Exception to policy', 'evidence' => 'Evidence', 'workflow' => 'Next step', 'quality_risk' => 'Risk'];
         return '<span class="cat cat-' . self::h($cat) . '">' . self::h($map[$cat] ?? $cat) . '</span>';
     }
 
     public static function specStatus(?string $status): string
     {
-        $map = ['draft' => ['Draft', 'grey'], 'pending_hod' => ['With HoD', 'blue'], 'pending_qa' => ['With QA', 'amber'], 'approved' => ['Approved', 'green'], 'superseded' => ['Superseded', 'grey']];
+        $map = ['draft' => ['Draft', 'grey'], 'pending_hod' => ['With the Head of Department', 'blue'], 'pending_qa' => ['With Quality', 'amber'], 'approved' => ['Approved', 'green'], 'superseded' => ['Older version', 'grey']];
         [$l, $t] = $map[(string) $status] ?? [(string) $status, 'grey'];
         return self::pill($l, $t);
+    }
+
+    /** Who a role is, in plain words (for "who handles this"). */
+    public static function who(?string $role): string
+    {
+        $map = ['faculty' => 'Instructor', 'hod' => 'Head of Department', 'qa' => 'Quality', 'dean' => 'Dean', 'leadership' => 'University leadership', 'admin' => 'IT'];
+        return $map[(string) $role] ?? ucfirst((string) $role);
+    }
+
+    /** The state of an issue, in plain words. */
+    public static function issueStatus(?string $status): string
+    {
+        $map = ['open' => 'Still open', 'overridden' => 'Rule set aside', 'resolved' => 'Sorted out', 'auto_resolved' => 'Cleared by itself'];
+        return $map[(string) $status] ?? ucfirst(str_replace('_', ' ', (string) $status));
+    }
+
+    /** How a specification version was decided, in plain words. */
+    public static function route(?string $route): string
+    {
+        $map = [
+            'auto_minor' => 'Approved automatically (no academic change)',
+            'auto_green' => 'Approved by the Head of Department',
+            'hod' => 'Approved by the Head of Department',
+            'qa' => 'Approved by Quality',
+            'seed' => 'Approved starting version',
+            'import' => 'Imported as the approved version',
+            'returned_hod' => 'Returned by the Head of Department',
+            'returned_qa' => 'Returned by Quality',
+            'no_change' => 'No change',
+        ];
+        return $map[(string) $route] ?? ucfirst(str_replace('_', ' ', (string) $route));
     }
 
     public static function flash(): string
@@ -124,17 +178,17 @@ final class View
         $common = [];
         switch ($user['role']) {
             case 'faculty':
-                return [['faculty.php', 'My actions & courses', 'home'], ['improvements.php', 'Improvement actions', 'loop'], ['catalog.php', 'Study plans', 'book']];
+                return [['faculty.php', 'My courses', 'home'], ['improvements.php', 'Improvements', 'loop'], ['catalog.php', 'Study plans', 'book']];
             case 'hod':
-                return [['department.php', 'Department', 'home'], ['approvals.php', 'Approvals', 'check'], ['exceptions.php', 'Exceptions', 'flag'], ['programs.php', 'Programs', 'grid'], ['improvements.php', 'Improvement actions', 'loop'], ['assign.php', 'Assign a course', 'plus'], ['spec_import.php', 'Import specifications', 'upload'], ['catalog.php', 'Study plans', 'book']];
+                return [['department.php', 'My department', 'home'], ['approvals.php', 'Approvals', 'check'], ['exceptions.php', 'Problems to sort out', 'flag'], ['programs.php', 'Programs', 'grid'], ['improvements.php', 'Improvements', 'loop'], ['assign.php', 'Assign a course', 'plus'], ['spec_import.php', 'Import specifications', 'upload'], ['catalog.php', 'Study plans', 'book']];
             case 'qa':
-                return [['quality.php', 'Quality overview', 'home'], ['exceptions.php', 'Exception center', 'flag'], ['approvals.php', 'Approvals & sample', 'check'], ['programs.php', 'Programs', 'grid'], ['improvements.php', 'Improvement actions', 'loop'], ['spec_import.php', 'Import specifications', 'upload'], ['policies.php', 'Quality policies', 'sliders'], ['catalog.php', 'Study plans', 'book']];
+                return [['quality.php', 'Overview', 'home'], ['exceptions.php', 'Problems to sort out', 'flag'], ['approvals.php', 'Approvals & spot-checks', 'check'], ['programs.php', 'Programs', 'grid'], ['improvements.php', 'Improvements', 'loop'], ['spec_import.php', 'Import specifications', 'upload'], ['translations.php', 'Arabic wording', 'globe'], ['policies.php', 'Quality policies', 'sliders'], ['catalog.php', 'Study plans', 'book']];
             case 'dean':
-                return [['college.php', 'College quality', 'home'], ['programs.php', 'Programs', 'grid'], ['exceptions.php', 'Exceptions', 'flag'], ['improvements.php', 'Improvement actions', 'loop'], ['catalog.php', 'Study plans', 'book']];
+                return [['college.php', 'My college', 'home'], ['programs.php', 'Programs', 'grid'], ['exceptions.php', 'Problems to sort out', 'flag'], ['improvements.php', 'Improvements', 'loop'], ['catalog.php', 'Study plans', 'book']];
             case 'leadership':
-                return [['institution.php', 'Institution', 'home'], ['programs.php', 'Programs', 'grid'], ['exceptions.php', 'Exceptions', 'flag'], ['improvements.php', 'Improvement actions', 'loop'], ['catalog.php', 'Study plans', 'book']];
+                return [['institution.php', 'University overview', 'home'], ['programs.php', 'Programs', 'grid'], ['exceptions.php', 'Problems to sort out', 'flag'], ['improvements.php', 'Improvements', 'loop'], ['catalog.php', 'Study plans', 'book']];
             case 'admin':
-                return [['admin.php', 'System health', 'home'], ['admin.php?tab=users', 'Users & access', 'users'], ['admin.php?tab=security', 'Security events', 'shield'], ['admin.php?tab=audit', 'Audit log', 'list'], ['admin.php?tab=errors', 'Error log', 'alert'], ['admin.php?tab=integrations', 'Integrations', 'plug'], ['policies.php', 'Policies (read-only)', 'sliders']];
+                return [['admin.php', 'System health', 'home'], ['admin.php?tab=users', 'Users & access', 'users'], ['admin.php?tab=security', 'Security events', 'shield'], ['admin.php?tab=audit', 'Activity log', 'list'], ['admin.php?tab=errors', 'Error log', 'alert'], ['admin.php?tab=integrations', 'University systems', 'plug'], ['translations.php', 'Arabic wording', 'globe'], ['policies.php', 'Policies (read-only)', 'sliders']];
         }
         return $common;
     }
@@ -162,6 +216,7 @@ final class View
             'upload' => 'M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3',
             'lock' => 'M6 11h12v9H6zM8 11V8a4 4 0 0 1 8 0v3',
             'bolt' => 'M13 3 4 14h7l-1 7 9-11h-7z',
+            'globe' => 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18',
             'route' => 'M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4M18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4M6 15V9a4 4 0 0 1 4-4h6M18 9v6a4 4 0 0 1-4 4H8',
         ];
         return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' . ($paths[$name] ?? '') . '"/></svg>';
@@ -213,6 +268,11 @@ final class View
     public static function footer(): void
     {
         echo '</main><footer class="foot">SAQF ' . SAQF_VERSION . ' · Al Yamamah University · Supports NCAAA-oriented academic quality workflows (not a compliance certification)</footer></div></div>';
+        // Words the page script shows (toasts, the live weight total): rendered here so the Arabic
+        // interface translates them like any other text.
+        echo '<div id="ui-text" hidden><span data-k="saved">Saved</span><span data-k="cleared">Cleared automatically:</span><span data-k="opened">New check:</span>'
+            . '<span data-k="failed">Could not save</span><span data-k="network">Network error — nothing was changed.</span><span data-k="total">Total</span>'
+            . '<span data-k="must">must be</span><span data-k="nomatch">No matches</span></div>';
         echo '<script src="' . self::url('assets/app.js') . '?v=' . SAQF_VERSION . '"></script></body></html>';
     }
 
@@ -226,15 +286,21 @@ final class View
         return $out . '</nav>';
     }
 
+    /**
+     * Achievement bar: the share of students who met an outcome, with the goal marked.
+     * "72% · goal 70%"; "72% so far" while not every assessment is graded.
+     */
     public static function bar(?float $value, ?float $target, bool $provisional = false): string
     {
         if ($value === null) {
-            return '<div class="bar bar-empty"><span>no results yet</span></div>';
+            return '<div class="bar bar-empty"><span>no grades yet</span></div>';
         }
         $met = $target === null || $value >= $target - 1e-9;
         $w = max(2, min(100, $value));
-        $t = $target === null ? '' : '<i class="bar-target" style="left:' . min(100, $target) . '%" title="Target ' . self::pct($target) . '"></i>';
-        return '<div class="bar ' . ($provisional ? 'bar-prov ' : '') . ($met ? 'bar-ok' : 'bar-low') . '"><b style="width:' . $w . '%"></b>' . $t . '<span>' . self::pct($value) . ($provisional ? ' · provisional' : '') . '</span></div>';
+        $tip = self::pct($value) . ' of students met this' . ($target === null ? '' : ' (goal ' . self::pct($target) . ')') . ($provisional ? '. Early result: not every assessment is graded yet.' : '.');
+        $t = $target === null ? '' : '<i class="bar-target" style="left:' . min(100, $target) . '%"></i>';
+        $label = self::pct($value) . ($provisional ? ' so far' : '') . ($target === null ? '' : ' · goal ' . self::pct($target));
+        return '<div class="bar ' . ($provisional ? 'bar-prov ' : '') . ($met ? 'bar-ok' : 'bar-low') . '" title="' . self::h($tip) . '"><b style="width:' . $w . '%"></b>' . $t . '<span>' . self::h($label) . '</span></div>';
     }
 
     public static function spark(array $values, ?float $target = null, int $w = 120, int $h = 30): string
