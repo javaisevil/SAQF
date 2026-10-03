@@ -31,7 +31,7 @@ if ($programId) {
     $rows = Db::all($sql . ' ORDER BY spe.plan_year IS NULL, spe.plan_year, spe.plan_semester, spe.requirement_group, c.code', $params);
 }
 $program = $programId ? Db::one('SELECT p.*, d.name AS dept, c.name AS college FROM programs p JOIN departments d ON d.id = p.department_id JOIN colleges c ON c.id = d.college_id WHERE p.id = ?', [$programId]) : null;
-V::header('Study plans', $user, ['subtitle' => 'Synced from YU\'s published study plans · each choice narrows the next, so invalid combinations never appear']);
+V::header('Study plans', $user, ['subtitle' => 'From the university\'s published study plans; each choice narrows the next']);
 ?>
 <section class="card"><div class="card-b">
 <form method="get" class="grid g4" style="align-items:end">
@@ -45,13 +45,13 @@ V::header('Study plans', $user, ['subtitle' => 'Synced from YU\'s published stud
 </form>
 </div></section>
 <?php if ($program): ?>
-<section class="card"><div class="card-h"><h2><?= V::h($program['code'] . ' — ' . $program['name']) ?></h2><span class="muted small"><?= V::h($program['college'] . ' · ' . $program['dept']) ?> · plan <?= V::h($program['plan_version']) ?></span><a class="right small" href="<?= V::h($program['source_url']) ?>" target="_blank" rel="noopener noreferrer">Published PDF</a></div>
-  <div class="card-b tight"><div class="table-wrap"><table><thead><tr><th>When</th><th>Course</th><th>Owner</th><th class="num">CR</th><th>Type</th><th>Group</th></tr></thead><tbody>
-  <?php foreach ($rows as $e): ?><tr><td class="small nowrap"><?= $e['plan_year'] === null ? '<span class="muted">any</span>' : ((int) $e['plan_year'] === 0 ? 'Foundation' : 'Y' . (int) $e['plan_year'] . ($e['plan_semester'] == 3 ? ' Summer' : ' S' . (int) $e['plan_semester'])) ?></td>
-    <td><?= $e['course_id'] ? '<strong>' . V::h($e['code']) . '</strong> ' . V::h($e['title']) . ((int) $e['is_graduate'] && $program['level'] === 'Undergraduate' ? ' ' . V::pill('graduate course', 'violet') : '') : '<span class="muted">' . V::h($e['slot_title']) . ' (elective slot)</span>' ?></td>
-    <td class="small muted"><?= V::h($e['owner'] ?? '') ?></td><td class="num"><?= V::h(rtrim(rtrim((string) $e['credits'], '0'), '.')) ?></td><td><?= V::pill($e['course_type'], $e['course_type'] === 'required' ? 'blue' : 'grey') ?></td><td class="small"><?= V::h($e['requirement_group']) ?></td></tr><?php endforeach; ?>
+<section class="card"><div class="card-h"><h2><?= V::h($program['code'] . ' — ' . $program['name']) ?></h2><span class="muted small"><?= V::h($program['college']) ?> · <?= V::h($program['dept']) ?></span><a class="right small" href="<?= V::h($program['source_url']) ?>" target="_blank" rel="noopener noreferrer">Published PDF</a></div>
+  <div class="card-b tight"><div class="table-wrap"><table><thead><tr><th>When</th><th>Course</th><th>Taught by</th><th class="num">Credit hours</th><th>Type</th><th>Group</th></tr></thead><tbody>
+  <?php foreach ($rows as $e): ?><tr><td class="small nowrap"><?= $e['plan_year'] === null ? '<span class="muted">' . V::h('Any time') . '</span>' : ((int) $e['plan_year'] === 0 ? V::h('Foundation year') : V::h('Year ' . (int) $e['plan_year']) . ' · ' . V::h($e['plan_semester'] == 3 ? 'Summer' : 'Semester ' . (int) $e['plan_semester'])) ?></td>
+    <td><?= $e['course_id'] ? '<strong>' . V::h($e['code']) . '</strong> ' . V::h($e['title']) . ((int) $e['is_graduate'] && $program['level'] === 'Undergraduate' ? ' ' . V::pill('graduate course', 'violet') : '') : '<span class="muted">' . V::h($e['slot_title']) . '</span> ' . V::pill('your choice', 'grey') ?></td>
+    <td class="small muted"><?= V::h($e['owner'] ?? '') ?></td><td class="num"><?= V::h(rtrim(rtrim((string) $e['credits'], '0'), '.')) ?></td><td><?= V::pill(ucfirst((string) $e['course_type']), $e['course_type'] === 'required' ? 'blue' : 'grey') ?></td><td class="small"><?= V::h($e['requirement_group']) ?></td></tr><?php endforeach; ?>
   </tbody></table></div></div></section>
 <?php else: ?>
-<div class="grid g3"><?php foreach ($colleges as $c): ?><section class="card"><div class="card-h"><h2><?= V::h($c['name']) ?></h2></div><div class="card-b small"><?php foreach ($programs as $p): if ((int) $p['college_id'] !== (int) $c['id']) { continue; } ?><div><a href="catalog.php?program=<?= (int) $p['id'] ?>&college=<?= (int) $c['id'] ?>"><?= V::h($p['code']) ?></a> <?= V::h($p['short_name']) ?> <span class="muted">· <?= V::h($p['level']) ?></span></div><?php endforeach; ?></div></section><?php endforeach; ?></div>
+<div class="grid g3"><?php foreach ($colleges as $c): ?><section class="card"><div class="card-h"><h2><?= V::h($c['name']) ?></h2></div><div class="card-b small"><?php foreach ($programs as $p): if ((int) $p['college_id'] !== (int) $c['id']) { continue; } ?><div><a href="catalog.php?program=<?= (int) $p['id'] ?>&college=<?= (int) $c['id'] ?>"><?= V::h($p['code']) ?></a> <?= V::h($p['short_name']) ?> <span class="muted">· <?= V::h($p['level'] === 'Postgraduate' ? 'Master' : 'Bachelor') ?></span></div><?php endforeach; ?></div></section><?php endforeach; ?></div>
 <?php endif;
 V::footer();
