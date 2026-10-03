@@ -2,7 +2,7 @@
 
 For university IT. SAQF reads from four systems and writes to none of them. Each connection is
 chosen with settings (environment variables, or `config.local.php` on shared hosting), tested from
-*Administration → Integrations → Test connections*, and then run automatically by the scheduler.
+*Administration → University systems → Test connections*, and then run automatically by the scheduler.
 
 | System | What SAQF reads | Connectors | Setting |
 |---|---|---|---|
@@ -13,7 +13,7 @@ chosen with settings (environment variables, or `config.local.php` on shared hos
 | Mail server | — (sends notifications, invitations, password resets) | SMTP (Microsoft 365, Google, on-premise relay) | `SAQF_MAIL_*` |
 
 `SAQF_SIS_SOURCE=none` or `SAQF_LMS_SOURCE=none` switches a connection off: terms are then added
-under *Integrations → Academic calendar* and courses assigned by Heads of Department, and instructors
+under *University systems → Academic calendar* and courses assigned by Heads of Department, and instructors
 upload gradebook CSVs in their course workspace.
 
 ## What runs automatically
@@ -199,6 +199,21 @@ the published plans with `tools/build_yu_snapshot.py`. To use the Registrar's ow
 same structure to a folder and set `SAQF_INSTITUTION_DIR`. The scheduler re-syncs it daily; changes to
 credits, titles or PLO statements are audited, and PLO changes trigger impact analysis.
 
+### Arabic names
+
+The Arabic interface and the Arabic Word documents show course and program names, department and
+college names, program outcomes and study-plan groups in Arabic when the catalogue provides them.
+Either add the Arabic next to each English field in the export (`name_ar`, `short_name_ar`,
+`title_ar` for a course or elective slot, `text_ar` for an outcome or description, `group_ar`,
+`condition_ar`), or put an `arabic.json` file beside `institution.json` keyed by codes, as in
+[`data/yu/arabic.json`](../data/yu/arabic.json) (`departments`, `programs`, `courses`, `plos`,
+`descriptions`, and, keyed by the English text, `groups`, `slots`, `conditions`, `notes`). Every
+sync stores them as *catalogue* wording; a correction a person made on the *Arabic wording* page is
+never overwritten. Anything still without Arabic is listed on that page, and Quality can download it
+as a spreadsheet, fill in the Arabic column and upload it back. Course content (learning outcomes,
+assessments, topics) is worded in Arabic by the instructor in the outcome editor or by Quality on the
+same page.
+
 ---
 
 ## University sign-in (OpenID Connect)
@@ -301,7 +316,7 @@ Every change is in the audit log with its source (`admin`, `import`, `sis`, `sso
 | Symptom | Where to look |
 |---|---|
 | Test connections reports a problem | the message names the host and HTTP status; check URL, token and firewall rules from the SAQF server |
-| No workspaces at term start | *Integrations → Recent integration runs*: `sis.assignments` counts unknown courses / instructors; check the term's `starts_on` and the policy *Start terms automatically* |
+| No workspaces at term start | *University systems → Recent updates*: `sis.assignments` counts unknown courses / instructors; check the term's `starts_on` and the policy *Start terms automatically* |
 | Grades not imported | the gradebook column names must match the specification's assessment names; see audit entries `results.columns_ignored`; the course needs an approved specification |
 | SSO: "not set up in SAQF yet" | add the person (or their role claim) — see *Who gets in* |
 | SSO: "issued by an unexpected identity provider" | `SAQF_OIDC_ISSUER` must equal the `issuer` in the provider's discovery document exactly |
