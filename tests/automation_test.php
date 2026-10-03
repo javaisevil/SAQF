@@ -150,7 +150,7 @@ foreach (Db::col('SELECT name FROM assessments WHERE spec_version_id = ?', [$dra
 Achievement::import($o412, $scores, 'upload');
 ok(in_array('CLO_TARGET_MISSED', openRules($o412), true), 'missed targets detected immediately after results import');
 $ia = Db::one('SELECT * FROM improvement_actions WHERE origin_offering_id = ? AND status = "draft" LIMIT 1', [$o412]);
-ok($ia && $ia['created_by'] === null && str_contains($ia['evidence_summary'], 'target'), 'improvement record drafted by SAQF with evidence: "' . mb_strimwidth((string) ($ia['evidence_summary'] ?? ''), 0, 70, '…') . '"');
+ok($ia && $ia['created_by'] === null && str_contains($ia['evidence_summary'], 'the goal is'), 'improvement record drafted by SAQF with evidence: "' . mb_strimwidth((string) ($ia['evidence_summary'] ?? ''), 0, 70, '…') . '"');
 throws(static fn() => Improvements::commit((int) $ia['id'], $omar, 'short', null, '2027-01-15'), 'an empty academic response is not accepted');
 $drafts = Db::col('SELECT id FROM improvement_actions WHERE origin_offering_id = ? AND status = "draft"', [$o412]);
 foreach ($drafts as $id) {
