@@ -1,4 +1,4 @@
-# SAQF 2.1: what we built, in plain words
+# SAQF 2.2: what we built, in plain words
 
 *For every teammate, technical or not. Read time: about 15 minutes.*
 
@@ -17,8 +17,9 @@
 5. If an outcome misses its target, SAQF **opens an improvement action** with an owner and a deadline. Next term it **checks whether results improved**.
 6. Only real decisions and real exceptions reach people. Faculty, the Head of Department, Quality, the Dean and the Vice President each get their **own list of what needs them**. Everything else stays in the background.
 7. Everything is **recorded** in a tamper-evident audit log, and reports are **generated** from the data rather than written — also as Word documents in the NCAAA layout, in English or Arabic.
-8. It works the way a university really works: **courses with several sections**, **existing specifications imported** in one file, **exam papers and samples collected** when results arrive, and an **Arabic interface**.
-9. It is **ready to run for real**: university sign-in, two-step verification, HTTPS, encrypted off-site backups that are tested by restoring them, and alerts to IT when something breaks.
+8. It works the way a university really works: **courses with several sections**, **existing specifications imported** in one file, **exam papers and samples collected** when results arrive, and a **complete Arabic interface** — course names, learning outcomes and assessments appear in Arabic too.
+9. Every screen speaks **plain language**: results are whole numbers next to their goal ("72% · goal 70%"), each page starts with *What needs you*, course facts are sentences ("3 credit hours (about 45 hours of class time)"), and codes such as rule names or file fingerprints are replaced by words or a "✓ Verified" mark.
+10. It is **ready to run for real**: university sign-in, two-step verification, HTTPS, encrypted off-site backups that are tested by restoring them, and alerts to IT when something breaks.
 
 Our rule for every screen was: *if the university already knows it, nobody types it; if software can check it, nobody checks it by hand; if it can be calculated, nobody calculates it.*
 
@@ -26,7 +27,7 @@ Our rule for every screen was: *if the university already knows it, nobody types
 
 ## 2. Before and after, side by side
 
-| Topic | AQMS (before) | SAQF 2.0 (now) |
+| Topic | AQMS (before) | SAQF 2.2 (now) |
 |---|---|---|
 | University data | 63 courses typed into a PHP file. Programs were a plain list with no link to courses | 14 YU programs, 366 courses, 735 study-plan entries and 488 prerequisite links, all connected |
 | Starting a course | Professor creates the course and types code, credits, program and so on | Created automatically from the teaching assignment. Nothing to type |
@@ -47,7 +48,8 @@ Our rule for every screen was: *if the university already knows it, nobody types
 | Existing specifications | Typed in again | Imported from one CSV file, each course checked before anything is written |
 | Exam papers and samples (evidence) | Collected by hand before accreditation visits | Requested automatically when results arrive, virus-scanned, stored securely, listed in the course report |
 | Word documents for NCAAA | None | Course specification and course report generated as Word files in the NCAAA layout, English or Arabic |
-| Language | English only | English and Arabic (right to left), remembered per person |
+| Language | English only | English and Arabic (right to left), remembered per person; in Arabic, course names, learning outcomes and assessments are Arabic too |
+| Wording | Codes and decimals ("SO2 69.3", "0.11 return rounds", "sha256 …") | Plain sentences and whole numbers next to their goal ("SO2 69%", "72% · goal 70%", "✓ Verified") |
 | Sign-in security | Password only | University single sign-on, two-step verification (required for administrators), strong-password rules, sessions you can end remotely, re-confirmation before sensitive changes |
 | Backups and alerts | None | Encrypted nightly backups (database + evidence files) copied off the server and verified; IT alerted in SAQF, by e-mail and on Teams when anything fails |
 
@@ -59,16 +61,16 @@ All people and grades are fictional. The study plans are YU's real published pla
 
 The cast is small on purpose: one person per role plus two colleagues, eight in all.
 
-- **Dr. Omar (faculty) – SWE 401 Software Quality Assurance.** CLO3 ("Design a test and quality assurance plan") scored 53.3% in Fall 2025, below the 70% target. SAQF drafted an improvement action and Omar wrote the academic response (weekly test-design labs). In Spring 2026 it rose to 63.3%. SAQF reports *"Performance improved following the intervention"*. It does not claim the labs *caused* the rise. It is still below target two terms running, so the Head of Department sees a **recurring gap**.
-- **SWE 401 has two sections this term.** Omar coordinates and teaches section 01; **Dr. Sara** teaches section 02. Midterm results show section 02 **15.7 points behind** section 01 on two outcomes, so SAQF flags it for the coordinator — as a prompt to compare teaching and marking, not a judgement of a person. Because midterm results arrived, SAQF also **asks for the midterm paper**; uploading it clears the request.
-- **Dr. Omar – SWE 412.** Omar is revising the course and added "CLO4: *Understand* security risks…". SAQF immediately shows four problems: *understand* is not measurable, CLO4 is not mapped to a PLO, CLO4 is not assessed, and the weights total 105%. Fixing them turns the course **Ready**; it can only be submitted once they are fixed. The HoD then sees just the two changes.
+- **Dr. Omar (faculty) – SWE 401 Software Quality Assurance.** CLO3 ("Design a test and quality assurance plan") was met by 53% of students in Fall 2025, below the 70% goal. SAQF drafted an improvement action and Omar wrote what would change (weekly test-design labs). In Spring 2026 it rose to 63%. SAQF reports *"Results went up afterwards"*. It does not claim the labs *caused* the rise. It is still below its goal two terms running, so the Head of Department sees a **recurring gap**.
+- **SWE 401 has two sections this term.** Omar coordinates and teaches section 01; **Dr. Sara** teaches section 02. Midterm results show section 02 **16 points behind** section 01 on two outcomes, so SAQF flags it for the coordinator — as a prompt to compare teaching and marking, not a judgement of a person. Because midterm results arrived, SAQF also **asks for the midterm paper**; uploading it clears the request.
+- **Dr. Omar – SWE 412.** Omar is revising the course and added "CLO4: *Understand* security risks…". SAQF immediately shows four problems: *understand* is not measurable, CLO4 is not linked to a program outcome, CLO4 is not assessed, and the weights total 105%. Fixing them clears the *Checks* card ("Everything checks out"); the changes can only be sent once they are fixed. The HoD then sees just the two changes.
 - **Dr. Omar – CIS 491 capstone.** One report is worth 70% of the grade, but policy allows at most 60%. Omar asks for a **policy exception** with a reason. Quality decides, and the decision is recorded.
 - **Dr. Sara (faculty) – SWE 302.** Midterm grades are scheduled to arrive from the LMS. When they are published, SAQF recalculates and raises an **early warning** for a CLO trending at 60% while there is still time to act.
 - **Dr. Noura (faculty, Accounting & Finance) – ACC 311 and MIS 327.** Their existing specifications reached SAQF through the **bulk import**, as a university's would on day one.
 - **IT, 21 September:** the LMS stopped answering overnight. After two failed runs SAQF raised an **IT alert**; it cleared itself when the LMS came back. The history is under *IT alerts*.
 - **Data problems SAQF found in YU's own published plans:** MIS 316 is listed with 3 and with 4 credit hours, and the Management and Marketing plans list 126 of 127 credits. Architecture, EMBA, LLB and LLM publish no PLOs. These go to Quality or the HoD as **data exceptions** instead of silently breaking calculations.
-- **Program level:** SWE's outcome SO2 has been below target for two consecutive terms. This escalates to the **Dean**.
-- **Live automation for the judges:** the IT admin's *Integration simulator* can (1) publish the SWE 302 midterm grades, (2) publish a new SIS teaching assignment (SWE 413 to a brand-new instructor, Dr. Faisal Al-Dosari), which creates the account and the workspace on the spot, and (3) start Spring 2027, which freezes last term's reports, rolls every course forward and evaluates last term's improvement actions.
+- **Program level:** SWE's outcome SO2 has been below its goal two terms in a row. This escalates to the **Dean**.
+- **Live automation for the judges:** the IT admin's *University systems simulator* can (1) publish the SWE 302 midterm grades, (2) publish a new SIS teaching assignment (SWE 413 to a brand-new instructor, Dr. Faisal Al-Dosari), which creates the account and the workspace on the spot, and (3) start Spring 2027, which freezes last term's reports, rolls every course forward and evaluates last term's improvement actions.
 
 ---
 
@@ -78,10 +80,11 @@ The cast is small on purpose: one person per role plus two colleagues, eight in 
 - Opens SAQF and sees *What needs you*, often "Nothing needs you right now".
 - Each course has a workspace with seven tabs: Overview, Outcomes & assessment, Results & achievement, Evidence, Improvement, Course report, History.
 - In a course with several sections, the coordinator owns the shared specification; section instructors see the course, add results for their section and upload evidence. Achievement is shown per section.
-- Downloads the course specification and course report as Word documents in the NCAAA layout (English, or Arabic headings).
+- Downloads the course specification and course report as Word documents in the NCAAA layout (English, or fully Arabic — headings and course content).
+- Can type the Arabic wording of an outcome while writing it, so the Arabic interface and Arabic Word files show it.
 - Types only academic content: outcomes, assessment design, interpretation of results and improvement responses. Code, credits, programs, prerequisites, PLOs, last term's structure, achievement and the report are all filled in automatically.
 - Every value shows where it came from (Registrar, SIS, LMS, Inherited, Calculated, Faculty input, and so on).
-- *Prepared automatically* panel: factual counts such as "13 fields populated, 17 records inherited, 20 checks run".
+- *Done for you this term* on the home page: real counts in plain sentences, such as "46 details filled in from university records", "60 items carried over from your approved specifications" and "102 checks run on your courses".
 
 **Head of Department**
 - Sees only courses that need attention, decisions waiting, recurring gaps, program PLO problems and overdue actions. Healthy courses stay out of the way.
@@ -91,12 +94,13 @@ The cast is small on purpose: one person per role plus two colleagues, eight in 
 - Can import the department's existing approved specifications from one CSV file.
 
 **Quality (QA)**
-- **Exception Center** with categories: data, policy, academic, quality risk, evidence, workflow.
-- Decides **policy exceptions** (approve or reject with a reason) and can set a rule aside or resolve an item. Nothing is ever silently bypassed.
+- **Problems to sort out**, by type: problems in university records, exceptions to policy, academic decisions, risks, missing evidence, next steps.
+- Decides **exceptions to policy** (allow or turn down, with a reason) and can set a rule aside or resolve an item. Nothing is ever silently bypassed.
 - Spot-checks a **random sample** of automatically approved specifications (governance without re-checking everything).
 - Owns the **Quality policies** page: the achievement method, targets, weight limits, deadlines and sampling rate. Every change is audited with a reason.
 - Imports existing specifications for any department (*Import specifications*).
-- Sees factual workflow numbers, e.g. "89% of approvals needed no QA step" and "average 0.11 return rounds".
+- Sees factual workflow numbers, each explained in a sentence, e.g. "67% of approvals needed nothing from Quality" and "Usually decided within 24 hours".
+- Keeps the Arabic version complete on the **Arabic wording** page: what is still in English is listed with a box for its Arabic, or downloaded as a spreadsheet, filled in and uploaded back.
 
 **Dean**
 - College page: persistent problems, courses needing attention, improvement completion, approvals without a QA step, and departments with drill-down.
@@ -112,7 +116,7 @@ The cast is small on purpose: one person per role plus two colleagues, eight in 
 
 **Everyone:** an *Account & security* page to change the password, turn on two-step verification with any authenticator app, see where they are signed in and sign out other devices, and choose English or Arabic.
 
-**Screenshots** of each role are in [`docs/screenshots/`](screenshots/): sign-in, faculty action center, workspace with issues, change diff, improvement effectiveness, HoD department, QA Exception Center, dean, leadership, generated report, MBA study plan, admin health and audit log.
+**Screenshots** of each role are in [`docs/screenshots/`](screenshots/) (taken before the plain-wording update of 2.2, so some labels differ): sign-in, faculty action center, workspace with issues, change diff, improvement effectiveness, HoD department, QA Exception Center, dean, leadership, generated report, MBA study plan, admin health and audit log.
 
 ---
 
@@ -142,7 +146,7 @@ The cast is small on purpose: one person per role plus two colleagues, eight in 
 **The "smart" parts and how they really work**
 - **Rules engine:** 35 plain, explainable rules, e.g. "weights must total 100%". This is deterministic software, *not* AI.
 - **Mapping suggestions:** compares the wording of a CLO with each PLO using **TF-IDF text similarity**, a classic statistical method, plus the learning domain. Shown as *Suggested* with its reasoning, and only applied when the professor accepts.
-- **Trends and anomalies:** simple statistics over past terms, e.g. "dropped 12 points" or "below target 2 terms in a row".
+- **Trends and anomalies:** simple statistics over past terms, e.g. "down about 2 points each term" or "below its goal 2 terms in a row".
 - We deliberately **do not call any of this AI**.
 
 **Skills that went into it:** software architecture, database design, rules-engine design, event-driven automation, security engineering, UX/HCI (error prevention, progressive disclosure, management by exception), academic quality knowledge (CLO/PLO, NCAAA-oriented workflows) and automated testing.
@@ -195,17 +199,17 @@ Our current 2-minute video script compared with what exists now:
 |---|---|
 | Course data is filled from the study plan (code, hours, level, type) with the source documented | ✅ Goes further: the course is created from the teaching assignment and every value shows its source |
 | Quality gate checks measurable verbs, PLO mapping and 100% weights | ✅ Part of 35 continuous rules (`CLO_VAGUE_VERB`, `CLO_UNMAPPED`, `ASSESSMENT_WEIGHT_TOTAL`) |
-| "Found four errors; fixed them; the record turned green" | ✅ SWE 412 demo has exactly four issues → *Ready*. ⚠️ The shot showing **40% → 100%** should change: SAQF now shows explainable states (*Action required → Ready*) instead of a percentage score |
+| "Found four errors; fixed them; the record turned green" | ✅ SWE 412 demo has exactly four problems → "Everything checks out". ⚠️ The shot showing **40% → 100%** should change: SAQF now shows explainable states in plain words (*Needs you → All good*) instead of a percentage score |
 | Green approved automatically after HoD with a QA sample; amber to QA; red never sent | ✅ Policy-controlled. A record with blockers cannot be submitted |
 | Every transition recorded: who, when, outcome | ✅ Hash-chained audit log, plus old/new values and the reason |
 | *Vision:* connect to the SIS so the course arrives ready and inherits last term | ✅ SIS connectors (export folder or API) are built and tested; the term starts by itself on its start date. The demo uses a **simulated** feed. Connecting YU's SIS needs YU IT to provide the export or API access |
 | *Vision:* grades → automatic CLO achievement | ✅ Moodle, Blackboard and gradebook-export connectors are built and tested; the demo uses a **simulated** LMS feed. Method configurable |
-| *Vision:* below target → improvement plan with owner and date | ✅ Drafted automatically. The professor writes the academic response |
-| *Vision:* compare the next term's results | ✅ "Performance improved / similar / declined following the intervention" |
+| *Vision:* below target → improvement plan with owner and date | ✅ Drafted automatically. The professor writes what will change |
+| *Vision:* compare the next term's results | ✅ "Results went up / stayed about the same / went down afterwards" |
 | Data → engine → roles | ✅ That is the architecture |
-| "Before the final we will build achievement and improvement tracking, then pilot and measure return rounds and approval time" | ✅ Built. The measurements exist (average return rounds, median hours to decision, % approvals with no QA step). The **pilot with a real department is still to do** |
+| "Before the final we will build achievement and improvement tracking, then pilot and measure return rounds and approval time" | ✅ Built. The measurements exist (changes approved the first time, usual time to a decision, % approvals that needed nothing from Quality). The **pilot with a real department is still to do** |
 
-**Suggested video edits:** replace the 40%→100% shot with *Action required → Ready*. Move "achievement calculation and improvement tracking" from *plan* to *working now*. Keep the pilot as the next step.
+**Suggested video edits:** replace the 40%→100% shot with *Needs you → All good*. Move "achievement calculation and improvement tracking" from *plan* to *working now*. Keep the pilot as the next step.
 
 ---
 
@@ -215,8 +219,8 @@ Our current 2-minute video script compared with what exists now:
 |---|---|
 | Idea & evolution (41%) | Clear evolution from a digital form (AQMS) to automating the quality cycle (SAQF). Before/after documented in `docs/AUDIT_BEFORE.md`. Differentiation: exception-based QA and the change-based workflow, not a file repository |
 | Solution & prototype (27%) | A complete, deployable solution across 6 roles, in English and Arabic, shown in 5 minutes through a guided tour (`docs/JUDGES_DEMO.md`). Event-driven automation is shown live through the simulator |
-| Feasibility & execution (17%) | Standard PHP/MySQL that any university can host. Working connectors for the SIS, Moodle/Blackboard, university SSO and e-mail. Docker stack with HTTPS, encrypted off-site backups with a tested restore, health checks and IT alerts; two-step verification and a Security center; five automated test suites (392 checks) in CI; database upgrades; an operations runbook and an IT integration guide. Next step: pilot with one department |
-| Impact & sustainability (10%) | Factual automation counts: in the demo scenario SAQF populated 5,991 fields, ran 7,948 checks, inherited 308 records, made 152 calculations and auto-cleared 139 issues, while only 15 issues ever needed a person above faculty level. Policies are configurable, so other universities could adopt it |
+| Feasibility & execution (17%) | Standard PHP/MySQL that any university can host. Working connectors for the SIS, Moodle/Blackboard, university SSO and e-mail. Docker stack with HTTPS, encrypted off-site backups with a tested restore, health checks and IT alerts; two-step verification and a Security center; six automated test suites (423 checks) in CI; database upgrades; an operations runbook and an IT integration guide. Next step: pilot with one department |
+| Impact & sustainability (10%) | Factual automation counts: in the demo scenario SAQF populated 5,991 fields, ran 7,948 checks, inherited 308 records, made 152 calculations and auto-cleared 139 issues, while only 12 issues ever needed a person above faculty level. Policies are configurable, so other universities could adopt it |
 | Presentation (5%) | The 5-minute script and Q&A sheet (`docs/JUDGES_DEMO.md`), the guided tour in the app, a plain test-case list (`docs/TEST_CASES.md`), screenshots in `docs/screenshots/` and an updated video plan (section 8) |
 
 > These counts come from the demo replay (fictional data). Do not present them as measured time savings at YU.
@@ -228,33 +232,34 @@ Our current 2-minute video script compared with what exists now:
 The full script with timings, what to say, what to highlight and a Q&A sheet is in **[`JUDGES_DEMO.md`](JUDGES_DEMO.md)**. In the app, the **Guided tour** (`/tour.php`, linked from the sign-in page and the demo bar) has one button per step that signs in as the right person and opens the right page:
 
 1. **Sign-in page in Arabic** (0:00) — and back to English.
-2. **Dr. Omar, SWE 412** (0:30): four issues found by SAQF; change *Lab assignments* 25 → 20 and *Save weights*; the course turns *Ready*.
-3. **Dr. Omar, SWE 401** (1:15): section 02 trails by 15.7 points; *Improvement* 53.3% → 63.3%; *Evidence*: upload the midterm paper and the request clears; download the NCAAA Word report.
-4. **Head of Department** (2:15): only exceptions.
-5. **Quality** (2:45): approve the CIS 491 exception with a reason; *Import specifications*.
+2. **Dr. Omar, SWE 412** (0:30): four problems found by SAQF; change *Lab assignments* 25 → 20 and *Save weights*; that problem clears itself.
+3. **Dr. Omar, SWE 401** (1:15): section 02 is 16 points behind; *Improvement* 53% → 63%, "Results went up afterwards"; *Evidence*: upload the midterm paper and the request clears; download the Word report in English or Arabic.
+4. **Head of Department** (2:15): only what needs a decision.
+5. **Quality** (2:45): allow the CIS 491 exception with a reason; *Import specifications*; *Arabic wording*.
 6. **IT** (3:30): *Publish now* (grades → early warning), *Publish assignment* (new instructor → account + workspace), *Security center*.
-7. **Vice President** (4:30): the whole institution. Close with "not a prototype: 392 automated checks, HTTPS, encrypted backups, SSO, two-step verification, Arabic".
+7. **Vice President** (4:30): the whole university. Close with "not a prototype: 423 automated checks, HTTPS, encrypted backups, SSO, two-step verification, Arabic throughout".
 
 ---
 
 ## 11. What was tested
 
-Everything runs with one command: `sh bin/test_all.sh` (or `docker compose exec app sh bin/test_all.sh`) — **392 checks, 0 failures**. The plain-language list of what each feature does and how to see it is [`TEST_CASES.md`](TEST_CASES.md).
+Everything runs with one command: `sh bin/test_all.sh` (or `docker compose exec app sh bin/test_all.sh`) — **423 checks, 0 failures**. The plain-language list of what each feature does and how to see it is [`TEST_CASES.md`](TEST_CASES.md).
 
 - **58 automation scenario checks** (`tests/automation_test.php`), including: assignment creates a workspace, editing an outcome re-validates everything, grades trigger achievement, a missed target triggers a finding and a draft action, recurring gaps escalate, the semester rollover inherits structure, improvement effectiveness is evaluated, a PLO change shows its impact, the override lifecycle works, data conflicts are resolved, and a forged audit entry is detected.
 - **118 page and security checks** (`tests/http_smoke.php`), including: every page for every role, plus over 20 deliberate break-in attempts (professor opening another professor's course, a section instructor editing the coordinator's specification, a HoD from another department, faculty calling QA actions, missing CSRF token, anonymous access). Also account lockout, error-log lookup, audit verification from the console, and maintenance mode.
 - **96 production-capability checks** (`tests/production_test.php`): the SIS and LMS connectors against stand-ins for Moodle, Blackboard and a SIS API, the export folders, the automatic semester start, new-instructor accounts, e-mail delivery (including Arabic text), password reset, and sign-in token security (forged, expired, replayed and wrong-application tokens are refused).
 - **29 end-to-end sign-in checks** (`tests/sso_test.php`): the full university sign-in through a stand-in identity provider, including the attacks it must refuse and the administrator's two-step sign-in.
 - **91 checks of the new features** (`tests/features_test.php`): sections, the specification import, evidence uploads (including a stand-in virus scanner and the standard EICAR test virus), Word exports, two-step verification (against the official RFC test codes), password rules, sessions, re-confirmation, network rules, IT alerts with a stand-in Teams webhook, backup monitoring, the Arabic interface, and proof that the demo shortcuts do not exist in production mode.
-- Visual review of every page at desktop and phone widths, in English and in Arabic.
-- **Where it was tested:** real **MySQL 8.0** and the **Docker** stack (Apache, MySQL, the HTTPS proxy, backups) — all five suites pass in both. An encrypted backup was restored and its audit chain verified, and CI repeats that on every push to GitHub (`.github/workflows/ci.yml`), together with HTTPS checks. Running the Docker stack under Apache uncovered one page (generated reports) that answered a refused request with the wrong status code; it is fixed and covered by the tests.
+- **31 plain-wording and Arabic-content checks** (`tests/wording_test.php`): results as whole numbers with no decimals or hashes on screen, course facts in sentences, "What needs you" without jargon, Arabic course names from the Registrar (and a person's correction surviving the next sync), Arabic course content, the instructor typing the Arabic of an outcome, Arabic search, the *Arabic wording* page and spreadsheet (and that IT may word names but not course content), and the Arabic Word report.
+- Visual review of every page at desktop and phone widths, in English and in Arabic; an Arabic crawl of 117 screens finds no interface text left in English (codes such as SWE 401 or ISO 25010 stay as they are).
+- **Where it was tested:** real **MySQL 8.0** and the **Docker** stack (Apache, MySQL, the HTTPS proxy, backups) — all six suites pass in both. An encrypted backup was restored and its audit chain verified, and CI repeats that on every push to GitHub (`.github/workflows/ci.yml`), together with HTTPS checks. Running the Docker stack under Apache uncovered one page (generated reports) that answered a refused request with the wrong status code; it is fixed and covered by the tests.
 
 ---
 
 ## 12. Demo mode versus a real deployment
 
 In **demo mode** (the default for `docker compose up`):
-- **People, teaching assignments and student results** are fictional, delivered through simulated SIS and LMS feeds, and the IT admin's *Integration simulator* plays the university systems.
+- **People, teaching assignments and student results** are fictional, delivered through simulated SIS and LMS feeds, and the IT admin's *University systems simulator* plays the university systems.
 - The clock is anchored to Fall 2026, week 6, so the story looks the same whenever it is installed.
 
 In **production mode** (`APP_ENV=production`) the same engine runs on real data:
