@@ -59,6 +59,50 @@ final class Rules
         'PREREQ_UNKNOWN' => ['data', 'info', 'qa', 'A prerequisite refers to a course code that is not in the synced catalog.'],
     ];
 
+    /** Plain-language name of each rule, for lists and tags (never show the code to people). */
+    public const LABELS = [
+        'SPEC_NO_CLOS' => 'No learning outcomes yet',
+        'CLO_VAGUE_VERB' => 'Outcome cannot be measured',
+        'CLO_VERB_UNRECOGNISED' => 'Outcome verb unclear',
+        'CLO_DUPLICATE' => 'Duplicate outcome',
+        'CLO_UNMAPPED' => 'Outcome not linked to the program',
+        'CLO_UNMAPPED_ELECTIVE' => 'Elective not linked to the program',
+        'CLO_NOT_ASSESSED' => 'Outcome not assessed',
+        'ASSESSMENT_NO_CLO' => 'Assessment measures no outcome',
+        'ASSESSMENT_WEIGHT_TOTAL' => 'Weights do not add up to 100%',
+        'ASSESSMENT_ZERO_WEIGHT' => 'Assessment has no weight',
+        'ASSESSMENT_SINGLE_WEIGHT' => 'One assessment carries too much of the grade',
+        'MAPPING_EXCESSIVE' => 'Outcome linked to too many program outcomes',
+        'SPEC_OBJECTIVES_MISSING' => 'Course objective missing',
+        'CLO_DOMAIN_NARROW' => 'All outcomes in one learning area',
+        'OFFERING_NO_INSTRUCTOR' => 'No instructor assigned',
+        'OFFERING_NO_SPEC' => 'Course specification needed',
+        'RESULTS_OVERDUE' => 'Grades overdue',
+        'RESULTS_MISSING_ASSESSMENT' => 'Some grades missing',
+        'CLO_TARGET_MISSED' => 'Outcome below its goal',
+        'CLO_EARLY_WARNING' => 'Early warning',
+        'GAP_RECURRING' => 'Below its goal again',
+        'IMPROVEMENT_MISSING' => 'Improvement plan needed',
+        'IMPROVEMENT_OVERDUE' => 'Improvement action overdue',
+        'INTERPRETATION_MISSING' => 'Results need a comment',
+        'LOW_SAMPLE' => 'Too few students to judge',
+        'SECTION_GAP' => 'Sections differ',
+        'EVIDENCE_REQUESTED' => 'Exam papers requested',
+        'PROGRAM_NO_PLOS' => 'Program outcomes missing',
+        'PLO_NOT_COVERED' => 'Program outcome not taught',
+        'PLO_THIN_COVERAGE' => 'Program outcome taught in one course only',
+        'PLO_BELOW_TARGET' => 'Program outcome below its goal',
+        'PLO_PERSISTENT_BELOW' => 'Program outcome below its goal term after term',
+        'PLAN_CREDIT_MISMATCH' => 'Study plan credits do not add up',
+        'COURSE_CREDIT_CONFLICT' => 'Sources disagree on credit hours',
+        'PREREQ_UNKNOWN' => 'Unknown prerequisite',
+    ];
+
+    public static function label(string $code): string
+    {
+        return self::LABELS[$code] ?? ucfirst(strtolower(str_replace('_', ' ', $code)));
+    }
+
     public static function meta(string $code): array
     {
         $m = self::META[$code] ?? ['validation', 'warning', 'faculty', ''];
@@ -131,9 +175,9 @@ final class Rules
                         $add(
                             'CLO_UNMAPPED',
                             $clo['lineage_key'] . '@' . $p['code'],
-                            "$label is not mapped to any {$p['code']} PLO",
-                            "{$course['code']} is " . ($p['course_type'] === 'required' ? 'a required course' : 'an elective owned by this department') . " in {$p['short_name']}, but {$clo['code']} contributes to none of its PLOs.",
-                            "Select the {$p['code']} PLO(s) this outcome develops. SAQF only offers PLOs of programs whose study plan contains this course.",
+                            "$label is not linked to any {$p['code']} program outcome",
+                            "{$course['code']} is " . ($p['course_type'] === 'required' ? 'a required course' : 'an elective owned by this department') . " in {$p['short_name']}, but {$clo['code']} supports none of its program outcomes.",
+                            "Pick the {$p['code']} program outcomes this outcome helps develop. SAQF only offers outcomes of programs whose study plan includes this course.",
                             ['clo_id' => $clo['id'], 'program_id' => $p['program_id']]
                         );
                     } else {
@@ -141,7 +185,7 @@ final class Rules
                         $electiveGaps[(int) $p['program_id']]['clos'][] = $clo['code'];
                     }
                 } elseif (count($mapped) > $maxPlos) {
-                    $add('MAPPING_EXCESSIVE', $clo['lineage_key'] . '@' . $p['code'], "$label maps to " . count($mapped) . " {$p['code']} PLOs", "Mapped to " . implode(', ', array_column($mapped, 'code')) . ". Policy flags more than $maxPlos as possibly over-mapped.", 'Keep only the PLOs this outcome substantially develops and assesses.', ['clo_id' => $clo['id']]);
+                    $add('MAPPING_EXCESSIVE', $clo['lineage_key'] . '@' . $p['code'], "$label is linked to " . count($mapped) . " {$p['code']} program outcomes", "Mapped to " . implode(', ', array_column($mapped, 'code')) . ". Policy flags more than $maxPlos as possibly over-mapped.", 'Keep only the PLOs this outcome substantially develops and assesses.', ['clo_id' => $clo['id']]);
                 }
             }
             if (!$clo['assessments']) {
@@ -153,7 +197,7 @@ final class Rules
             $p = $gap['program'];
             $v[] = ['course_id' => (int) $course['id'], 'department_id' => (int) $p['department_id'], 'college_id' => (int) $p['college_id'], 'program_id' => $pid,
                 'rule' => 'CLO_UNMAPPED_ELECTIVE', 'key' => $p['code'],
-                'title' => "{$course['code']} (elective in {$p['code']}) is not mapped to {$p['code']} PLOs",
+                'title' => "{$course['code']} (elective in {$p['code']}) is not linked to {$p['code']} program outcomes",
                 'detail' => "{$course['code']} appears in {$p['short_name']} under \"{$p['requirement_group']}\". " . implode(', ', $gap['clos']) . " contribute to none of its PLOs, so results from students of that program are not counted toward its outcomes.",
                 'remedy' => "Program coordinator: map {$course['code']}'s CLOs to {$p['code']} PLOs (or confirm the course should not count toward them)."];
         }
@@ -245,19 +289,19 @@ final class Rules
             $checks += 3;
             $clabel = $o['course_code'] . ' ' . $a['code'];
             if ((int) $a['students_assessed'] < $minStudents) {
-                $add('LOW_SAMPLE', $a['lineage_key'], "$clabel: only {$a['students_assessed']} students assessed", "Below the policy minimum of $minStudents students.", 'Interpret this percentage with caution.');
+                $add('LOW_SAMPLE', $a['lineage_key'], "$clabel: only {$a['students_assessed']} students assessed", "Fewer than the $minStudents students the university's policy asks for.", 'Read this percentage with care: a few students can move it a lot.');
             }
             if ((int) $a['met'] === 1) {
                 continue;
             }
             if ((int) $a['provisional'] === 1) {
-                $add('CLO_EARLY_WARNING', $a['lineage_key'], "$clabel trending below target (provisional)", 'Provisional achievement ' . self::fmt((float) $a['value_pct']) . '% vs target ' . self::fmt((float) $a['target_pct']) . '%, based on ' . self::fmt((float) $a['coverage_pct']) . '% of the CLO\'s assessment weight.', 'Consider an in-term intervention before the remaining assessments.', ['clo_id' => $a['clo_id']]);
+                $add('CLO_EARLY_WARNING', $a['lineage_key'], "$clabel is heading below its goal", 'So far ' . self::whole((float) $a['value_pct']) . '% of students met it (goal ' . self::whole((float) $a['target_pct']) . '%), with ' . self::whole((float) $a['coverage_pct']) . '% of its assessments graded.', 'There is still time to help students before the remaining assessments.', ['clo_id' => $a['clo_id']]);
                 continue;
             }
             $hasGap = true;
             $committed = (int) Db::val('SELECT COUNT(*) FROM improvement_actions WHERE origin_offering_id = ? AND clo_lineage_key = ? AND status IN ("open","in_progress","completed")', [$o['id'], $a['lineage_key']]);
             if (!$committed) {
-                $add('CLO_TARGET_MISSED', $a['lineage_key'], "$clabel below target: " . self::fmt((float) $a['value_pct']) . '% vs ' . self::fmt((float) $a['target_pct']) . '%', "\"" . mb_strimwidth($a['statement'], 0, 110, '…') . "\" — " . $a['students_assessed'] . ' students assessed.', 'Add your interpretation in the course report and commit an improvement action.', ['clo_id' => $a['clo_id']]);
+                $add('CLO_TARGET_MISSED', $a['lineage_key'], "$clabel below its goal: " . self::whole((float) $a['value_pct']) . '% of students (goal ' . self::whole((float) $a['target_pct']) . '%)', "\"" . mb_strimwidth($a['statement'], 0, 110, '…') . "\" — " . $a['students_assessed'] . ' students assessed.', 'Say what the results mean in the course report, and what you will change on the Improvement tab.', ['clo_id' => $a['clo_id']]);
             }
 
             // Recurrence: consecutive missed offerings for the same CLO lineage.
@@ -275,12 +319,12 @@ final class Rules
             }
             $checks++;
             if ($streak >= $recurrence) {
-                $add('GAP_RECURRING', $a['lineage_key'], "$clabel missed its target $streak offerings in a row", "Recurring gap: below target in each of the last $streak measured offerings.", 'Review whether previous improvement actions addressed the cause; consider curriculum or assessment changes.', ['clo_id' => $a['clo_id'], 'streak' => $streak]);
+                $add('GAP_RECURRING', $a['lineage_key'], "$clabel missed its goal $streak terms in a row", "Below its goal in each of the last $streak terms with results.", 'Check whether earlier improvements dealt with the cause; consider changes to teaching or assessment.', ['clo_id' => $a['clo_id'], 'streak' => $streak]);
             }
 
             if ($gapsRequireAction && !$committed) {
                 $checks++;
-                $add('IMPROVEMENT_MISSING', $a['lineage_key'], "$clabel needs an improvement action", 'SAQF drafted an improvement record with the evidence; it needs your academic response, owner and deadline.', 'Open the Improvement tab, write the action and commit it.', ['clo_id' => $a['clo_id']]);
+                $add('IMPROVEMENT_MISSING', $a['lineage_key'], "$clabel needs an improvement plan", 'SAQF has prepared the improvement record with the facts; it needs you to say what will change, who does it and by when.', 'Open the Improvement tab, write what will change and save the plan.', ['clo_id' => $a['clo_id']]);
             }
         }
 
@@ -288,13 +332,13 @@ final class Rules
         if ($hasGap && $o['status'] === 'results_complete' || ($hasGap && $o['status'] === 'closed')) {
             $hasNarrative = Db::val('SELECT 1 FROM offering_narratives WHERE offering_id = ? AND section_key = "interpretation" AND TRIM(content) <> ""', [$o['id']]);
             if (!$hasNarrative) {
-                $add('INTERPRETATION_MISSING', '', "$label: results need your interpretation", 'At least one CLO missed its target and the course report has no instructor interpretation yet.', 'Write a short interpretation of the results in the Report tab.');
+                $add('INTERPRETATION_MISSING', '', "$label: the results need your comment", 'At least one learning outcome missed its goal and the course report has no comment from you yet.', 'Write a few lines on what the results mean in the Course report tab.');
             }
         }
 
         $checks++;
         foreach (Sections::gaps((int) $o['id'], Policy::get('section.gap_points'), $minStudents) as $g) {
-            $add('SECTION_GAP', 'section:' . $g['lineage_key'], "{$o['course_code']} {$g['code']}: section {$g['low']} is " . self::fmt($g['gap']) . " points below section {$g['high']}", "Section {$g['high']}: " . self::fmt($g['high_value']) . "%, section {$g['low']}: " . self::fmt($g['low_value']) . '% on the same outcome, assessments and method.', 'Compare how this outcome was taught and marked in each section with the section instructors; align rubrics or share practice before the remaining assessments.', ['clo_id' => $g['clo_id']]);
+            $add('SECTION_GAP', 'section:' . $g['lineage_key'], "{$o['course_code']} {$g['code']}: section {$g['low']} is " . self::whole($g['gap']) . " points below section {$g['high']}", "Section {$g['high']}: " . self::whole($g['high_value']) . "%, section {$g['low']}: " . self::whole($g['low_value']) . '% on the same outcome, assessments and method.', 'Compare how this outcome was taught and marked in each section with the section instructors; align rubrics or share practice before the remaining assessments.', ['clo_id' => $g['clo_id']]);
         }
 
         // While the term runs, results that arrive prompt for the matching evidence (cleared by uploading it).
@@ -333,7 +377,7 @@ final class Rules
         $plos = Db::all('SELECT * FROM plos WHERE program_id = ? AND status = "approved" ORDER BY code', [$p['id']]);
         $checks++;
         if (!$plos) {
-            $add('PROGRAM_NO_PLOS', '', "{$p['code']}: no approved PLOs", "The institutional source has no approved PLO statements for {$p['short_name']}.", 'Upload the approved PLOs (Program page → PLOs), or confirm them with the Registrar feed.');
+            $add('PROGRAM_NO_PLOS', '', "{$p['code']}: no approved program outcomes", "The institutional source has no approved PLO statements for {$p['short_name']}.", 'Upload the approved PLOs (Program page → PLOs), or confirm them with the Registrar feed.');
             return ['violations' => $v, 'checks' => $checks];
         }
 
@@ -380,7 +424,7 @@ final class Rules
             $checks += 2;
             $latest = $series[0];
             if ((float) $latest['v'] < $target) {
-                $add('PLO_BELOW_TARGET', $plo['code'], "{$p['code']} {$plo['code']} at " . self::fmt((float) $latest['v']) . "% ({$latest['name']})", "Average of {$latest['n']} course contribution(s) in {$latest['name']} is below the $target% PLO target.", 'Review the contributing courses\' gaps and improvement actions.', ['plo_id' => $plo['id']]);
+                $add('PLO_BELOW_TARGET', $plo['code'], "{$p['code']} {$plo['code']} at " . self::whole((float) $latest['v']) . "% ({$latest['name']})", ((int) $latest['n'] === 1 ? 'The 1 course that teaches it' : "The {$latest['n']} courses that teach it") . " averaged below the $target% goal in {$latest['name']}.", 'Look at the gaps and improvements in the courses that teach it.', ['plo_id' => $plo['id']]);
                 $streak = 0;
                 foreach ($series as $s) {
                     if ((float) $s['v'] >= $target) {
@@ -389,7 +433,7 @@ final class Rules
                     $streak++;
                 }
                 if ($streak >= $recurrence) {
-                    $add('PLO_PERSISTENT_BELOW', $plo['code'], "{$p['code']} {$plo['code']} below target for $streak consecutive terms", 'Terms: ' . implode(', ', array_map(static fn($s) => $s['name'] . ' ' . self::fmt((float) $s['v']) . '%', array_slice($series, 0, $streak))) . '.', 'Program-level review: curriculum, assessment design and improvement effectiveness.', ['plo_id' => $plo['id'], 'streak' => $streak]);
+                    $add('PLO_PERSISTENT_BELOW', $plo['code'], "{$p['code']} {$plo['code']} below its goal $streak terms in a row", 'Terms: ' . implode(', ', array_map(static fn($s) => $s['name'] . ' ' . self::whole((float) $s['v']) . '%', array_slice($series, 0, $streak))) . '.', 'Review the program: what is taught, how it is assessed, and whether improvements are working.', ['plo_id' => $plo['id'], 'streak' => $streak]);
                 }
             }
         }
@@ -399,5 +443,11 @@ final class Rules
     public static function fmt(float $n): string
     {
         return rtrim(rtrim(number_format($n, 1, '.', ''), '0'), '.');
+    }
+
+    /** A result shown to people: a whole number (69.3 → "69"), so nobody has to read decimals. */
+    public static function whole(float $n): string
+    {
+        return (string) (int) round($n);
     }
 }
