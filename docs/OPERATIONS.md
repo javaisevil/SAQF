@@ -8,13 +8,13 @@ sign-on and e-mail is covered in [INTEGRATIONS.md](INTEGRATIONS.md).
 | What | Where | How often |
 |---|---|---|
 | Scheduler heartbeat: SIS sync and automatic term start (hourly), LMS imports, catalogue re-sync and rule re-checks (daily), e-mail digests and mail queue | `php bin/tick.php` (exit 0 = ok, 2 = a step failed — see *Error log*) | every 5 min |
-| Audit-chain verification | `php bin/verify_audit.php` (exit 0 = intact, 2 = tampering), or *Admin → System health → Verify audit chain* | nightly, and after every restore |
+| Audit-chain verification | `php bin/verify_audit.php` (exit 0 = intact, 2 = tampering), or *Admin → System health → Check the activity log* | nightly, and after every restore |
 | Backup | Docker: the `backup` service writes `./backups/saqf-*.sql.gz.enc` (database) and `saqf-files-*.tar.gz.enc` (evidence files), reads each one back to verify it, copies both to `SAQF_BACKUP_OFFSITE_PATH` with SHA-256 checksums, keeps 14 days, and writes `last-backup.json` for SAQF. Elsewhere: `docker/backup.sh` from cron | nightly; automatic alert if missing or failed |
 | IT alerts | *Admin → IT alerts* (also e-mailed to administrators and posted to `SAQF_ALERT_WEBHOOK`) | raised and cleared automatically; reminders every 6 h while open |
 | Security overview | *Admin → Security center*: every control with its live status and how to fix what is not yet on, people (administrators with two-step verification, active sessions, locked and dormant accounts) and the last 7 days of security events | weekly, and before go-live |
 | Health probe | `GET /health.php` → `200 {"status":"ok","database":"ok","scheduler":"ok",…}` or `503` when the database is unreachable. No session, no sensitive data | monitoring / load balancer, every minute |
 | Health overview | *Admin → System health*: DB, environment, HTTPS, demo mode, clock, scheduler heartbeat, last integration run, audit chain, backups, evidence store, IT alerts, errors (24 h), failed sign-ins, locked accounts | as needed |
-| Connections | *Admin → Integrations → Test connections* | after any change on the SIS/LMS side |
+| Connections | *Admin → University systems → Test connections* | after any change on the SIS/LMS side |
 
 Example `/etc/cron.d/saqf` (servers without Docker):
 
@@ -60,17 +60,19 @@ Uploaded course-file evidence lives outside the web root in the `saqf_evidence` 
 
 **"I can't sign in with my university account."** The sign-in page shows the reason. "Not set up in SAQF yet": add the person under *Users & access* (or give them a mapped role in the identity provider when auto-provisioning is on). Refused sign-ins are listed under *Security events → Recent failed sign-ins* with reason `sso: …`. If the identity provider itself is down, administrators can still use the password form (`SAQF_PASSWORD_LOGIN=admins`).
 
-**"A new instructor has no account / a course has no workspace."** *Integrations → Recent integration runs* shows each SIS run with counts of unknown courses and instructors. Instructors in the SIS feed with a name are created automatically; those without one need the SIS record fixed or an account added by hand with their *SIS / HR identifier*.
+**"A new instructor has no account / a course has no workspace."** *University systems → Recent updates* shows each SIS run with counts of unknown courses and instructors. Instructors in the SIS feed with a name are created automatically; those without one need the SIS record fixed or an account added by hand with their *SIS / HR identifier*.
 
-**"The new term has not started."** Terms start on the `starts_on` date from the SIS calendar (policy *Start terms automatically*). *Integrations → Academic calendar* shows every term; an administrator can start the next one early (reason required, audited) or add a term the SIS does not provide.
+**"The new term has not started."** Terms start on the `starts_on` date from the SIS calendar (policy *Start terms automatically*). *University systems → Academic calendar* shows every term; an administrator can start the next one early (reason required, audited) or add a term the SIS does not provide.
 
 **"Grades did not arrive."** The gradebook column must be named like the assessment in the approved specification. Ignored columns are recorded in the audit log (`results.columns_ignored`). *Run scheduler now* re-reads the LMS.
 
 **"Something went wrong" with a reference code.** Every unhandled error shows the user an 8-character reference. Search it under *Admin → Error log*. The entry holds the message, file and line, URL, user, request id and stack trace. Users never see technical details in production.
 
-**"A number on my dashboard looks wrong."** Open the record and check its provenance chip (Registrar / SIS / LMS / Calculated / Inherited / Faculty input). Then check *Admin → Integrations → Event log* to see which automated reaction produced it and when. Calculated values are re-derived from source data, so re-running the source sync or the scheduler (`php bin/tick.php --force`) recomputes them.
+**"A number on my dashboard looks wrong."** Open the record and check its source label (University records / Timetable / Gradebook / Calculated / Carried over / Instructor). Then check *Admin → University systems → Automatic actions* to see which automated reaction produced it and when. Calculated values are re-derived from source data, so re-running the source sync or the scheduler (`php bin/tick.php --force`) recomputes them.
 
-**"Someone changed X."** *Admin → Audit log* filters by action prefix, actor, object and date, and exports to CSV. Each entry shows old and new values, reason, IP and request id, and whether a person or SAQF automation did it.
+**"Something shows in English in the Arabic interface."** If it is data (a course or program name, a learning outcome, an assessment, a person's name), Quality or IT adds the Arabic on *Arabic wording*: the page lists everything still in English, or offers it as a spreadsheet to fill in and upload. Catalogue names normally arrive in Arabic with the Registrar sync; a correction made on that page is kept across syncs. If it is interface text, run `php bin/i18n_coverage.php https://saqf.yu.edu.sa` (demo mode) to list it, and add it to `src/Web/lang/ar/strings-6.php` or a pattern file.
+
+**"Someone changed X."** *Admin → Activity log* filters by action prefix, actor, object and date, and exports to CSV. Each entry shows old and new values, reason, IP and request id, and whether a person or SAQF automation did it.
 
 ## Maintenance windows
 
