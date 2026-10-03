@@ -10,7 +10,8 @@ use Saqf\Core\Db;
  * Institutional catalogue (colleges, departments, programs, study plans, courses, PLOs) read from
  * structured JSON files. The default directory, data/yu, is a snapshot of Al Yamamah University's
  * PUBLIC study plans; point SAQF_INSTITUTION_DIR at a Registrar export in the same format to
- * replace it (see docs/INTEGRATIONS.md). The scheduler re-syncs it daily.
+ * replace it (see docs/INTEGRATIONS.md). The scheduler re-syncs it daily. Arabic names come from an
+ * optional arabic.json in the same directory, or from *_ar fields inline.
  */
 final class CatalogFileSource implements InstitutionSource
 {
@@ -40,6 +41,10 @@ final class CatalogFileSource implements InstitutionSource
             $programs[] = json_decode((string) file_get_contents($this->dir . '/programs/' . strtolower($code) . '.json'), true, 512, JSON_THROW_ON_ERROR);
         }
         $base['programs'] = $programs;
+        // Optional Arabic names (departments, programs, course titles, PLOs, descriptions), keyed by code.
+        if (is_file($this->dir . '/arabic.json')) {
+            $base['arabic'] = json_decode((string) file_get_contents($this->dir . '/arabic.json'), true, 512, JSON_THROW_ON_ERROR);
+        }
         return $base;
     }
 }

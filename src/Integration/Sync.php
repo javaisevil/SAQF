@@ -214,6 +214,7 @@ final class Sync
                 });
             }, 'integration', 'Registrar sync');
             Catalog::flush();
+            $stats['arabic_names'] = \Saqf\Core\Translations::fromCatalogue($snap);
             Ledger::add('data_corrected', $stats['auto_corrected'], null, null, 'Course titles normalised to the owning program\'s plan');
             Ledger::add('field_populated', $stats['courses'] * 4 + $stats['plan_entries'] * 5 + $stats['requisites'], null, null, 'Institutional master data synchronised');
             foreach (Db::col('SELECT id FROM programs') as $pid) {

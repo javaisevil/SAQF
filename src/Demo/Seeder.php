@@ -84,6 +84,10 @@ final class Seeder
             ]);
         }
         Audit::asSystem(static fn() => Audit::record('users.provisioned', 'user', null, count(Story::USERS) . ' fictional demo accounts provisioned (demo mode)'));
+        // Arabic wording of the people and the course content, as a university would enter it.
+        foreach (Story::ARABIC as $kind => $pairs) {
+            \Saqf\Core\Translations::setMany($pairs, $kind);
+        }
         // The administrator uses two-step verification (policy), with a fixed demo-only secret.
         \Saqf\Security\Mfa::enrolWithSecret((int) Db::val('SELECT id FROM users WHERE username = "it.admin"'), Story::ADMIN_TOTP_SECRET);
     }
