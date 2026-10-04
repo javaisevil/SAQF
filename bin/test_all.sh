@@ -41,6 +41,7 @@ run "Sections, import, evidence, Word, 2-step, alerts, Arabic" features php test
 run "Plain wording, whole numbers, Arabic course content" wording php tests/wording_test.php
 run "Go-live readiness, data pack, access review, security proof" readiness php tests/readiness_test.php
 run "Robot check, two-step codes, trusted browsers, session, help" signin php tests/signin_test.php
+run "Privacy and security hardening (pseudonyms, key, https, backups)" hardening php tests/hardening_test.php
 php bin/migrate.php > "$log/migrate.log" 2>&1 && php bin/migrate.php --status >> "$log/migrate.log" 2>&1 \
   && echo "  ok   Database migrations are idempotent (upgrade path)" || { echo "  FAIL Migrations (see $log/migrate.log)"; total_fail=$((total_fail + 1)); failed="$failed migrate"; }
 php bin/install.php --demo --fresh > /dev/null 2>&1

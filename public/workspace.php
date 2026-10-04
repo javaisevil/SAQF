@@ -69,7 +69,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_FILES['results']
         if ($f['error'] !== UPLOAD_ERR_OK || $f['size'] > 2 * 1024 * 1024) {
             throw new InvalidArgumentException('Upload a CSV file under 2 MB.');
         }
-        $parsed = Gradebook::parse($f['tmp_name']);
+        // Student numbers become keyed pseudonyms while the file is read (same key space as the LMS
+        // export folder, so results from both match); nothing in the file is stored as given.
+        $parsed = Gradebook::parse($f['tmp_name'], Gradebook::SYSTEM);
         // A section instructor's file belongs to their section unless it says otherwise.
         $tag = $parsed['sections'] ?: (!$canEdit && count($mySections) === 1 ? $mySections[0] : null);
         $r = Achievement::import($oid, $parsed['results'], 'upload', null, $tag);

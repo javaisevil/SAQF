@@ -396,7 +396,7 @@ if ($tab === 'health'):
         ['E-mail', Mailer::enabled() ? Mailer::transport() . ' · ' . $mailFailing . ' message(s) waiting to retry' . (Mailer::baseUrl() === '' ? ' · SAQF_BASE_URL not set (no links)' : '') : 'Not configured — notifications appear in SAQF only', Mailer::enabled() ? ($mailFailing === 0 && Mailer::baseUrl() !== '') : null],
         ['Database migrations', $pendingMigrations ? count($pendingMigrations) . ' pending — run php bin/migrate.php' : 'Up to date', !$pendingMigrations],
         ['Backups', SecurityCenter::backupLine(), SecurityCenter::backupOk()],
-        ['Evidence store', is_dir(Evidence::dir()) && is_writable(Evidence::dir()) ? 'Writable (' . Evidence::dir() . ')' . (Config::get('SAQF_CLAMAV_HOST') ? ' · virus scanning on' : ' · virus scanning not configured') : 'Not writable: ' . Evidence::dir(), is_dir(Evidence::dir()) && is_writable(Evidence::dir())],
+        ['Evidence store', is_dir(Evidence::dir()) && is_writable(Evidence::dir()) ? 'Writable (' . Evidence::dir() . ')' . (Config::get('SAQF_CLAMAV_HOST') ? ' · virus scanner configured' : ' · no virus scanner configured (files are not scanned for malware)') : 'Not writable: ' . Evidence::dir(), is_dir(Evidence::dir()) && is_writable(Evidence::dir())],
         ['IT alerts', $openAlerts ? count($openAlerts) . ' open — see IT alerts' : 'None open' . (Config::get('SAQF_ALERT_WEBHOOK') ? ' · webhook configured' : ''), !$openAlerts],
     ];
 ?>
@@ -541,8 +541,9 @@ if ($tab === 'health'):
 </tbody></table></div></section>
 <aside class="stack">
   <?php $st = SelfTest::last(); ?>
-  <section class="card"><div class="card-h"><h2>Live security self-test</h2><?= $st ? V::pill($st['passed'] . ' of ' . $st['total'] . ' passed', $st['passed'] === $st['total'] ? 'green' : 'red') : V::pill('not run', 'grey') ?></div><div class="card-b small">
-    <p class="muted">Tries each protection for real on this system: weak passwords, forged requests, editing the audit log, encryption, pseudonymised student identities. Nothing is changed. Also runs every night.</p>
+  <section class="card"><div class="card-h"><h2>Security self-test</h2><?= $st ? V::pill($st['passed'] . ' of ' . $st['total'] . ' passed', $st['passed'] === $st['total'] ? 'green' : 'red') : V::pill('not run', 'grey') ?></div><div class="card-b small">
+    <p class="muted">An automated self-check: SAQF exercises some of its own protections on this system (weak passwords, forged requests, an edit to the audit log, encryption, pseudonymised student identities). Nothing is changed. Also runs every night.</p>
+    <p class="tiny muted"><?= V::h(SelfTest::DISCLAIMER) ?></p>
     <?php if ($st): ?><table><tbody><?php foreach ($st['tests'] as $t): ?><tr><td style="width:30px"><?= $t['ok'] ? V::pill('✓', 'green') : V::pill('!', 'red') ?></td><td><strong class="small"><?= V::h($t['name']) ?></strong><div class="tiny muted"><?= V::h($t['detail']) ?></div></td></tr><?php endforeach; ?></tbody></table><p class="tiny muted">Last run <?= V::h(V::ago($st['at'])) ?>.</p><?php endif; ?>
     <div class="row"><form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="selftest"><button class="btn btn-sm btn-primary">Run security self-test</button></form>
       <a class="btn btn-sm" href="security_report.php" target="_blank" rel="noopener">Security evidence report</a></div></div></section>
@@ -564,8 +565,8 @@ if ($tab === 'health'):
     $stagingPresent = is_file(DataPack::stagingDir() . '/institution.json');
 ?>
 <div class="split"><div class="stack">
-  <section class="card"><div class="card-h"><?= V::icon('bolt') ?><h2>Ready to connect to the university</h2><span class="right muted small"><?= (int) $prog['live'] ?> of <?= (int) $prog['total'] ?> running on the university's own systems</span></div><div class="card-b tight"><table><tbody>
-  <?php foreach ($systems as $sy): ?><tr><td style="width:96px"><?= V::pill(['live' => 'Live', 'demo' => 'Demo data', 'off' => 'Off'][$sy['mode']], ['live' => 'green', 'demo' => 'amber', 'off' => 'grey'][$sy['mode']]) ?></td>
+  <section class="card"><div class="card-h"><?= V::icon('bolt') ?><h2>Ready to connect to the university</h2><span class="right muted small"><?= (int) $prog['live'] ?> of <?= (int) $prog['total'] ?> configured for the university's own systems · a connection counts as working only after <em>Test connections</em> succeeds</span></div><div class="card-b tight"><table><tbody>
+  <?php foreach ($systems as $sy): ?><tr><td style="width:96px"><?= V::pill(['live' => $sy['missing'] ? 'Incomplete' : 'Configured', 'demo' => 'Demo data', 'off' => 'Off'][$sy['mode']], ['live' => $sy['missing'] ? 'red' : 'blue', 'demo' => 'amber', 'off' => 'grey'][$sy['mode']]) ?></td>
     <td><strong><?= V::h($sy['label']) ?></strong> <span class="muted small">· <?= V::h($sy['headline']) ?></span><div class="small"><?= V::h($sy['detail']) ?></div>
       <?php if ($sy['mode'] !== 'live' || $sy['missing']): ?><div class="tiny muted">Next step: <?= V::h($sy['next']) ?></div><?php endif; ?></td></tr><?php endforeach; ?>
   </tbody></table></div></section>

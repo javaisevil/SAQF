@@ -380,7 +380,7 @@ Scheduler::tick(true);
 ok((bool) Db::val('SELECT 1 FROM alerts WHERE kind = "backup.failed" AND severity = "critical" AND resolved_at IS NULL'), 'a failed nightly backup raises a critical alert');
 file_put_contents("$monitor/last-backup.json", json_encode(['status' => 'ok', 'finished_at' => gmdate('Y-m-d\TH:i:s\Z'), 'file' => 'saqf-20261002-023000.sql.gz.enc', 'bytes' => 150000, 'encrypted' => true, 'offsite' => true, 'files' => true, 'verified' => true, 'message' => '']));
 Scheduler::tick(true);
-ok((bool) Db::val('SELECT 1 FROM alerts WHERE kind = "backup.failed" AND resolved_at IS NOT NULL') && str_contains(SecurityCenter::backupLine(), 'encrypted') && str_contains(SecurityCenter::backupLine(), 'copied off-site'),
+ok((bool) Db::val('SELECT 1 FROM alerts WHERE kind = "backup.failed" AND resolved_at IS NOT NULL') && str_contains(SecurityCenter::backupLine(), 'encrypted') && str_contains(SecurityCenter::backupLine(), 'second location'),
     'the next good backup clears it; System health shows "' . SecurityCenter::backupLine() . '"');
 file_put_contents("$monitor/last-backup.json", json_encode(['status' => 'ok', 'finished_at' => gmdate('Y-m-d\TH:i:s\Z', time() - 30 * 3600), 'file' => 'old.sql.gz', 'bytes' => 1, 'encrypted' => true, 'offsite' => true, 'files' => true, 'verified' => true, 'message' => '']));
 ok(SecurityCenter::backupOk() === false, 'a backup older than 26 hours counts as missing');

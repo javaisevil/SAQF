@@ -7,7 +7,9 @@
 # Settings:
 #   SAQF_DB_HOST, SAQF_DB_PORT, SAQF_DB_NAME, SAQF_DB_USER, SAQF_DB_PASS
 #   SAQF_BACKUP_DIR (/backups)            where backups are written
-#   SAQF_BACKUP_FILES_DIR (/evidence)     evidence store to include (skipped when absent)
+#   SAQF_BACKUP_FILES_DIR (/evidence)     evidence store to include. When it is set explicitly, or the default
+#                                         folder exists, a failed evidence archive fails the whole backup;
+#                                         when neither, the status says the evidence files were NOT included
 #   SAQF_BACKUP_PASSPHRASE                when set, every file is encrypted (AES-256, PBKDF2) — keep the
 #                                         passphrase in the university's password vault, not on this server only
 #   SAQF_BACKUP_OFFSITE_DIR               a second location (mounted network share, NAS, another disk);
@@ -26,12 +28,18 @@ pass="${SAQF_BACKUP_PASSPHRASE:-}"
 
 log() { echo "$(date -Iseconds) $*"; }
 
-# Writes the status file atomically: status, finished_at, file, bytes, encrypted, offsite, files, verified, message.
+# Writes the status file atomically: status, finished_at, file, bytes, encrypted, offsite, files, verified, message,
+# plus the state of each part as it was actually observed in this run:
+#   files_status    ok | failed | not_configured   (evidence archive written AND read back)
+#   offsite_status  ok | failed | not_configured   (second copy written AND its checksum re-checked there)
+# "encrypted" is true only when the archives were encrypted AND decrypted again during verification.
+files_status=not_configured
+offsite_status=not_configured
 status() {
   [ -d "$status_dir" ] || mkdir -p "$status_dir" 2>/dev/null || return 0
   tmpst="$status_dir/.last-backup.json.$$"
-  printf '{"status":"%s","finished_at":"%s","file":"%s","bytes":%s,"encrypted":%s,"offsite":%s,"files":%s,"verified":%s,"message":"%s"}\n' \
-    "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$2" "$3" "$4" "$5" "$6" "$7" "$8" > "$tmpst" && chmod 644 "$tmpst" && mv "$tmpst" "$status_dir/last-backup.json"
+  printf '{"status":"%s","finished_at":"%s","file":"%s","bytes":%s,"encrypted":%s,"offsite":%s,"files":%s,"verified":%s,"message":"%s","files_status":"%s","offsite_status":"%s"}\n' \
+    "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$files_status" "$offsite_status" > "$tmpst" && chmod 644 "$tmpst" && mv "$tmpst" "$status_dir/last-backup.json"
 }
 
 seal() { # $1 = file; encrypts in place when a passphrase is set, prints the final name
@@ -65,14 +73,20 @@ backup() {
   db=$(seal "$dir/saqf-$stamp.sql.gz") || { log "BACKUP FAILED (encryption)" >&2; status failed "" 0 false false false false "encryption failed"; return 1; }
   made="$db"
 
+  # Evidence files: expected when the folder was named explicitly or the default folder exists.
   with_files=false
-  if [ -d "$files_dir" ]; then
-    if tar -czf "$dir/saqf-files-$stamp.tar.gz" -C "$files_dir" . 2>/dev/null; then
-      fa=$(seal "$dir/saqf-files-$stamp.tar.gz") && made="$made $fa" && with_files=true
+  files_status=not_configured
+  if [ -n "${SAQF_BACKUP_FILES_DIR:-}" ] || [ -d "$files_dir" ]; then
+    files_status=failed
+    if [ -d "$files_dir" ] && tar -czf "$dir/saqf-files-$stamp.tar.gz" -C "$files_dir" . 2>/dev/null \
+        && fa=$(seal "$dir/saqf-files-$stamp.tar.gz"); then
+      made="$made $fa" && with_files=true && files_status=ok
     else
-      rm -f "$dir/saqf-files-$stamp.tar.gz"
-      log "WARNING: evidence files could not be archived from $files_dir" >&2
+      rm -f "$dir/saqf-files-$stamp.tar.gz" "$dir/saqf-files-$stamp.tar.gz.enc"
+      log "BACKUP INCOMPLETE: evidence files could not be archived from $files_dir" >&2
     fi
+  else
+    log "NOTE: no evidence folder ($files_dir) — evidence files are NOT in this backup." >&2
   fi
 
   verified=true
@@ -82,11 +96,13 @@ backup() {
   done
   if [ "$verified" != true ]; then
     log "BACKUP FAILED (archive could not be read back)" >&2
-    status failed "$(basename "$db")" 0 "$([ -n "$pass" ] && echo true || echo false)" false "$with_files" false "verification failed"
+    [ "$with_files" = true ] && files_status=failed
+    status failed "$(basename "$db")" 0 false false false false "verification failed: an archive could not be read back"
     return 1
   fi
 
   copied=false
+  offsite_status=not_configured
   if [ -n "$offsite" ]; then
     copied=true
     if mkdir -p "$offsite"; then
@@ -101,11 +117,17 @@ backup() {
   fi
   find "$dir" -name 'saqf-*' -mtime +"$keep" -exec rm -f {} \;
 
+  [ -n "$offsite" ] && { [ "$copied" = true ] && offsite_status=ok || offsite_status=failed; }
+
   bytes=0
   for f in $made; do bytes=$((bytes + $(wc -c < "$f"))); done
-  enc=false; [ -n "$pass" ] && enc=true
-  if [ -n "$offsite" ] && [ "$copied" != true ]; then
-    status failed "$(basename "$db")" "$bytes" "$enc" false "$with_files" true "off-site copy failed"
+  enc=false; [ -n "$pass" ] && enc=true   # every archive was decrypted again by check() above
+  if [ "$files_status" = failed ]; then
+    status failed "$(basename "$db")" "$bytes" "$enc" "$copied" false true "database dump verified, but the evidence files could not be archived"
+    return 1
+  fi
+  if [ "$offsite_status" = failed ]; then
+    status failed "$(basename "$db")" "$bytes" "$enc" false "$with_files" true "second copy (off-site path) failed"
     return 1
   fi
   status ok "$(basename "$db")" "$bytes" "$enc" "$copied" "$with_files" true ""

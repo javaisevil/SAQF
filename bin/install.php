@@ -67,6 +67,18 @@ if ($fresh && $exists) {
         }
     }
 }
+// A production installation needs its application key from the environment before anything is
+// written: SAQF never generates or stores a production key (see bin/app_key.php).
+if (Config::env() === 'production') {
+    $appKey = (string) Config::get('SAQF_APP_KEY', '');
+    $problem = $appKey === '' ? 'it is not set' : \Saqf\Core\Secrets::keyProblem($appKey);
+    if ($problem !== null) {
+        fwrite(STDERR, "SAQF_APP_KEY is required in production and $problem.\n"
+            . "Generate one with: php bin/app_key.php generate   — keep it in the password vault, then set SAQF_APP_KEY.\n");
+        exit(1);
+    }
+}
+
 $server->exec("CREATE DATABASE IF NOT EXISTS `$name` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 echo "Database `$name` ready\n";
 

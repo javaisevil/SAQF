@@ -4,19 +4,68 @@ declare(strict_types=1);
 namespace Saqf\Integration;
 
 use RuntimeException;
+use Saqf\Core\Config;
 
 /**
- * Minimal HTTPS client for the university-system connectors and SSO (curl, TLS verification
- * always on, bounded timeouts). Errors raise RuntimeException with a message safe to show
- * administrators — credentials and tokens are never included.
+ * Minimal HTTPS client for the university-system connectors, SSO and the alert webhook (curl, TLS
+ * verification always on, no redirects, bounded timeouts). Errors raise RuntimeException with a
+ * message safe to show administrators — credentials and tokens are never included.
+ *
+ * Production (APP_ENV=production) accepts https:// only, for every request: the SIS and LMS APIs,
+ * the identity provider (including the endpoints its discovery document names) and the webhook.
+ * Local and demo mode also accept http:// so the stand-in servers in tests/mock can be used.
  */
 final class Http
 {
+    /** Settings holding outbound addresses, checked by readiness() (labels for the administrator). */
+    public const URL_SETTINGS = [
+        'SAQF_SIS_URL' => 'SIS integration API',
+        'SAQF_MOODLE_URL' => 'Moodle',
+        'SAQF_BLACKBOARD_URL' => 'Blackboard Learn',
+        'SAQF_OIDC_ISSUER' => 'University sign-in (identity provider)',
+        'SAQF_ALERT_WEBHOOK' => 'IT alert webhook',
+        'SAQF_BASE_URL' => 'SAQF public address',
+    ];
+
+    /** Why SAQF refuses to call this address here (null when it is acceptable). */
+    public static function urlProblem(string $url, ?bool $production = null): ?string
+    {
+        $production ??= Config::env() === 'production';
+        if (!preg_match('#^https?://[^/\s]+#i', $url)) {
+            return 'it must start with https://';
+        }
+        if ($production && stripos($url, 'https://') !== 0) {
+            return 'plain http:// is not allowed in production (use https://)';
+        }
+        return null;
+    }
+
+    /**
+     * Configured outbound addresses that would be refused or are unsafe in production.
+     * @return list<array{setting:string,label:string,problem:string}>
+     */
+    public static function readiness(): array
+    {
+        $out = [];
+        foreach (self::URL_SETTINGS as $key => $label) {
+            $url = (string) Config::get($key, '');
+            if ($url === '') {
+                continue;
+            }
+            $problem = self::urlProblem($url, true); // judged by the production rule, whatever the mode
+            if ($problem !== null) {
+                $out[] = ['setting' => $key, 'label' => $label, 'problem' => $problem];
+            }
+        }
+        return $out;
+    }
+
     /** @return array{status:int,body:string} */
     public static function request(string $method, string $url, array $headers = [], ?string $body = null, int $timeout = 20): array
     {
-        if (!preg_match('#^https?://#i', $url)) {
-            throw new RuntimeException('Connector URL must start with https:// (or http:// for a local test server).');
+        $production = Config::env() === 'production';
+        if (($problem = self::urlProblem($url, $production)) !== null) {
+            throw new RuntimeException('Refused to contact ' . self::host($url) . ': the address is not acceptable (' . $problem . ').');
         }
         $ch = curl_init($url);
         $h = [];
@@ -33,7 +82,7 @@ final class Http
             CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_USERAGENT => 'SAQF/' . (defined('SAQF_VERSION') ? SAQF_VERSION : '2') . ' (+academic quality automation)',
             CURLOPT_HTTPHEADER => $h,
-            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
+            CURLOPT_PROTOCOLS => $production ? CURLPROTO_HTTPS : (CURLPROTO_HTTPS | CURLPROTO_HTTP),
         ]);
         if ($body !== null) {
             curl_setopt($ch, CURLOPT_POSTFIELDS, $body);

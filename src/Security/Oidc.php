@@ -132,7 +132,37 @@ final class Oidc
             }
         }
         self::validate($claims, $meta['issuer'], (string) $tx['nonce']);
+        // Two-step verification for university sign-in is the identity provider's policy. SAQF only
+        // sees what the ID token reports (the "amr" claim, often absent) and records that observation
+        // (no personal data); it refuses the sign-in only when SAQF_OIDC_REQUIRE_MFA is on.
+        $mfa = self::mfaReported($claims);
+        self::store('oidc.last_mfa', ['at' => time(), 'reported' => $mfa === null ? 'not_reported' : ($mfa ? 'yes' : 'no')]);
+        if (self::requireMfa() && $mfa !== true) {
+            throw new SsoException('Your university sign-in did not confirm two-step verification, which SAQF requires. Sign in again with your second factor, or contact IT.');
+        }
         return $claims;
+    }
+
+    /** What the ID token says about MFA: true ("amr" lists mfa), false ("amr" without it), null (not reported). */
+    public static function mfaReported(array $claims): ?bool
+    {
+        if (!isset($claims['amr']) || !is_array($claims['amr'])) {
+            return null;
+        }
+        return in_array('mfa', array_map('strval', $claims['amr']), true);
+    }
+
+    /** SAQF_OIDC_REQUIRE_MFA=true: refuse ID tokens that do not report MFA (only if the provider sends "amr"). */
+    public static function requireMfa(): bool
+    {
+        return Config::bool('SAQF_OIDC_REQUIRE_MFA', false);
+    }
+
+    /** @return array{at:int,reported:string}|null last observation of the provider's MFA claim */
+    public static function lastMfaObservation(): ?array
+    {
+        $v = json_decode((string) Db::val('SELECT value FROM system_settings WHERE setting_key = "oidc.last_mfa"'), true);
+        return is_array($v) && isset($v['reported']) ? $v : null;
     }
 
     /** Standard ID token claim checks (OpenID Connect Core §3.1.3.7). Real time, never the demo clock. */

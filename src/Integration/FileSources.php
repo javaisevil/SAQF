@@ -159,7 +159,7 @@ final class FileLmsSource implements LmsSource
                 continue; // still being written by the export job
             }
             try {
-                $parsed = Gradebook::parse($file, Config::bool('SAQF_LMS_PSEUDONYMIZE', true) ? 'lms' : null);
+                $parsed = Gradebook::parse($file, Gradebook::SYSTEM); // always pseudonymised; there is no opt-out
             } catch (InvalidArgumentException $e) {
                 ErrorLog::record(new RuntimeException('Gradebook export ' . basename($file) . " ($termCode $courseCode) skipped: " . $e->getMessage()), 'warning');
                 continue;

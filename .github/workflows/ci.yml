@@ -60,6 +60,8 @@ jobs:
         run: php bin/install.php --demo --fresh && php tests/readiness_test.php
       - name: Robot check, two-step codes for everyone, trusted browsers, session timer, help
         run: php bin/install.php --demo --fresh && php tests/signin_test.php
+      - name: Privacy and security hardening (pseudonyms, application key, https only, backup status, SSO MFA claim)
+        run: php bin/install.php --demo --fresh && php tests/hardening_test.php
       - name: Upgrade path (migrations are idempotent)
         run: php bin/migrate.php && php bin/migrate.php --status
 

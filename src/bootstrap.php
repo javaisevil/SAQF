@@ -39,6 +39,8 @@ use Saqf\Core\ErrorLog;
 use Saqf\Core\Request;
 use Saqf\Core\Session;
 
+// Stack traces written to the error log never carry argument values (student numbers, tokens…).
+ini_set('zend.exception_ignore_args', '1');
 Config::load();
 date_default_timezone_set(Config::get('APP_TIMEZONE', 'Asia/Riyadh'));
 mb_internal_encoding('UTF-8');

@@ -148,7 +148,7 @@ final class Scheduler
                 self::step($stats, static function () {
                     $ok = SecurityCenter::backupOk();
                     if ($ok === false) {
-                        Alerts::raise('backup.failed', 'critical', 'Database backup missing or failed', SecurityCenter::backupLine());
+                        Alerts::raise('backup.failed', 'critical', 'Backup missing, failed or incomplete', SecurityCenter::backupLine());
                     } else {
                         Alerts::resolve('backup.failed');
                     }

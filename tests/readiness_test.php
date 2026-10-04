@@ -167,7 +167,7 @@ ok((int) Db::val('SELECT COUNT(*) FROM audit_log WHERE action IN ("security.acce
 $checks = array_column(SecurityCenter::checks(), null, 'label');
 ok(isset($checks['Access review']) && $checks['Access review']['ok'] === false, 'the Security center flags the remaining overdue review');
 
-section('Live security self-test');
+section('Security self-test');
 $tests = SelfTest::run();
 ok(count($tests) >= 7 && !array_filter($tests, static fn($t) => !$t['ok']), 'all ' . count($tests) . ' protections prove themselves: ' . implode('; ', array_map(static fn($t) => $t['name'], $tests)));
 $stored = SelfTest::runAndStore();
@@ -201,13 +201,13 @@ foreach (['catalogue-pack' => 'application/zip', 'sis-terms' => 'text/csv', 'sis
 [$code, $html] = http($it, "$app/admin.php?tab=review");
 ok($code === 200 && str_contains($html, 'Access review') && str_contains($html, 'Remove someone') && str_contains($html, 'Quarterly') === false, 'Access review tab renders');
 [$code, $html] = http($it, "$app/admin.php?tab=center");
-ok(str_contains($html, 'Live security self-test') && str_contains($html, 'Run security self-test') && str_contains($html, 'Access review'), 'Security center shows the self-test and the access-review control');
+ok(str_contains($html, 'Security self-test') && str_contains($html, 'not a penetration test') && str_contains($html, 'Run security self-test') && str_contains($html, 'Access review'), 'Security center shows the self-test and the access-review control');
 [$code, $html] = http($it, "$app/admin.php?tab=center");
 [$code] = http($it, "$app/admin.php?tab=center", ['_csrf' => csrf_of($html), 'op' => 'selftest']);
 [, $html] = http($it, "$app/admin.php?tab=center");
 ok($code === 302 && preg_match('/\d+ of \d+ passed/', $html) === 1, 'running the self-test from the page records the result');
 [$code, $html] = http($it, "$app/security_report.php");
-ok($code === 200 && str_contains($html, 'Security evidence report') && str_contains($html, 'Report fingerprint') && str_contains($html, 'Live self-test') && str_contains($html, 'hash-chained'), 'the security evidence report is complete');
+ok($code === 200 && str_contains($html, 'Security evidence report') && str_contains($html, 'Report fingerprint') && str_contains($html, 'Self-test: SAQF exercising its own protections') && str_contains($html, 'hash-chained') && str_contains($html, 'tamper-evident, not tamper-proof') && str_contains($html, 'Not covered by this report') && !str_contains($html, 'copied off-site') && !str_contains($html, 'Uploaded evidence is virus-scanned'), 'the security evidence report is complete, labelled as a self-assessment, and makes no fixed assurances');
 ok((int) Db::val('SELECT COUNT(*) FROM audit_log WHERE action = "security.report_generated"') === 1, 'generating the report is itself audited');
 foreach (['f.omar', 'hod.ced', 'qa.director'] as $u) {
     $j = as_user($app, $u);

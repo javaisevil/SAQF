@@ -88,6 +88,16 @@ final class Achievement
         if ($unknown) {
             throw new InvalidArgumentException('These assessments are not in the course specification: ' . implode(', ', $unknown) . '. Results must use the specification\'s assessment names.');
         }
+        // Defence in depth: every connector hands over keyed pseudonyms (Secrets::pseudonym). A key made
+        // only of digits has the shape of a raw student number, so the whole batch is refused rather than
+        // stored. The message never repeats the identifier.
+        foreach ($results as $scores) {
+            foreach (array_keys((array) $scores) as $student) {
+                if (self::looksLikeRawId((string) $student)) {
+                    throw new InvalidArgumentException('These results carry student numbers instead of pseudonymous keys, so nothing was imported. Student identifiers must be pseudonymised before they are stored.');
+                }
+            }
+        }
         $checksum = hash('sha256', json_encode($results));
         $batchSection = is_string($sections) ? Sections::code($sections) : null;
         $sectionOf = is_array($sections) ? $sections : [];
@@ -127,6 +137,12 @@ final class Achievement
         Ledger::add('evidence_linked', $rows, $offeringId, (int) $o['course_id'], 'Assessment results linked to CLOs');
         Events::emit('results.imported', ['offering_id' => $offeringId, 'batch_id' => $batchId]);
         return ['batch_id' => $batchId, 'rows' => $rows, 'status' => $status];
+    }
+
+    /** True for a student key with the shape of an unprotected student number (digits only). */
+    public static function looksLikeRawId(string $student): bool
+    {
+        return preg_match('/^\s*\d+\s*$/', $student) === 1;
     }
 
     /** @return array{clos:int} */
