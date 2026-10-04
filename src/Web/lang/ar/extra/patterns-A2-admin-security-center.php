@@ -55,6 +55,12 @@ return [
     '/^Confirm ((?:Dr|Prof|Eng|Mr|Mrs|Ms)\\. .+|[A-Z][A-Za-z\'-]+(?: [A-Z][A-Za-z\'-]+)+)$/u' => 'تأكيد صلاحية {1}',
     '/^((?:Dr|Prof|Eng|Mr|Mrs|Ms)\\. .+?|[A-Z][A-Za-z\'-]+(?: [A-Z][A-Za-z\'-]+)+) \\(([a-z][a-z0-9]*[._0-9][a-z0-9._-]*)\\)$/u' => '{1} ({2})',
 
+    '/^Connection test: (.+)$/u' => 'اختبار الاتصال: {t1}',
+    '/^locked until (\\d\\d:\\d\\d)$/u' => 'مقفل حتى {1}',
+    '/^sso: (.+)$/u' => 'الدخول الموحّد: {t1}',
+    '/^(\\d+) of (\\d+) configured for the university\'s own systems$/u' => '{1} من {2} مُعدّة لأنظمة الجامعة نفسها',
+    '/^The test itself failed: (.+)$/u' => 'فشل الاختبار نفسه: {1}',
+
     // ---------------------------------------------------------------- Preflight details
     '/^1 blocker$/u' => 'عائق واحد',
     '/^(\\d+) blockers$/u' => '{1} عوائق',
@@ -164,7 +170,7 @@ return [
     '/^registered by (.+)$/u' => 'سجّله {1}',
     '/^detected (\\d{1,2} \\S+ \\d{4}, \\d\\d:\\d\\d)$/u' => 'اكتُشف في {t1}',
     '/^Incident registered by (.+)$/u' => 'سجّل {1} الحادث',
-    '/^This register supports the university\'s incident process; it does not replace it\\. For incidents involving personal data, the Saudi Personal Data Protection Law is described in the sources we reviewed as requiring notification of the competent authority \\(SDAIA\\) within (\\d+) hours of becoming aware of a breach likely to cause harm\\. Whether that applies to a given incident is for the data protection officer or legal counsel to decide\\. SAQF never contacts an authority or any person by itself\\.$/u' => 'يدعم هذا السجل إجراءات الجامعة في التعامل مع الحوادث ولا يحل محلها. وفيما يخص الحوادث التي تتضمن بيانات شخصية، يرد في المصادر التي راجعناها أن نظام حماية البيانات الشخصية في المملكة يوجب إشعار الجهة المختصة (SDAIA – الهيئة السعودية للبيانات والذكاء الاصطناعي) خلال {1} ساعة من العلم بحدوث اختراق يُحتمل أن يسبب ضرراً. أما انطباق ذلك على حادث بعينه فيقرره مسؤول حماية البيانات أو المستشار القانوني. ولا يتصل SAQF بأي جهة أو شخص من تلقاء نفسه.',
+    '/^This register supports the university\'s incident process; it does not replace it\\. For incidents involving personal data, the Saudi Personal Data Protection Law is described in the sources we reviewed as requiring notification of the competent authority \\(SDAIA\\) within (\\d+) hours of becoming aware of a breach likely to cause harm\\. Whether that applies to a given incident is for the data protection officer or legal counsel to decide\\. SAQF never contacts an authority or any person by itself\\.$/u' => 'يدعم هذا السجل إجراءات الجامعة في التعامل مع الحوادث ولا يحل محلها. وفيما يخص الحوادث التي تتضمن بيانات شخصية، يرد في المصادر التي راجعناها أن نظام حماية البيانات الشخصية في المملكة يوجب إشعار الجهة المختصة (SDAIA – الهيئة السعودية للبيانات والذكاء الاصطناعي) خلال {1} ساعة من العلم بحدوث اختراق يُحتمل أن يسبب ضرراً. أما انطباق ذلك على حادث بعينه فيقرره مسؤول حماية البيانات أو المستشار القانوني. ولا يتصل SAQF أبداً بأي جهة أو شخص من تلقاء نفسه.',
     '/^Security incident #(\\d+) registered \\(low\\): (.+)$/u' => 'سُجّل الحادث الأمني #{1} (الخطورة: منخفضة): {2}',
     '/^Security incident #(\\d+) registered \\(medium\\): (.+)$/u' => 'سُجّل الحادث الأمني #{1} (الخطورة: متوسطة): {2}',
     '/^Security incident #(\\d+) registered \\(high\\): (.+)$/u' => 'سُجّل الحادث الأمني #{1} (الخطورة: عالية): {2}',

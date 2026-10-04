@@ -200,6 +200,14 @@ final class Mfa
         $u = Db::one('SELECT * FROM users WHERE id = ?', [$userId]);
         Db::update('users', ['mfa_secret' => null, 'mfa_enabled_at' => null, 'mfa_last_step' => null], 'id = ?', [$userId]);
         Db::exec('DELETE FROM mfa_recovery_codes WHERE user_id = ?', [$userId]);
+        // An administrator's reset is for a lost phone or a suspected takeover: a passkey planted by an attacker must not
+        // survive it. (The person turning off their own authenticator app keeps their own passkeys.)
+        if ($by === 'admin') {
+            $revoked = Db::exec('UPDATE passkeys SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL', [Clock::stamp(), $userId]);
+            if ($revoked) {
+                Audit::record('admin.passkeys_revoked', 'user', $userId, "$revoked passkey(s) of {$u['username']} revoked with the two-step reset", null, null, $reason);
+            }
+        }
         Audit::record($by === 'admin' ? 'admin.mfa_reset' : 'security.mfa_disabled', 'user', $userId, "Two-step verification turned off for {$u['username']}" . ($by === 'admin' ? ' by an administrator' : ''), null, null, $reason);
     }
 

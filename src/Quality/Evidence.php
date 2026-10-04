@@ -77,7 +77,10 @@ final class Evidence
             throw new InvalidArgumentException('Upload a PDF, Word, Excel, PowerPoint, PNG, JPEG or text file (macro-enabled Office files are not accepted).');
         }
         self::checkContent($file['tmp_name'], $ext);
-        $title = trim($title) !== '' ? mb_substr(trim($title), 0, 200) : mb_substr(pathinfo($original, PATHINFO_FILENAME), 0, 200);
+        // File names and titles are untrusted personal data: long digit runs are masked everywhere, and samples of marked
+        // student work are stored under a name made from the title, never the name they arrived with.
+        $title = trim($title) !== '' ? mb_substr(self::maskIdentifiers(trim($title)), 0, 200) : ($kind === 'student_work' ? self::KINDS[$kind] : mb_substr(self::maskIdentifiers(pathinfo($original, PATHINFO_FILENAME)), 0, 200));
+        $original = $kind === 'student_work' ? self::neutralName($title, $ext) : self::maskIdentifiers($original);
         if ($assessmentId !== null && !Db::val('SELECT 1 FROM assessments WHERE id = ? AND spec_version_id = ?', [$assessmentId, $offering['spec_version_id']])) {
             throw new InvalidArgumentException('That assessment is not part of this course\'s specification.');
         }
@@ -204,9 +207,17 @@ final class Evidence
                 $tie = true;
             }
         }
-        $title = mb_substr(trim((string) preg_replace('/\s+/u', ' ', str_replace(['_', '-'], ' ', $stem))), 0, 200);
         $assessment = ($best !== null && !$tie) ? $best : null;
-        return ['kind' => $kind, 'assessment' => $assessment, 'title' => $title !== '' ? $title : 'Evidence', 'sure' => $kind !== 'other' && $assessment !== null];
+        // The suggested title is built from the kind and the assessment's name, never from the file name: names of
+        // marked work often carry a student's name or number, and a title is copied into the audit log and the package.
+        $aname = null;
+        foreach ($assessments as $a) {
+            if ($assessment !== null && (int) $a['id'] === $assessment) {
+                $aname = (string) $a['name'];
+            }
+        }
+        $title = ($aname !== null ? $aname . ' — ' : '') . ($kind === 'other' ? 'Other evidence' : self::KINDS[$kind]);
+        return ['kind' => $kind, 'assessment' => $assessment, 'title' => mb_substr($title, 0, 200), 'sure' => $kind !== 'other' && $assessment !== null];
     }
 
     /** Lower-case words of a name; letters and digits are separated ("quiz2" → quiz, 2) and "mid-term" is "midterm". */
@@ -222,6 +233,19 @@ final class Evidence
         $s = (string) preg_replace('/(?<=\p{L})(?=\d)|(?<=\d)(?=\p{L})/u', ' ', $s);
         $w = preg_split('/[^\p{L}\p{N}]+/u', $s, -1, PREG_SPLIT_NO_EMPTY) ?: [];
         return array_values(array_map(static fn($x) => ltrim($x, '0') === '' ? '0' : (ctype_digit($x) ? ltrim($x, '0') : $x), $w));
+    }
+
+    /** Long digit runs (student numbers, national IDs, phone numbers) never go into titles, file names or the audit log. */
+    public static function maskIdentifiers(string $s): string
+    {
+        return (string) preg_replace('/\d{6,}/u', '…', $s);
+    }
+
+    /** A file name for samples of marked work that cannot carry a student's name: made from the title only. */
+    private static function neutralName(string $title, string $ext): string
+    {
+        $slug = trim((string) preg_replace('/[^\p{L}\p{N}]+/u', '-', $title), '-');
+        return mb_substr($slug !== '' ? $slug : 'student-work-sample', 0, 80) . '.' . $ext;
     }
 
     public static function size(int $bytes): string

@@ -31,6 +31,18 @@ $canEdit = Authz::canEditOffering($user, $o);
 $canContribute = Authz::canContribute($user, $o);
 $sections = Sections::forOffering($oid);
 $mySections = $user['role'] === 'faculty' ? Sections::taughtBy($oid, $user['id']) : [];
+/** A section named in a form, checked: it must be a section of this course, and a section instructor may name only their own. */
+$checkedSection = static function (?string $raw) use ($sections, $mySections, $canEdit): ?string {
+    $raw = trim((string) $raw);
+    if ($raw === '') {
+        return count($mySections) === 1 && !$canEdit ? $mySections[0] : null;
+    }
+    $code = Sections::code($raw);
+    if ($code === null || !in_array($code, array_column($sections, 'section_code'), true) || (!$canEdit && !in_array($code, $mySections, true))) {
+        throw new InvalidArgumentException('Choose one of the sections you teach in this course.');
+    }
+    return $code;
+};
 $tab = in_array($_GET['tab'] ?? '', ['overview', 'structure', 'results', 'evidence', 'improve', 'report', 'closeout', 'history'], true) ? $_GET['tab'] : 'overview';
 
 // Assessment evidence: upload (coordinator or section instructor) and removal (with a reason).
@@ -43,7 +55,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (isset($_FILES['evidence
         if (isset($_FILES['evidence'])) {
             \Saqf\Core\Throttle::check('upload:' . $user['id'], 30, 3600, 'Too many uploads in the last hour. Please try again later.');
             $aid = (int) ($_POST['assessment'] ?? 0);
-            $section = (string) ($_POST['section'] ?? '') ?: (count($mySections) === 1 ? $mySections[0] : null);
+            $section = $checkedSection((string) ($_POST['section'] ?? ''));
             Evidence::store($o, $_FILES['evidence'], (string) ($_POST['kind'] ?? ''), (string) ($_POST['title'] ?? ''), $aid ?: null, $section, $user);
             Session::flash('success', 'Evidence added to the course file. Any matching evidence request cleared automatically.');
         } else {
@@ -70,6 +82,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_FILES['evidence_
     }
     $batch = $_FILES['evidence_files'];
     $added = 0;
+    $used = [];
     $refused = [];
     try {
         $names = is_array($batch['name'] ?? null) ? $batch['name'] : [];
@@ -83,9 +96,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_FILES['evidence_
         $specNow = $o['spec_version_id'] ? Specs::load((int) $o['spec_version_id']) : null;
         $asm = array_map(static fn($a) => ['id' => (int) $a['id'], 'name' => (string) $a['name']], $specNow['assessments'] ?? []);
         $post = static fn(string $k, int $i): ?string => is_array($_POST[$k] ?? null) && is_string($_POST[$k][$i] ?? null) ? trim($_POST[$k][$i]) : null;
-        $section = (string) ($_POST['section'] ?? '') ?: (count($mySections) === 1 ? $mySections[0] : null);
+        $section = $checkedSection((string) ($_POST['section'] ?? ''));
         foreach ($present as $i) {
-            $label = mb_strimwidth((string) $names[$i], 0, 60, '…');
+            $label = mb_strimwidth(Evidence::maskIdentifiers((string) $names[$i]), 0, 60, '…');
             try {
                 \Saqf\Core\Throttle::check('upload:' . $user['id'], 30, 3600, 'Too many uploads in the last hour. Please try again later.');
                 $guess = Evidence::suggest((string) $names[$i], $asm);
@@ -93,7 +106,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_FILES['evidence_
                 $aid = $post('item_assessment', $i);
                 $aid = $aid === null ? $guess['assessment'] : ((int) $aid ?: null);
                 $title = $post('item_title', $i);
-                Evidence::store($o, ['name' => $names[$i], 'tmp_name' => $batch['tmp_name'][$i], 'size' => $batch['size'][$i], 'error' => $batch['error'][$i]], $kind, $title === null || $title === '' ? $guess['title'] : $title, $aid, $section, $user);
+                $title = $title === null || $title === '' ? $guess['title'] : $title;
+                $used[$title] = ($used[$title] ?? 0) + 1;
+                Evidence::store($o, ['name' => $names[$i], 'tmp_name' => $batch['tmp_name'][$i], 'size' => $batch['size'][$i], 'error' => $batch['error'][$i]], $kind, $used[$title] > 1 ? $title . ' (' . $used[$title] . ')' : $title, $aid, $section, $user);
                 $added++;
             } catch (InvalidArgumentException | RuntimeException $e) {
                 $refused[] = $label . ' (' . rtrim($e->getMessage(), '.') . ')';
@@ -137,8 +152,22 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_FILES['results']
         foreach ($parsed['results'] as $name => $scores) {
             isset($known[mb_strtolower(trim((string) $name))]) ? $matched[$name] = $scores : $ignored[] = (string) $name;
         }
-        // A section instructor's file belongs to their section unless it says otherwise.
-        $tag = $parsed['sections'] ?: (!$canEdit && count($mySections) === 1 ? $mySections[0] : null);
+        // A section instructor contributes marks for their own section(s) only: the file may not name another section,
+        // with one section everything is filed under it, and with several the file must say which student is where.
+        $tag = $parsed['sections'] ?: null;
+        if (!$canEdit) {
+            if (!$mySections) {
+                throw new InvalidArgumentException('You are not assigned to a section of this course.');
+            }
+            if (array_diff(array_map(static fn($c) => Sections::code($c), array_values(array_unique($parsed['sections']))), $mySections)) {
+                throw new InvalidArgumentException('The file names a section you do not teach. Remove those rows, or ask the course coordinator to upload them.');
+            }
+            if (count($mySections) === 1) {
+                $tag = $mySections[0];
+            } elseif (!$parsed['sections']) {
+                throw new InvalidArgumentException('You teach more than one section of this course: add a "section" column so each student is filed under the right one.');
+            }
+        }
         $stats = [];
         $students = [];
         foreach ($matched as $name => $scores) {
@@ -169,7 +198,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && in_array($_POST['op'] ??
         } elseif (!$pv || time() - (int) $pv['at'] > 900 || !$pv['results']) {
             throw new InvalidArgumentException('The preview expired or had nothing to import. Upload the file again.');
         } else {
-            $r = Achievement::import($oid, $pv['results'], 'upload', null, $pv['tag']);
+            $r = Achievement::import($oid, $pv['results'], 'upload', null, $pv['tag'], $canEdit ? null : $mySections);
             if ($pv['ignored']) {
                 \Saqf\Core\Audit::record('results.columns_ignored', 'offering', $oid, "{$o['course_code']}: columns in the uploaded file that are not in the course specification were not imported: " . mb_strimwidth(implode(', ', $pv['ignored']), 0, 250, '…'));
             }

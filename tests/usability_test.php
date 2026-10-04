@@ -309,6 +309,66 @@ ok(str_contains($page, 'up to 12 files') && !Db::val('SELECT 1 FROM evidence_fil
 ok($code === 403 && !Db::val('SELECT 1 FROM evidence_files WHERE offering_id = ? AND original_name = "hod.pdf"', [$oid]), 'a Head of Department cannot file evidence into another instructor\'s course (403)');
 ok((int) Db::val('SELECT COUNT(*) FROM audit_log WHERE action = "evidence.uploaded" AND object_id = ?', [(string) $oid]) >= 3, 'every file is audited individually');
 
+// ---------------------------------------------------------------------------------------------
+section('7. Findings from the independent review, fixed and pinned');
+// 7a. A section instructor works on their own section only.
+$secs = Db::all('SELECT s.section_code, u.username FROM offering_sections s LEFT JOIN users u ON u.id = s.instructor_id WHERE s.offering_id = ? ORDER BY s.section_code', [$oid]);
+$saraSec = null;
+$otherSec = null;
+foreach ($secs as $r) {
+    if ($r['username'] === 'f.sara') {
+        $saraSec = $r['section_code'];
+    } else {
+        $otherSec = $r['section_code'];
+    }
+}
+ok($saraSec !== null && $otherSec !== null, "SWE 401 has two sections: f.sara teaches $saraSec, someone else teaches $otherSec");
+$sara = as_user($app, 'f.sara');
+$mark = static fn(string $raw) => Db::val('SELECT score_pct FROM assessment_results WHERE offering_id = ? AND student_ref = ? AND assessment_id = (SELECT id FROM assessments WHERE name = ? AND spec_version_id = ?)', [$oid, \Saqf\Core\Secrets::pseudonym(\Saqf\Integration\Gradebook::SYSTEM, $raw), $names[0], $o['spec_version_id']]);
+[, $page] = upload($app, $omar, $oid, [['student', 'section', $names[0]], ['208800001', $otherSec, '55']]);
+[$code] = http($omar, "$app/workspace.php?id=$oid", ['_csrf' => csrf_of($page), 'op' => 'gb_confirm']);
+ok((float) $mark('208800001') === 55.0, 'the coordinator files a mark for a student of the other section');
+[, $page] = upload($app, $sara, $oid, [['student', 'section', $names[0]], ['208800002', $otherSec, '99']]);
+ok(str_contains($page, 'names a section you do not teach') && !str_contains($page, 'Check before importing'), 'a section instructor\'s file that names another section is refused at upload');
+[, $page] = upload($app, $sara, $oid, [['student', $names[0]], ['208800001', '99']]);
+ok(str_contains($page, 'Check before importing'), 'without a section column the preview is made (everything would be filed under her own section)');
+[$code] = http($sara, "$app/workspace.php?id=$oid", ['_csrf' => csrf_of($page), 'op' => 'gb_confirm']);
+[, $page] = http($sara, "$app/workspace.php?id=$oid&tab=results");
+ok(str_contains($page, 'filed under a section you do not teach') && (float) $mark('208800001') === 55.0, 'but confirming cannot overwrite a student filed under the other section: the mark is still 55 and nothing was imported');
+[, $page] = upload($app, $sara, $oid, [['student', $names[0]], ['208800003', '71']]);
+[$code] = http($sara, "$app/workspace.php?id=$oid", ['_csrf' => csrf_of($page), 'op' => 'gb_confirm']);
+ok((float) $mark('208800003') === 71.0 && Db::val('SELECT section_code FROM assessment_results WHERE offering_id = ? AND student_ref = ? LIMIT 1', [$oid, \Saqf\Core\Secrets::pseudonym(\Saqf\Integration\Gradebook::SYSTEM, '208800003')]) === $saraSec, 'her own students are filed under her section');
+[, $html] = http($sara, "$app/workspace.php?id=$oid&tab=evidence");
+$cf2 = new CURLFile($pdf, 'application/pdf', 'x.pdf');
+http($sara, "$app/workspace.php?id=$oid&tab=evidence", ['_csrf' => csrf_of($html), 'evidence_files[0]' => $cf2, 'section' => $otherSec, 'item_kind[0]' => 'other', 'item_title[0]' => 'Not mine']);
+ok(!Db::val('SELECT 1 FROM evidence_files WHERE offering_id = ? AND title = "Not mine"', [$oid]), 'a section instructor cannot file evidence under the other section either');
+
+// 7b. File names are personal data: never copied into titles, the database, the audit log or the package.
+$g = Evidence::suggest('441001234_Ahmed_Alotaibi_midterm_marked.pdf', $assess);
+ok(!str_contains($g['title'], '441001234') && !str_contains($g['title'], 'Ahmed') && !str_contains($g['title'], 'Alotaibi') && $g['kind'] === 'student_work', 'a suggested title is made from the kind and the assessment, never from the file name: "' . $g['title'] . '"');
+ok(Evidence::maskIdentifiers('Sample 441001234 and 12345') === 'Sample … and 12345', 'long digit runs are masked, short numbers are kept');
+[, $html] = http($omar, "$app/workspace.php?id=$oid&tab=evidence");
+http($omar, "$app/workspace.php?id=$oid&tab=evidence", ['_csrf' => csrf_of($html), 'evidence_files[0]' => new CURLFile($pdf, 'application/pdf', '441001234_Ahmed_Alotaibi_midterm_marked.pdf'), 'item_kind[0]' => 'student_work', 'item_assessment[0]' => (string) $mid, 'item_title[0]' => '']);
+$ev = Db::one('SELECT title, original_name FROM evidence_files WHERE offering_id = ? ORDER BY id DESC LIMIT 1', [$oid]);
+ok(!preg_match('/\d{6,}|Ahmed|Alotaibi/', $ev['title'] . ' ' . $ev['original_name']), 'marked student work is stored under a neutral title and file name: "' . $ev['original_name'] . '"');
+$aud = (string) Db::val('SELECT summary FROM audit_log WHERE action = "evidence.uploaded" AND object_id = ? ORDER BY id DESC LIMIT 1', [(string) $oid]);
+ok(!preg_match('/\d{6,}|Ahmed|Alotaibi/', $aud), 'and the audit entry carries no student number or name');
+http($omar, "$app/workspace.php?id=$oid&tab=evidence", ['_csrf' => csrf_of(http($omar, "$app/workspace.php?id=$oid&tab=evidence")[1]), 'evidence_files[0]' => new CURLFile($pdf, 'application/pdf', 'Final exam paper 20240001.pdf'), 'item_kind[0]' => 'assessment', 'item_title[0]' => 'Final 20240001 paper']);
+$ev = Db::one('SELECT title, original_name FROM evidence_files WHERE offering_id = ? ORDER BY id DESC LIMIT 1', [$oid]);
+ok(!preg_match('/\d{6,}/', $ev['title'] . $ev['original_name']), 'a number typed into a title or carried by an ordinary file name is masked too');
+
+// 7c. An administrator's two-step reset also revokes passkeys (one planted by an attacker must not survive).
+$uid = (int) Db::val('SELECT id FROM users WHERE username = "f.noura"');
+Db::exec('INSERT INTO passkeys (user_id, credential_id, public_key, sign_count, label, created_at) VALUES (?,?,?,?,?,NOW())', [$uid, 'cred-test-' . bin2hex(random_bytes(6)), 'pk', 0, 'planted']);
+\Saqf\Security\Mfa::disable($uid, 'user');
+ok(!Db::val('SELECT revoked_at FROM passkeys WHERE user_id = ? AND label = "planted"', [$uid]), 'turning off one\'s own authenticator app keeps one\'s own passkeys');
+\Saqf\Security\Mfa::disable($uid, 'admin', 'lost phone, ticket 1234');
+ok((bool) Db::val('SELECT revoked_at FROM passkeys WHERE user_id = ? AND label = "planted"', [$uid]) && (int) Db::val('SELECT COUNT(*) FROM audit_log WHERE action = "admin.passkeys_revoked" AND object_id = ?', [(string) $uid]) === 1, 'an administrator\'s reset revokes the passkeys and audits it');
+$admin = as_user($app, 'it.admin');
+Db::exec('INSERT INTO passkeys (user_id, credential_id, public_key, sign_count, label, created_at) VALUES (?,?,?,?,?,NOW())', [$uid, 'cred-test-' . bin2hex(random_bytes(6)), 'pk', 0, 'second']);
+[, $html] = http($admin, "$app/admin.php?tab=users");
+ok(str_contains($html, 'Reset two-step'), 'an account whose only second step is a passkey still offers "Reset two-step" to an administrator');
+
 finish();
 
 function V_h(string $s): string

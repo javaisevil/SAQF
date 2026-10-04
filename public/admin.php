@@ -485,7 +485,7 @@ if ($tab === 'health'):
         <?php if ($isLocked): ?><button class="btn btn-sm" name="op" value="unlock">Unlock</button><?php endif; ?>
         <button class="btn btn-sm" name="op" value="reset">Reset password</button>
         <button class="btn btn-sm" name="op" value="end_sessions">Sign out everywhere</button>
-        <?php if (Mfa::enabled($u)): ?><button class="btn btn-sm" name="op" value="mfa_reset">Reset two-step</button><?php endif; ?>
+        <?php if (Mfa::enabled($u) || \Saqf\Security\Passkeys::count($u) > 0): ?><button class="btn btn-sm" name="op" value="mfa_reset">Reset two-step</button><?php endif; ?>
         <button class="btn btn-sm <?= $u['status'] === 'disabled' ? '' : 'btn-red' ?>" name="op" value="<?= $u['status'] === 'disabled' ? 'enable' : 'disable' ?>"><?= $u['status'] === 'disabled' ? 'Enable' : 'Disable' ?></button>
         <select name="role" style="width:auto" aria-label="New role"><?php foreach (Auth::ROLES as $k => $l): ?><option value="<?= $k ?>" <?= $u['role'] === $k ? 'selected' : '' ?>><?= V::h($l) ?></option><?php endforeach; ?></select><button class="btn btn-sm" name="op" value="role">Change role</button></form>
       <details style="margin-top:8px"><summary class="small">Edit details</summary><form method="post" style="margin-top:6px"><?= Csrf::field() ?><input type="hidden" name="op" value="edit_user"><input type="hidden" name="user" value="<?= (int) $u['id'] ?>"><?= $fieldsFor($u) ?><button class="btn btn-sm" style="margin-top:6px">Save details</button></form></details></div></details><?php else: ?><span class="tiny muted">your account</span><?php endif; ?></td></tr>

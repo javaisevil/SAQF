@@ -68,7 +68,7 @@ final class Achievement
      * $sections tags students with their section: one code for the whole batch, or student => code.
      * @param string|array<string,string>|null $sections
      */
-    public static function import(int $offeringId, array $results, string $source, ?string $ref = null, $sections = null): array
+    public static function import(int $offeringId, array $results, string $source, ?string $ref = null, $sections = null, ?array $allowedSections = null): array
     {
         $o = Db::one('SELECT * FROM course_offerings WHERE id = ?', [$offeringId]);
         if (!$o || !$o['spec_version_id']) {
@@ -95,6 +95,23 @@ final class Achievement
             foreach (array_keys((array) $scores) as $student) {
                 if (self::looksLikeRawId((string) $student)) {
                     throw new InvalidArgumentException('These results carry student numbers instead of pseudonymous keys, so nothing was imported. Student identifiers must be pseudonymised before they are stored.');
+                }
+            }
+        }
+        // A section instructor (the caller passes their sections) may only add or change marks of students filed under
+        // their own sections: a student already filed under another section is never overwritten.
+        if ($allowedSections !== null) {
+            $refs = [];
+            foreach ($results as $scores) {
+                foreach (array_keys((array) $scores) as $student) {
+                    $refs[(string) $student] = true;
+                }
+            }
+            foreach (array_chunk(array_keys($refs), 500) as $chunk) {
+                $in = implode(',', array_fill(0, count($chunk), '?'));
+                $other = Db::col('SELECT DISTINCT section_code FROM assessment_results WHERE offering_id = ? AND student_ref IN (' . $in . ') AND section_code IS NOT NULL', array_merge([$offeringId], $chunk));
+                if (array_diff($other, $allowedSections)) {
+                    throw new InvalidArgumentException('Some of these students are filed under a section you do not teach, so nothing was imported. Ask the course coordinator to upload their marks.');
                 }
             }
         }

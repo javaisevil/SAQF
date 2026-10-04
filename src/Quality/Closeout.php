@@ -192,7 +192,7 @@ final class Closeout
     /**
      * Course file package (ZIP) for reviewers: the course report and approved specification (Word), the
      * evidence index, the grade-batch provenance, the closeout checklist, a README with provenance and
-     * SHA-256 checksums of every file. It holds no student identities (results appear only as
+     * SHA-256 checksums of every file. It holds no student identities that SAQF can recognise (results appear only as
      * aggregates) and NOT the evidence files themselves: each of those is downloaded on its own, audited.
      * The caller has authorised the offering; the export is audited with the package checksum.
      * @return array{name:string,bytes:string,sha256:string}
@@ -234,6 +234,7 @@ final class Closeout
             '- Course report: ' . ($snap ? 'sealed when the term closed on ' . $snap['created_at'] . ' (snapshot SHA-256 ' . $snap['sha256'] . '); the Word file is generated from SAQF\'s records.' : 'NOT sealed: the term is still open, so the report was generated from live data at the time above and may still change.'),
             '- Specification: ' . ($specVersion ? 'version ' . (int) $specVersion['version_no'] . ', approved in SAQF\'s workflow on ' . $specVersion['decided_at'] . ' (' . ($specVersion['decision_route'] ?? 'route not recorded') . ').' : 'no approved specification yet.'),
             '- Grades: ' . count($batches) . ' batch(es), listed with source, import date and checksum in grade-batches.csv. Student identities are keyed pseudonyms inside SAQF and do not appear in this package.',
+            '- Titles and file names in evidence-index.csv are shown as filed. SAQF masks long digit runs and names samples of marked student work from their title, but it cannot recognise a student\'s name that a person typed into a title.',
             '- Evidence: ' . count($evidence) . ' file(s) listed in evidence-index.csv with SHA-256 checksums. The files themselves are NOT in this package; each is downloaded from SAQF separately and every download is recorded.',
             '- Data sources: SIS ' . \Saqf\Integration\Integrations::sisKind() . ', LMS ' . \Saqf\Integration\Integrations::lmsKind() . ($demo ? ' (simulated in the demo).' : '.'),
             '- Checklist: ' . ($set ? 'set by Quality (last change ' . $set['at'] . ($set['by'] ? ' by ' . $set['by'] : '') . ').' : 'SAQF default settings, not yet confirmed by Quality.') . ' Status at generation: ' . $c['counts']['complete'] . ' complete, ' . $c['counts']['missing'] . ' missing, ' . $c['counts']['review'] . ' needing a person\'s review.',
