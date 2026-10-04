@@ -581,10 +581,13 @@ if ($tab === 'overview'):
     <section class="card"><div class="card-h"><h2>Add evidence</h2></div><div class="card-b small">
       <form method="post" enctype="multipart/form-data"><?= Csrf::field() ?>
         <div class="field"><label for="ev-files">Files (choose several at once)</label><input type="file" id="ev-files" name="evidence_files[]" multiple required accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.txt"></div>
-        <div id="ev-rows" class="ev-rows" aria-live="polite" data-offering="<?= $oid ?>" data-max="12"
-          data-kinds="<?= V::h(json_encode(Evidence::KINDS, JSON_UNESCAPED_UNICODE)) ?>"
-          data-assessments="<?= V::h(json_encode(array_map(static fn($a) => ['id' => (int) $a['id'], 'name' => (string) $a['name']], $evidenceSpec['assessments']), JSON_UNESCAPED_UNICODE)) ?>"
-          data-text="<?= V::h(json_encode(['hint' => 'SAQF suggested these from the file names. Please check each one.', 'unsure' => 'Not sure about this one: please check.', 'general' => 'General (not one assessment)', 'tooMany' => 'Add up to {n} files at a time.', 'kind' => 'What is it?', 'assessment' => 'Assessment', 'title' => 'Title'], JSON_UNESCAPED_UNICODE)) ?>"></div>
+        <div id="ev-rows" class="ev-rows" aria-live="polite" data-offering="<?= $oid ?>" data-max="12"></div>
+        <?php /* Row template and wording for evidence.js: rendered here so the Arabic page filter translates them like any other text. */ ?>
+        <template id="ev-tpl"><div class="ev-row"><div class="ev-name"></div>
+          <select class="ev-kind" aria-label="What is it?"><?php foreach (Evidence::KINDS as $k => $l): ?><option value="<?= V::h($k) ?>"><?= V::h($l) ?></option><?php endforeach; ?></select>
+          <select class="ev-asm" aria-label="Assessment"><option value="">General (not one assessment)</option><?php foreach ($evidenceSpec['assessments'] as $a): ?><option value="<?= (int) $a['id'] ?>"><?= V::h($a['name']) ?></option><?php endforeach; ?></select>
+          <input type="text" class="ev-title" maxlength="200" aria-label="Title"><div class="tiny ev-note" hidden>Not sure about this one: please check.</div></div></template>
+        <div id="ev-text" hidden><span data-k="hint">SAQF suggested these from the file names. Please check each one.</span><span data-k="toomany">Add up to 12 files at a time.</span></div>
         <?php if (count($sections) > 1): ?><div class="field"><label>Section (for all these files)</label><select name="section"><option value="">All sections</option><?php foreach ($sections as $s): ?><option <?= in_array($s['section_code'], $mySections, true) && !$canEdit ? 'selected' : '' ?>><?= V::h($s['section_code']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
         <button class="btn btn-primary btn-sm" type="submit">Upload</button>
         <p class="tiny muted" style="margin-top:8px">Up to 12 files at a time (together under <?= V::h((string) ini_get('post_max_size')) ?>): PDF, Word, Excel, PowerPoint, images or text, each up to <?= (int) Policy::get('evidence.max_mb') ?> MB. SAQF suggests what each file is from its name; you decide. Files are checked for safety before they are stored. Please remove student names from samples.</p>
