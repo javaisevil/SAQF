@@ -81,6 +81,7 @@ final class AccessReview
         }
         Db::update('users', ['status' => 'disabled'], 'id = ?', [$userId]);
         Sessions::endAll($userId, 'access removed in the access review');
+        TrustedDevices::forgetAll($userId);
         Db::insert('access_reviews', ['user_id' => $userId, 'reviewer_id' => $reviewer['id'], 'decision' => 'removed', 'role_at_review' => $u['role'], 'note' => mb_substr($reason, 0, 255), 'reviewed_at' => Clock::stamp()]);
         Audit::record('security.access_removed', 'user', $userId, "Access of {$u['username']} removed in the access review", ['status' => $u['status']], ['status' => 'disabled'], $reason);
     }

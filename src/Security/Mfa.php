@@ -6,15 +6,21 @@ namespace Saqf\Security;
 use InvalidArgumentException;
 use Saqf\Core\Audit;
 use Saqf\Core\Clock;
+use Saqf\Core\Config;
 use Saqf\Core\Db;
+use Saqf\Core\Mailer;
 use Saqf\Core\Policy;
 use Saqf\Core\Secrets;
 
 /**
- * Two-step verification for password sign-ins: an authenticator-app code (TOTP) after the password,
- * with ten one-time recovery codes. Secrets are stored encrypted; codes cannot be replayed.
- * Policy auth.mfa_required decides who must use it (administrators by default). University SSO
- * sign-ins rely on the identity provider's own multi-factor authentication.
+ * Two-step verification for password sign-ins, two ways:
+ *  - a code e-mailed to the person's university address (works for everyone with no set-up: 6 digits,
+ *    valid 10 minutes, single use, at most 5 tries and 5 e-mails per sign-in), or
+ *  - a code from an authenticator app (TOTP, RFC 6238), with ten one-time recovery codes. Required for
+ *    administrators, who may not use e-mail codes.
+ * Secrets are stored encrypted; codes cannot be replayed. Policy auth.mfa_required decides who must use
+ * it (everyone signing in with a password by default). University SSO sign-ins rely on the identity
+ * provider's own multi-factor authentication.
  */
 final class Mfa
 {
@@ -23,6 +29,81 @@ final class Mfa
     public static function enabled(array $user): bool
     {
         return !empty($user['mfa_enabled_at']) && !empty($user['mfa_secret']);
+    }
+
+    /** E-mailed codes: anyone but administrators with an e-mail address, when SAQF can deliver mail (or in demo mode, where the code is shown on screen). */
+    public static function emailAllowed(array $user): bool
+    {
+        return ($user['role'] ?? '') !== 'admin' && filter_var((string) ($user['email'] ?? ''), FILTER_VALIDATE_EMAIL) !== false
+            && (Mailer::enabled() || Config::demoMode());
+    }
+
+    /** True when the person has a working second step (an authenticator app, or e-mailed codes). */
+    public static function hasFactor(array $user): bool
+    {
+        return self::enabled($user) || self::emailAllowed($user);
+    }
+
+    /** "o•••••@yu.edu.sa" */
+    public static function maskEmail(string $email): string
+    {
+        [$local, $domain] = array_pad(explode('@', $email, 2), 2, '');
+        return mb_substr($local, 0, 1) . str_repeat('•', max(3, min(8, mb_strlen($local) - 1))) . '@' . $domain;
+    }
+
+    /**
+     * E-mails a new 6-digit code for the sign-in waiting in this session.
+     * @return string|null null when sent, otherwise why not (wait, or too many codes)
+     */
+    public static function sendEmailCode(array $user): ?string
+    {
+        if (!isset($_SESSION['mfa_pending']) || !self::emailAllowed($user)) {
+            return 'E-mailed codes are not available for this account.';
+        }
+        $prev = $_SESSION['mfa_pending']['email'] ?? null;
+        if ($prev && (int) $prev['sends'] >= 5) {
+            return 'Too many codes were sent. Start the sign-in again in a few minutes.';
+        }
+        if ($prev && time() - (int) $prev['sent_at'] < 30) {
+            return 'A code was just sent. Wait ' . (30 - (time() - (int) $prev['sent_at'])) . ' seconds before asking for another.';
+        }
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $_SESSION['mfa_pending']['email'] = [
+            'hash' => self::codeHash($code, (int) $user['id']), 'expires' => time() + 600, 'sent_at' => time(),
+            'sends' => (int) ($prev['sends'] ?? 0) + 1, 'to' => self::maskEmail((string) $user['email']),
+            // Demo mode has no mail server: the page shows the e-mail instead (never in production).
+            'demo' => Config::demoMode() && !Mailer::enabled() ? $code : null,
+        ];
+        if (Mailer::enabled()) {
+            $id = Mailer::queue((string) $user['email'], (string) $user['full_name'], 'Your SAQF sign-in code: ' . $code, implode("\n", [
+                "Dear {$user['full_name']},", '',
+                "Your SAQF sign-in code is:  $code", '',
+                'It is valid for 10 minutes and works once. SAQF staff will never ask you for this code.',
+                'If you did not try to sign in, someone may know your password: change it now under Account & security and inform IT security.',
+            ]), 'security');
+            if ($id) {
+                Mailer::flush(1, $id);
+            }
+        }
+        Audit::asSystem(static fn() => Audit::record('security.mfa_email_sent', 'user', $user['id'], "Sign-in code e-mailed to {$user['username']}"));
+        return null;
+    }
+
+    /** Checks an e-mailed code against the sign-in waiting in this session (single use). */
+    public static function verifyEmailCode(array $user, string $code): bool
+    {
+        $p = $_SESSION['mfa_pending']['email'] ?? null;
+        $clean = (string) preg_replace('/\D/', '', $code);
+        if (!$p || (int) $p['expires'] < time() || strlen($clean) !== 6 || !hash_equals((string) $p['hash'], self::codeHash($clean, (int) $user['id']))) {
+            return false;
+        }
+        unset($_SESSION['mfa_pending']['email']);
+        return true;
+    }
+
+    private static function codeHash(string $code, int $userId): string
+    {
+        return hash_hmac('sha256', "mfa-email:$userId:$code", Secrets::appKey());
     }
 
     public static function required(array $user): bool

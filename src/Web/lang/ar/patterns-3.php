@@ -1,0 +1,41 @@
+<?php
+declare(strict_types=1);
+
+// Arabic dictionary, patterns part 3 (loaded by ../ar.php, tried first): sentences with numbers,
+// dates and names from the sign-in protections, the account security checkup and the help page.
+
+return [
+    '/^People change jobs; access should not outlive the job\\. Every (\\d+) days an administrator other than the person concerned confirms who still needs access and whether the role is right\\. A role change makes the next review due at once\\. Nobody can review their own access, and every decision is kept in the activity log\\.$/u' => 'تتغير وظائف الأشخاص، ولا ينبغي أن تبقى الصلاحية بعد انتهاء الوظيفة. كل {1} يوماً يؤكد مسؤول غير الشخص المعني من ما زال يحتاج إلى الوصول وهل الدور صحيح. أي تغيير في الدور يجعل المراجعة التالية مستحقة فوراً. لا يراجع أحد صلاحيته بنفسه، ويُحفظ كل قرار في سجل النشاط.',
+    '/^(Chrome|Edge|Firefox|Safari|Opera|Browser) on (iOS|Android|Windows|macOS|Linux|unknown system)$/u' => '{1} على {2}',
+    "/^(\\d+) of (\\d+) running on the university's own systems$/u" => '{1} من {2} تعمل على أنظمة الجامعة نفسها',
+    '/^(\\d+) of (\\d+) confirmed in the last (\\d+) days$/u' => '{1} من {2} أُكّدت خلال آخر {3} يوماً',
+    '/^(\\d+) of (\\d+) passed$/u' => 'نجح {1} من {2}',
+    '/^(\\d+) of (\\d+) protections proved themselves when last run \\((.+)\\)\\.$/u' => 'أثبتت {1} من {2} وسائل الحماية عملها في آخر تشغيل ({3}).',
+    '/^(\\d+) of (\\d+) account\\(s\\) are due for an access review \\(at least every (\\d+) days, and after a role change\\)\\.$/u' => '{1} من {2} حسابات مستحقة لمراجعة الصلاحيات (كل {3} يوماً على الأقل، وبعد أي تغيير في الدور).',
+    "/^Everyone's access was confirmed by an administrator within the last (\\d+) days \\((\\d+) accounts\\)\\.$/u" => 'أكّد مسؤول صلاحيات الجميع خلال آخر {1} يوماً ({2} حساباً).',
+    '/^Required for: everyone signing in with a password \\(a code by e-mail or an authenticator app; administrators must use the app\\)\\.$/u' => 'إلزامي لكل من يدخل بكلمة المرور (رمز بالبريد أو من تطبيق المصادقة؛ ويستخدم المسؤولون التطبيق إلزامياً).',
+    '/^Sign-in and password-reset forms need a solved proof-of-work puzzle \\(single use, (\\d+) bits, (\\d+) after repeated failures\\) and carry a hidden bot trap\\. Self-hosted: nothing is sent to a third party\\.$/u' => 'يتطلب نموذجا الدخول واستعادة كلمة المرور حل لغز «إثبات العمل» (لمرة واحدة، {1} بت، و{2} بعد الإخفاقات المتكررة) ويحملان فخاً مخفياً للبرامج الآلية. مستضاف ذاتياً: لا يُرسل شيء لطرف ثالث.',
+    '/^People may skip the code on a browser they trusted, for (\\d+) days \\(never administrators; a password change forgets every trusted browser\\)\\. (\\d+) trusted now\\.$/u' => 'يمكن تخطي الرمز على متصفح موثوق لمدة {1} يوماً (ليس للمسؤولين؛ وتغيير كلمة المرور ينسى كل المتصفحات الموثوقة). الموثوقة الآن: {2}.',
+    '/^Passes every check: (\\d+) programs, (\\d+) courses, (\\d+) program outcomes\\.$/u' => 'يجتاز كل الفحوص: {1} برنامجاً، {2} مقرراً، {3} من مخرجات البرامج.',
+    '/^by (.+)$/u' => 'بواسطة {1}',
+    '/^Next step: (.+)$/u' => 'الخطوة التالية: {1}',
+    '/^Accounts lock for (\\d+) minutes after (\\d+) wrong passwords\\. You are signed out after (\\d+) minutes without activity\\.( Sign-in is handled by the university identity provider\\.)?$/u' => 'يُقفل الحساب {1} دقيقة بعد {2} كلمات مرور خاطئة. ويُسجَّل خروجك بعد {3} دقيقة دون نشاط.',
+    "/^Don't ask again on this browser for (\\d+) days$/u" => 'لا تسألني مرة أخرى على هذا المتصفح لمدة {1} يوماً',
+    '/^what (.+) receives$/u' => 'ما يصل إلى {1}',
+    '/^A code was just sent\\. Wait (\\d+) seconds before asking for another\\.$/u' => 'أُرسل رمز للتو. انتظر {1} ثانية قبل طلب رمز آخر.',
+    '/^For your security, SAQF signs you out after (\\d+) minutes without activity\\. Time left:$/u' => 'لأمانك، يُسجّل SAQF خروجك بعد {1} دقيقة دون نشاط. الوقت المتبقي:',
+    '/^Welcome back\\. Your last sign-in was on (\\d{1,2} \\w{3} \\d{4}) at (\\d\\d:\\d\\d) from (.+?) \\(([^)]+)\\)\\. Not you\\? Open Account & security\\.$/u' => 'مرحباً بعودتك. آخر تسجيل دخول لك كان في {t1} الساعة {2} من {3} ({4}). لست أنت؟ افتح «الحساب والأمان».',
+    '/^(\\d+) of (\\d+) look good$/u' => '{1} من {2} بحالة جيدة',
+    '/^On: a code is e-mailed to (\\S+) at each password sign-in\\.$/u' => 'مفعّل: يُرسل رمز إلى {1} عند كل دخول بكلمة المرور.',
+    '/^(\\d+) unused recovery code\\(s\\) for a lost phone\\.$/u' => '{1} رموز استرداد غير مستخدمة في حال فقدان الهاتف.',
+    '/^Last changed (.+)\\.$/u' => 'آخر تغيير: {t1}.',
+    '/^(\\d+) failed attempt\\(s\\) in the last 7 days: check they were you\\.$/u' => '{1} محاولات فاشلة خلال آخر 7 أيام: تأكد أنها منك.',
+    '/^trusted (.+)$/u' => 'موثوق منذ {t1}',
+    '/^until (\\d{1,2} \\w{3} \\d{4})$/u' => 'حتى {t1}',
+    '/^last used (.+)$/u' => 'آخر استخدام {t1}',
+    '/^No trusted browsers: every password sign-in asks for a code\\. Tick "Don\'t ask again on this browser" on the code screen to trust one for (\\d+) days\\.$/u' => 'لا متصفحات موثوقة: كل دخول بكلمة المرور يطلب رمزاً. حدّد «لا تسألني مرة أخرى على هذا المتصفح» في شاشة الرمز لتثق بمتصفح لمدة {1} يوماً.',
+    '/^If you don\'t recognise an attempt, press "This wasn\'t me", then change your password\\. Sessions end after (\\d+) minutes of inactivity\\.$/u' => 'إن لم تتعرف على محاولة فاضغط «لم أكن أنا» ثم غيّر كلمة المرور. تنتهي الجلسات بعد {1} دقيقة من عدم النشاط.',
+    '/^Your sign-in is protected by two-step verification with an authenticator app\\.$/u' => 'دخولك محمي بالتحقق بخطوتين عبر تطبيق المصادقة.',
+    '/^Your sign-in is protected by two-step verification with a code e-mailed to you\\.$/u' => 'دخولك محمي بالتحقق بخطوتين برمز يُرسل إلى بريدك.',
+    '/^You are signed out after (\\d+) minutes without activity; a warning appears two minutes before, with a button to stay signed in\\.$/u' => 'يُسجَّل خروجك بعد {1} دقيقة دون نشاط؛ ويظهر تنبيه قبلها بدقيقتين مع زر للبقاء مسجّلاً.',
+];

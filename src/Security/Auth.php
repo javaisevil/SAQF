@@ -110,15 +110,56 @@ final class Auth
             Audit::asSystem(fn() => Audit::record('security.admin_network_refused', 'user', $user['id'], "Administrator sign-in for {$user['username']} refused from $ip (outside SAQF_ADMIN_ALLOWED_IPS)"));
             return ['ok' => false, 'message' => 'Administrator access is only allowed from the university network.'];
         }
-        if (Mfa::enabled($user)) {
+        // Second step: the authenticator app when the person set one up, otherwise an e-mailed code
+        // whenever policy requires two-step verification for them.
+        $method = Mfa::enabled($user) ? 'app' : (Mfa::required($user) && Mfa::emailAllowed($user) ? 'email' : null);
+        if ($method !== null && TrustedDevices::recognises($user)) {
+            self::login($user, 'password+trusted');
+            self::logAttempt($username, true, 'trusted_browser');
+            return ['ok' => true, 'message' => 'Signed in'];
+        }
+        if ($method !== null) {
             // Password is right; the session is created only after the second step.
             Session::regenerate();
-            $_SESSION['mfa_pending'] = ['uid' => (int) $user['id'], 'at' => time(), 'tries' => 0];
-            return ['ok' => true, 'mfa' => true, 'message' => 'Enter the code from your authenticator app'];
+            $_SESSION['mfa_pending'] = ['uid' => (int) $user['id'], 'at' => time(), 'tries' => 0, 'method' => $method];
+            if ($method === 'email') {
+                Mfa::sendEmailCode($user);
+            }
+            return ['ok' => true, 'mfa' => true, 'message' => $method === 'email' ? 'Enter the code we e-mailed you' : 'Enter the code from your authenticator app'];
         }
         self::login($user);
         self::logAttempt($username, true, null);
         return ['ok' => true, 'message' => 'Signed in'];
+    }
+
+    /** Records a sign-in refused before the password was even checked (robot check, expired form). */
+    public static function refuse(string $username, string $reason): void
+    {
+        self::logAttempt(mb_strtolower(trim($username)) ?: '(none)', false, $reason);
+    }
+
+    /** How the waiting sign-in is being confirmed: app | email. */
+    public static function mfaMethod(): string
+    {
+        return ($_SESSION['mfa_pending']['method'] ?? 'app') === 'email' ? 'email' : 'app';
+    }
+
+    /** Lets the person switch between the authenticator app and an e-mailed code. @return string|null error */
+    public static function switchMfaMethod(string $to): ?string
+    {
+        $user = self::mfaPending();
+        if (!$user) {
+            return 'The sign-in expired. Enter your password again.';
+        }
+        if ($to === 'email' && Mfa::emailAllowed($user)) {
+            $_SESSION['mfa_pending']['method'] = 'email';
+            return Mfa::sendEmailCode($user);
+        }
+        if ($to === 'app' && Mfa::enabled($user)) {
+            $_SESSION['mfa_pending']['method'] = 'app';
+            return null;
+        }
+        return 'That way of confirming is not available for this account.';
     }
 
     /** User waiting for the second step, if the pending sign-in is still fresh (5 minutes). */
@@ -133,13 +174,18 @@ final class Auth
     }
 
     /** Second step of a password sign-in. @return array{ok:bool,message:string} */
-    public static function completeMfa(string $code): array
+    public static function completeMfa(string $code, bool $trustBrowser = false): array
     {
         $user = self::mfaPending();
         if (!$user) {
             return ['ok' => false, 'message' => 'The sign-in expired. Enter your password again.'];
         }
-        if (Mfa::verify($user, $code) === null) {
+        $method = self::mfaMethod();
+        $clean = (string) preg_replace('/[^A-Za-z0-9]/', '', $code);
+        $right = $method === 'email' && strlen($clean) === 6
+            ? Mfa::verifyEmailCode($user, $clean)
+            : (Mfa::enabled($user) && Mfa::verify($user, $code) !== null);
+        if (!$right) {
             $_SESSION['mfa_pending']['tries'] = (int) $_SESSION['mfa_pending']['tries'] + 1;
             self::logAttempt((string) $user['username'], false, 'bad_mfa_code');
             if ($_SESSION['mfa_pending']['tries'] >= 5) {
@@ -147,11 +193,14 @@ final class Auth
                 Audit::asSystem(fn() => Audit::record('security.mfa_failed', 'user', $user['id'], "Five wrong verification codes for {$user['username']}; sign-in abandoned"));
                 return ['ok' => false, 'message' => 'Too many wrong codes. Sign in again.'];
             }
-            return ['ok' => false, 'message' => 'That code is not right. Enter the current 6-digit code, or a recovery code.'];
+            return ['ok' => false, 'message' => $method === 'email' ? 'That code is not right or has expired. Enter the 6-digit code from the latest e-mail, or send a new one.' : 'That code is not right. Enter the current 6-digit code, or a recovery code.'];
         }
         unset($_SESSION['mfa_pending']);
-        self::login($user, 'password+mfa');
-        self::logAttempt((string) $user['username'], true, 'mfa');
+        self::login($user, $method === 'email' ? 'password+email' : 'password+mfa');
+        if ($trustBrowser) {
+            TrustedDevices::trust($user);
+        }
+        self::logAttempt((string) $user['username'], true, $method === 'email' ? 'mfa_email' : 'mfa');
         return ['ok' => true, 'message' => 'Signed in'];
     }
 
@@ -181,6 +230,7 @@ final class Auth
 
     public static function login(array $user, string $method = 'password'): void
     {
+        $previous = Db::one('SELECT created_at, user_agent, ip FROM user_sessions WHERE user_id = ? AND method <> "demo" ORDER BY created_at DESC LIMIT 1', [$user['id']]);
         Session::regenerate();
         $now = Clock::now();
         $_SESSION['auth'] = $method;
@@ -198,8 +248,12 @@ final class Auth
             'last_login_at' => $now->format('Y-m-d H:i:s'), 'last_login_ip' => Request::ip(),
         ], 'id = ?', [$user['id']]);
         self::$user = null;
-        $how = ['sso' => ' (university SSO)', 'password+mfa' => ' (password and two-step verification)', 'demo' => ' (demo one-click sign-in)'][$method] ?? '';
+        $how = ['sso' => ' (university SSO)', 'password+mfa' => ' (password and authenticator code)', 'password+email' => ' (password and e-mailed code)', 'password+trusted' => ' (password on a trusted browser)', 'demo' => ' (demo one-click sign-in)'][$method] ?? '';
         Audit::record('auth.login', 'user', $user['id'], "{$user['full_name']} signed in$how");
+        // Like a bank: say when and where the account was last used, so a stranger's sign-in stands out.
+        if ($method !== 'demo' && $previous) {
+            Session::flash('info', 'Welcome back. Your last sign-in was on ' . date('j M Y \a\t H:i', strtotime((string) $previous['created_at'])) . ' from ' . Sessions::describe((string) $previous['user_agent']) . ' (' . $previous['ip'] . '). Not you? Open Account & security.');
+        }
     }
 
     public static function logout(string $reason = 'user'): void
@@ -289,12 +343,12 @@ final class Auth
             Authz::deny('administration from an untrusted network');
         }
         $page = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
-        $passwordSession = in_array($_SESSION['auth'] ?? 'password', ['password', 'password+mfa'], true);
+        $passwordSession = in_array($_SESSION['auth'] ?? 'password', ['password', 'password+mfa', 'password+email', 'password+trusted'], true);
         if ($user['must_change_password'] && $passwordSession && $page !== 'account.php') {
             header('Location: ' . Request::url('account.php?required=1'));
             exit;
         }
-        if ($passwordSession && Mfa::required($user) && !Mfa::enabled($user) && $page !== 'account.php') {
+        if ($passwordSession && Mfa::required($user) && !Mfa::hasFactor($user) && $page !== 'account.php') {
             header('Location: ' . Request::url('account.php?mfa=required'));
             exit;
         }
@@ -397,6 +451,7 @@ final class Auth
         Db::update('users', ['password_hash' => self::hash($new), 'password_changed_at' => Clock::stamp(), 'must_change_password' => 0], 'id = ?', [$user['id']]);
         Session::regenerate();
         $ended = Sessions::endAll((int) $user['id'], 'password changed', true);
+        TrustedDevices::forgetAll((int) $user['id']);
         Audit::record('auth.password_changed', 'user', $user['id'], "{$user['full_name']} changed their password" . ($ended ? " ($ended other session(s) signed out)" : ''));
         return null;
     }

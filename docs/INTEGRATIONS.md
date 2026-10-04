@@ -10,7 +10,7 @@ chosen with settings (environment variables, or `config.local.php` on shared hos
 | SIS (Banner, PeopleSoft, in-house) | academic calendar, teaching assignments, enrolment | export folder (CSV) · REST API | `SAQF_SIS_SOURCE=file \| rest` |
 | LMS | published grades per assessment | Moodle · Blackboard Learn · export folder (CSV) | `SAQF_LMS_SOURCE=moodle \| blackboard \| file` |
 | Identity provider | who is signing in, optionally their role | OpenID Connect (Entra ID / Microsoft 365, Google, Keycloak, ADFS, Okta) | `SAQF_OIDC_*` |
-| Mail server | — (sends notifications, invitations, password resets) | SMTP (Microsoft 365, Google, on-premise relay) | `SAQF_MAIL_*` |
+| Mail server | — (sends two-step sign-in codes, notifications, invitations, password resets) | SMTP (Microsoft 365, Google, on-premise relay) | `SAQF_MAIL_*` |
 
 `SAQF_SIS_SOURCE=none` or `SAQF_LMS_SOURCE=none` switches a connection off: terms are then added
 under *University systems → Academic calendar* and courses assigned by Heads of Department, and instructors

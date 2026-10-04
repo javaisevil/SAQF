@@ -6,6 +6,8 @@ declare(strict_types=1);
  * servers (php -S routers in tests/mock) started on free ports and stopped when the test ends.
  */
 
+require_once __DIR__ . '/signin_helpers.php';
+
 $pass = 0;
 $fail = 0;
 

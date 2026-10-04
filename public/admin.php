@@ -115,6 +115,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 }
                 Mfa::disable($targetId, 'admin', $reason);
                 Sessions::endAll($targetId, 'two-step verification reset');
+                \Saqf\Security\TrustedDevices::forgetAll($targetId);
                 Session::flash('success', "Two-step verification reset for {$target['username']}; they set it up again at their next password sign-in.");
                 break;
             case 'end_sessions':
@@ -125,6 +126,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     throw new DomainException('Give a reason (recorded in the audit log).');
                 }
                 $n = Sessions::endAll($targetId, 'signed out by an administrator');
+                \Saqf\Security\TrustedDevices::forgetAll($targetId);
                 Audit::record('admin.sessions_ended', 'user', $targetId, "All sessions of {$target['username']} ended by an administrator ($n)", null, null, $reason);
                 Session::flash('success', "{$target['username']} was signed out everywhere ($n session(s)).");
                 break;
@@ -179,6 +181,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 Db::update('users', ['status' => $op === 'disable' ? 'disabled' : 'active'], 'id = ?', [$targetId]);
                 if ($op === 'disable') {
                     Sessions::endAll($targetId, 'account disabled');
+                    \Saqf\Security\TrustedDevices::forgetAll($targetId);
                 }
                 Audit::record('admin.user_' . $op . 'd', 'user', $targetId, "Account {$target['username']} {$op}d", ['status' => $target['status']], ['status' => $op === 'disable' ? 'disabled' : 'active'], $reason);
                 Session::flash('success', 'Account ' . $op . 'd.');

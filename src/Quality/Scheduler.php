@@ -133,6 +133,7 @@ final class Scheduler
                             : Alerts::resolve('security.access_review');
                     });
                     self::step($stats, static fn() => Throttle::prune());
+                    self::step($stats, static fn() => \Saqf\Security\BotGuard::prune());
                 }
 
                 // Password guessing: the alert clears after an hour without throttled attempts.

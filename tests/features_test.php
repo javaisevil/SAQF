@@ -252,10 +252,10 @@ ok(count($codes) === Mfa::RECOVERY_CODES && Mfa::enabled($nouraRow), 'a faculty 
 ok(Mfa::verify($nouraRow, Totp::code($sec)) === null, 'a code that was already used cannot be replayed');
 ok(Mfa::verify($nouraRow, $codes[0]) === 0 && Mfa::verify(Db::one('SELECT * FROM users WHERE id = ?', [$noura['id']]), $codes[0]) === null, 'a recovery code works exactly once');
 Mfa::disable($noura['id'], 'self');
-ok(Mfa::required(['role' => 'admin']) && !Mfa::required(['role' => 'faculty']), 'policy: two-step verification is required for administrators');
+ok(Mfa::required(['role' => 'admin']) && Mfa::required(['role' => 'faculty']) && !Mfa::emailAllowed(['role' => 'admin', 'email' => 'it@yu.edu.sa']), 'policy: two-step verification is required for everyone signing in with a password; administrators must use an authenticator app');
 $j = jar();
 [, $html] = http($j, "$app/login.php");
-[$code, , $loc] = http($j, "$app/login.php", ['_csrf' => csrf_of($html), 'username' => 'it.admin', 'password' => Story::PASSWORD]);
+[$code, , $loc] = http($j, "$app/login.php", ['_csrf' => csrf_of($html), 'username' => 'it.admin', 'password' => Story::PASSWORD] + bot_fields($html));
 ok($code === 302 && str_ends_with($loc, 'mfa.php'), 'the administrator\'s correct password alone does not sign in — a code is asked for');
 [$code] = http($j, "$app/admin.php");
 ok($code === 302, 'nothing is reachable between the password and the code');
