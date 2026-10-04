@@ -31,11 +31,12 @@ No internet connection is needed: SAQF and the simulated university systems all 
 | **2:45** | *CIS 491 exception (Quality)* | **Allow the exception** or **Turn down** for the 70% capstone report — a reason is required | "Quality runs by exception. Every exception needs a reason and lands in a tamper-evident activity log." |
 | **3:05** | *Import specifications*, then *Arabic wording* | The import page and its CSV template; the Arabic wording page with what is still in English | "A university does not start from zero: existing approved specifications come in with one file, checked before anything is written. Course names arrive in Arabic from the Registrar; anything still in English is listed here to fill in, or as a spreadsheet." |
 | **3:30** | *University systems simulator* | Press **Publish now** (LMS releases SWE 302 midterm grades) → early warning raised. Press **Publish assignment** (SIS assigns SWE 413 to a brand-new instructor) → account and workspace created | "This is the automation live. The LMS publishes grades: SAQF recalculates and warns while there is still time to act. The SIS assigns a new instructor: the account and the workspace appear by themselves." |
-| **4:00** | *Security center* | 19 security controls with live status (HTTPS, two-step verification, password policy, audit chain, backups, virus scanning…) and the **IT alerts** tab | "IT sees every control and its real status, with a 'how to fix' for anything not yet on. Failed connectors, missed backups or a tampered audit log raise alerts to IT and Teams by themselves." |
-| **4:30** | *Open as the Vice President* | Programs that need help, problems that keep coming back, progress term by term across colleges | "Leadership sees the whole university in one screen, and can click through to any course." |
-| **4:45** | — | (stay on the page) | **Closing:** "Not a prototype: 423 automated checks run on every change, it ships as a Docker stack with HTTPS, encrypted and verified backups with a tested restore, single sign-on, two-step verification and Arabic. Ready for a pilot department next semester." |
+| **4:00** | *Security center* | 22 security controls with live status. Press **Run security self-test**: each protection is tried for real (weak passwords, forged requests, an attempt to edit the audit log, encryption, student identities). Open **Security evidence report** (printable, with a fingerprint). Then **Access review**: three people are due; tick them and confirm, noting that nobody can review their own access | "IT sees every control and its real status, and can *prove* it: SAQF attacks itself every night and raises an alert if any protection stops working. The report is what we hand the university's security committee. Access is re-confirmed by a second administrator every 90 days." |
+| **4:20** | *Go-live* (admin tab) | Every connection marked **Demo data** with its exact next step; **Check the catalogue** passes (14 programs, 366 courses); the **templates for IT** download | "This is how it connects to Al Yamamah's real systems: IT gets the access, replaces these files with the Registrar's and SIS's own export (same layout) and fills in a settings file. A faulty export is refused as a whole, so the live data can never be half-loaded." |
+| **4:35** | *Open as the Vice President* | Programs that need help, problems that keep coming back, progress term by term across colleges | "Leadership sees the whole university in one screen, and can click through to any course." |
+| **4:45** | — | (stay on the page) | **Closing:** "Not a prototype: 489 automated checks run on every change, it ships as a Docker stack with HTTPS, encrypted and verified backups with a tested restore, single sign-on, two-step verification and Arabic. Ready for a pilot department next semester." |
 
-**If time is short**, skip 3:05 (import) and 4:30 (Vice President). **If there is extra time**, show the administrator's real sign-in (below).
+**If time is short**, skip 3:05 (import) and 4:35 (Vice President). As Dr. Omar, **Add my deadlines to my calendar** (My courses) downloads a calendar file for Outlook, Google or Apple Calendar, and pressing **/** anywhere jumps to search. **If there is extra time**, show the administrator's real sign-in (below).
 
 ---
 
@@ -47,12 +48,13 @@ Point at these while talking; each takes under 10 seconds to show.
 |---|---|
 | Works with the university's real systems (SIS, Moodle/Blackboard, Microsoft 365 sign-in, e-mail) — configuration only, no code changes | *System administration → University systems* (connector list and **Test connections**) |
 | Runs itself: terms start on their SIS start date, grades import, rules re-check, e-mails go out | *System health*: scheduler heartbeat "last run just now" |
-| Real security, not a login form | *Security center*: 19 controls; two-step verification for administrators; strong-password rules; sessions you can end remotely (*Account & security*) |
+| Real security, not a login form | *Security center*: 22 controls and a live self-test; printable security evidence report; periodic access review; two-step verification for administrators; strong-password rules; sessions you can end remotely (*Account & security*) |
+| Ready to connect, not a prototype | *Go-live*: demo or live per system, exact next steps, templates in the real layouts, catalogue checked before use |
 | Tamper-evident records | *System health → Check the activity log*: "All … audit entries verified; the hash chain is intact" |
 | Disaster-ready | *System health → Backups*: encrypted, verified, copied off-site; the restore is tested in CI |
 | Arabic interface, including course content | **العربية** button at the top of every page: course titles, learning outcomes, assessments and names appear in Arabic too, and so does the Arabic Word report |
 | Plain language | Whole-number results with their goal, "What needs you" lists, course facts in sentences, no codes to decode |
-| Tested | 423 automated checks in 6 suites + Docker tests on every change ([`docs/TEST_CASES.md`](TEST_CASES.md)) |
+| Tested | 489 automated checks in 7 suites + Docker tests on every change ([`docs/TEST_CASES.md`](TEST_CASES.md)) |
 
 ---
 

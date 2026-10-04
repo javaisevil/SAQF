@@ -4,12 +4,13 @@
 
 SAQF connects university academic data, learning outcomes, assessments, achievement, validation, improvement and reporting into one continuous system. It runs routine quality-assurance work in the background, so faculty, Heads of Department, Quality staff and deans spend their time on the decisions that need academic judgement.
 
-> **Status:** SAQF 2.2, ready to deploy. It began in the FARQ hackathon (Track 2: university administration and faculty operations) and now includes connectors for the university's SIS, LMS (Moodle, Blackboard), single sign-on and e-mail, courses with several sections, bulk import of existing specifications, course-file evidence with virus scanning, NCAAA-layout Word documents, a complete Arabic interface (course and program names, learning outcomes and assessments in Arabic too), two-step verification, built-in HTTPS, encrypted off-site backups and IT alerts. Every screen is written in plain language: results are whole numbers next to their goal, and each page starts with what needs the person. Six automated test suites (423 checks) run on MySQL 8 and inside the Docker image on every change.
+> **Status:** SAQF 2.3, ready to deploy. It began in the FARQ hackathon (Track 2: university administration and faculty operations) and now includes connectors for the university's SIS, LMS (Moodle, Blackboard), single sign-on and e-mail, courses with several sections, bulk import of existing specifications, course-file evidence with virus scanning, NCAAA-layout Word documents, a complete Arabic interface (course and program names, learning outcomes and assessments in Arabic too), two-step verification, built-in HTTPS, encrypted off-site backups and IT alerts, and, new in 2.3, a **Go-live** page (the demo data and file layouts are the templates IT replaces with the university's own; a faulty export is refused as a whole), a periodic **access review**, a **live security self-test** with a printable **security evidence report**, and a calendar file of each instructor's deadlines. Every screen is written in plain language: results are whole numbers next to their goal, and each page starts with what needs the person. Seven automated test suites (489 checks) run on MySQL 8 and inside the Docker image on every change.
 > Out of the box it starts in **demo mode**: fictional people, teaching assignments and student results delivered through simulated SIS/LMS feeds. In **production mode** it runs on the university's own systems once IT provides access (see [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md)). It has not yet been piloted against YU's live systems.
 > Institutional data ships as a structured snapshot of Al Yamamah University's **public** study plans; the Registrar can replace it with its own export.
 > SAQF *supports NCAAA-oriented academic quality workflows*. It is not a compliance certification.
 
 - **Presenting SAQF?** The 5-minute judges' script is [`docs/JUDGES_DEMO.md`](docs/JUDGES_DEMO.md); in the app, open **Guided tour** (`/tour.php`).
+- **Connecting it to YU's systems?** *Administration → Go-live* shows each connection as demo or live, what is missing and the exact next step, and downloads the templates ([`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md#replacing-the-demo-data-with-the-universitys-own)).
 - **Checking every feature yourself?** [`docs/TEST_CASES.md`](docs/TEST_CASES.md) lists each one with the clicks and the expected result.
 - **New to the project?** The plain-language guide for the whole team is [`docs/TEAM_REPORT.md`](docs/TEAM_REPORT.md).
 
@@ -54,7 +55,7 @@ SAQF connects university academic data, learning outcomes, assessments, achievem
                                     policies, e-mail, migrations, Arabic UI   src/Web/I18n.php
 ```
 
-There is no framework and no third-party library: plain **PHP 8.1+** with PDO, **MySQL 8**, server-rendered pages and under 200 lines of vanilla JavaScript (no inline scripts, so a strict Content-Security-Policy applies). Word files, QR codes, ZIP packaging and authenticator codes are generated in plain PHP. The goal is that any university web team can host and maintain it. More detail: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+There is no framework and no third-party library: plain **PHP 8.1+** with PDO, **MySQL 8**, server-rendered pages and about 200 lines of vanilla JavaScript (no inline scripts, so a strict Content-Security-Policy applies). Word files, QR codes, ZIP packaging and authenticator codes are generated in plain PHP. The goal is that any university web team can host and maintain it. More detail: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Requirements
 
@@ -156,7 +157,7 @@ Each suite reinstalls the demo first; run `php bin/install.php --demo --fresh` a
 ## Production notes (summary)
 
 - `APP_ENV=production`, `APP_DEBUG=false`, HTTPS (the `https` compose profile, or the university's proxy listed in `SAQF_TRUSTED_PROXIES`), `SAQF_BASE_URL` set. Demo mode, its one-click sign-in and `--fresh` are disabled in production.
-- Security: two-step verification is required for administrators (policy `auth.mfa_required`), administrators can be limited to campus networks (`SAQF_ADMIN_ALLOWED_IPS`), uploads can be virus-scanned (`SAQF_CLAMAV_HOST`), and the Security center shows every control's live status.
+- Security: two-step verification is required for administrators (policy `auth.mfa_required`), administrators can be limited to campus networks (`SAQF_ADMIN_ALLOWED_IPS`), uploads can be virus-scanned (`SAQF_CLAMAV_HOST`), the Security center shows every control's live status, an administrator other than the person concerned confirms everyone's access every 90 days (*Access review*), and **Run security self-test** tries each protection for real (weak passwords, forged requests, editing the audit log, encryption, pseudonymised student identities). *Security evidence report* prints all of it with a fingerprint that is also entered in the audit log.
 - `php bin/install.php` (without `--demo`) creates the schema, syncs the catalogue and the SIS calendar, and prints a one-time administrator password. `php bin/migrate.php` applies upgrades (automatic in Docker).
 - Scheduler: `*/5 * * * * php bin/tick.php` (built into the Docker image). Nightly: `php bin/verify_audit.php` (exit code 2 = tampering).
 - Backups: the compose `backup` service (database + evidence files, verified, encrypted with `SAQF_BACKUP_PASSPHRASE`, copied to `SAQF_BACKUP_OFFSITE_PATH`), or `docker/backup.sh` from cron. Restore with `docker/restore.sh`; the audit chain is verified afterwards.
@@ -179,7 +180,7 @@ Each suite reinstalls the demo first; run `php bin/install.php --demo --fresh` a
 |---|---|---|
 | SIS (calendar, teaching assignments) | `SAQF_SIS_SOURCE` | `file` (nightly CSV export), `rest` (integration API), `none` |
 | LMS (grades) | `SAQF_LMS_SOURCE` | `moodle`, `blackboard`, `file` (gradebook CSV exports), `none` |
-| Registrar catalogue | `SAQF_INSTITUTION_DIR` | the bundled YU snapshot, or a Registrar export in the same format |
+| Registrar catalogue | `storage/inbox/catalog/` or `SAQF_INSTITUTION_DIR` | the bundled YU snapshot, or a Registrar export in the same format; checked completely before use (`php bin/pack.php validate`) |
 | Sign-in | `SAQF_OIDC_ISSUER`, `SAQF_OIDC_CLIENT_ID`, `SAQF_OIDC_CLIENT_SECRET` | any OpenID Connect provider; `SAQF_PASSWORD_LOGIN=admins` keeps a break-glass password for administrators |
 | E-mail | `SAQF_MAIL_HOST` and friends | any SMTP server (STARTTLS or TLS) |
 
@@ -194,8 +195,8 @@ database/    schema.sql, migrations/, audit_guard.sql
 data/yu/     YU institutional snapshot (from public study-plan PDFs) + SOURCES.md
 data/demo/   simulated SIS/LMS feeds for the demo scenario
 storage/     inbox/ for SIS and LMS export files, evidence/ (uploaded course-file evidence; runtime, not committed)
-bin/         install, migrate, tick (scheduler), verify_audit, wait_for_db, build_demo_data, test_all.sh, i18n_coverage
-tests/       automation_test, production_test, http_smoke, sso_test, features_test, wording_test, mock/ (stand-in systems)
+bin/         install, migrate, tick (scheduler), verify_audit, pack (check/export the data pack), wait_for_db, build_demo_data, test_all.sh, i18n_coverage
+tests/       automation_test, production_test, http_smoke, sso_test, features_test, wording_test, readiness_test, mock/ (stand-in systems)
 docs/        JUDGES_DEMO.md, TEST_CASES.md, TEAM_REPORT.md, ARCHITECTURE.md, INTEGRATIONS.md, OPERATIONS.md, AUDIT_BEFORE.md, demo/
 docker/      Apache/PHP hardening, entrypoint, backup and restore scripts, Caddyfile (HTTPS)
 ```

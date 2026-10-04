@@ -19,7 +19,9 @@ docker-compose.override.yml
 /storage/inbox/*
 !/storage/inbox/sis/
 !/storage/inbox/lms/
+!/storage/inbox/catalog/
 /storage/inbox/sis/*
 /storage/inbox/lms/*
+/storage/inbox/catalog/*
 !/storage/inbox/*/.gitkeep
 /backups/

@@ -19,14 +19,29 @@ final class CatalogFileSource implements InstitutionSource
 
     public function __construct(?string $dir = null)
     {
-        $this->dir = rtrim($dir ?? (string) (\Saqf\Core\Config::get('SAQF_INSTITUTION_DIR') ?: SAQF_ROOT . '/data/yu'), '/');
+        $this->dir = rtrim($dir ?? self::defaultDir(), '/');
+    }
+
+    /** SAQF_INSTITUTION_DIR, else a Registrar export dropped into storage/inbox/catalog, else the bundled YU snapshot. */
+    public static function defaultDir(): string
+    {
+        $configured = (string) \Saqf\Core\Config::get('SAQF_INSTITUTION_DIR');
+        if ($configured !== '') {
+            return $configured;
+        }
+        return is_file(DataPack::stagingDir() . '/institution.json') ? DataPack::stagingDir() : SAQF_ROOT . '/data/yu';
     }
 
     public function label(): string
     {
         return $this->dir === SAQF_ROOT . '/data/yu'
-            ? 'YU study-plan catalogue (data/yu) — structured from the published study plans; replace with a Registrar export via SAQF_INSTITUTION_DIR'
+            ? 'YU study-plan catalogue (data/yu) — structured from the published study plans; replace with a Registrar export via SAQF_INSTITUTION_DIR or storage/inbox/catalog'
             : 'Registrar catalogue export (' . $this->dir . ')';
+    }
+
+    public function dir(): string
+    {
+        return $this->dir;
     }
 
     public function snapshot(): array

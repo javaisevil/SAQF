@@ -28,6 +28,11 @@ final class Sync
         $stats = ['colleges' => 0, 'departments' => 0, 'programs' => 0, 'courses' => 0, 'plan_entries' => 0, 'requisites' => 0, 'plos' => 0, 'plo_changes' => 0, 'conflicts' => 0, 'auto_corrected' => 0];
         try {
             $snap = $source->snapshot();
+            // A faulty export is refused as a whole, so it can never half-load over good data.
+            $check = DataPack::validate($snap);
+            if ($check['errors']) {
+                throw new \RuntimeException('The catalogue was not loaded because it has ' . count($check['errors']) . ' problem(s); nothing was changed. First: ' . $check['errors'][0]);
+            }
             $now = Clock::stamp();
             Audit::asSystem(static function () use ($snap, $now, &$stats) {
                 Db::tx(static function () use ($snap, $now, &$stats) {

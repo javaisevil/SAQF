@@ -46,6 +46,7 @@ final class Policy
         'auth.mfa_required' => ['admins', 'enum', 'Two-step verification required for', 'admins = administrators must confirm password sign-ins with an authenticator app; all = everyone who signs in with a password; off = optional for everyone. University SSO sign-ins use the identity provider\'s own MFA.', 'off,admins,all'],
         'security.reauth_minutes' => ['15', 'int', 'Re-confirm identity for sensitive changes (minutes)', 'Role changes, password resets, user imports and other sensitive administrator actions need a sign-in or identity confirmation within this many minutes.', null],
         'security.new_device_alert' => ['1', 'bool', 'Tell people about sign-ins from a new device', 'The person is notified (and e-mailed) when their account is used from a browser or network not seen in the last 90 days.', null],
+        'security.access_review_days' => ['90', 'int', 'Access review interval (days)', 'An administrator other than the person concerned confirms everyone\'s role at least this often (Administration → Access review). Changing someone\'s role makes their next review due at once.', null],
         'auth.dormant_days' => ['180', 'int', 'Dormant account threshold (days)', 'Active accounts not used for this many days are listed in the Security center for review (0 = never).', null],
     ];
 

@@ -13,7 +13,9 @@ use Saqf\Core\Migrations;
 use Saqf\Core\Policy;
 use Saqf\Core\Request;
 use Saqf\Core\Session;
+use Saqf\Integration\DataPack;
 use Saqf\Integration\FileSisSource;
+use Saqf\Integration\GoLive;
 use Saqf\Integration\Integrations;
 use Saqf\Integration\SeededSisSource;
 use Saqf\Integration\Sync;
@@ -22,16 +24,18 @@ use Saqf\Quality\Scheduler;
 use Saqf\Quality\Workspaces;
 use Saqf\Core\Alerts;
 use Saqf\Quality\Evidence;
+use Saqf\Security\AccessReview;
 use Saqf\Security\Auth;
 use Saqf\Security\Mfa;
 use Saqf\Security\Oidc;
 use Saqf\Security\SecurityCenter;
+use Saqf\Security\SelfTest;
 use Saqf\Security\Sessions;
 use Saqf\Security\Users;
 use Saqf\Web\View as V;
 
 $user = saqf_page(['admin']);
-$tab = in_array($_GET['tab'] ?? '', ['health', 'center', 'users', 'security', 'audit', 'errors', 'alerts', 'integrations'], true) ? $_GET['tab'] : 'health';
+$tab = in_array($_GET['tab'] ?? '', ['health', 'center', 'users', 'security', 'audit', 'errors', 'alerts', 'integrations', 'golive', 'review'], true) ? $_GET['tab'] : 'health';
 
 // ---------------------------------------------------------------- CSV export of the audit log
 if ($tab === 'audit' && ($_GET['export'] ?? '') === 'csv') {
@@ -59,6 +63,29 @@ if ($tab === 'users' && ($_GET['template'] ?? '') === 'csv') {
     exit;
 }
 
+// ---------------------------------------------------------------- go-live templates (what IT replaces with the university's own files)
+if ($tab === 'golive' && isset($_GET['download'])) {
+    $name = (string) $_GET['download'];
+    $sis = DataPack::sisTemplates();
+    $files = [
+        'catalogue-pack' => ['saqf-catalogue-template.zip', 'application/zip', static fn() => DataPack::zip(\Saqf\Integration\CatalogFileSource::defaultDir())],
+        'sis-terms' => ['terms.csv', 'text/csv; charset=utf-8', static fn() => $sis['terms.csv']],
+        'sis-assignments' => ['assignments.csv', 'text/csv; charset=utf-8', static fn() => $sis['assignments.csv']],
+        'gradebook' => ['gradebook-template.csv', 'text/csv; charset=utf-8', static fn() => DataPack::gradebookTemplate()],
+        'env' => ['saqf-go-live.env.txt', 'text/plain; charset=utf-8', static fn() => GoLive::envSnippet()],
+    ];
+    if (!isset($files[$name])) {
+        saqf_redirect('admin.php?tab=golive');
+    }
+    [$file, $type, $make] = $files[$name];
+    Audit::record('golive.template_downloaded', 'integration', $name, "Go-live template $file downloaded by {$user['full_name']}");
+    header('Content-Type: ' . $type);
+    header('Content-Disposition: attachment; filename="' . $file . '"');
+    header('X-Content-Type-Options: nosniff');
+    echo $make();
+    exit;
+}
+
 // ---------------------------------------------------------------- actions
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     saqf_require_post();
@@ -67,7 +94,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $targetId = (int) ($_POST['user'] ?? 0);
     $target = $targetId ? Db::one('SELECT * FROM users WHERE id = ?', [$targetId]) : null;
     // Changes to people's access need a recent sign-in or a fresh identity confirmation.
-    $sensitive = ['create_user', 'edit_user', 'import_users', 'disable', 'enable', 'reset', 'role', 'mfa_reset', 'end_sessions', 'maintenance'];
+    $sensitive = ['create_user', 'edit_user', 'import_users', 'disable', 'enable', 'reset', 'role', 'mfa_reset', 'end_sessions', 'maintenance', 'review_confirm', 'review_remove'];
     try {
         if (in_array($op, $sensitive, true) && !Auth::recentlyVerified()) {
             throw new DomainException('For security, confirm your identity (top of the page) before changing accounts or access.');
@@ -218,6 +245,28 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 Audit::record('integration.checked', 'integration', null, 'Connection test: ' . implode(' | ', $msgs));
                 Session::flash($allOk ? 'success' : 'error', implode(' · ', $msgs));
                 break;
+            case 'selftest':
+                $r = SelfTest::runAndStore();
+                Audit::record('security.selftest', 'system', null, "Security self-test run by {$user['full_name']}: {$r['passed']} of {$r['total']} passed");
+                Session::flash($r['passed'] === $r['total'] ? 'success' : 'error', "Security self-test: {$r['passed']} of {$r['total']} protections proved themselves.");
+                break;
+            case 'review_confirm':
+                $ids = array_map('intval', (array) ($_POST['users'] ?? []));
+                if (!$ids) {
+                    throw new DomainException('Tick the people whose access you have checked.');
+                }
+                $n = AccessReview::confirm($ids, $user, $reason ?: null);
+                Session::flash('success', $n . ($n === 1 ? ' person\'s' : ' people\'s') . ' access confirmed.');
+                break;
+            case 'review_remove':
+                AccessReview::remove($targetId, $user, $reason);
+                Session::flash('success', 'Access removed: the account is disabled and signed out everywhere.');
+                break;
+            case 'pack_check':
+                $dir = ($_POST['which'] ?? '') === 'staging' ? DataPack::stagingDir() : \Saqf\Integration\CatalogFileSource::defaultDir();
+                $_SESSION['pack_report'] = ['dir' => str_replace(SAQF_ROOT . '/', '', $dir)] + DataPack::inspect($dir);
+                Audit::record('golive.catalogue_checked', 'integration', null, 'Catalogue checked (' . basename($dir) . '): ' . ($_SESSION['pack_report']['ok'] ? 'passed' : count($_SESSION['pack_report']['errors']) . ' problem(s)'));
+                break;
             case 'sim_lms':
                 if (!Config::demoMode()) {
                     throw new DomainException('The simulator is available in demo mode only.');
@@ -299,10 +348,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 }
 
 $openAlerts = Alerts::open();
-$tabs = ['health' => 'System health', 'center' => 'Security center', 'users' => 'Users & access', 'security' => 'Security events', 'audit' => 'Activity log', 'errors' => 'Error log', 'alerts' => 'IT alerts' . ($openAlerts ? ' <span class="count">' . count($openAlerts) . '</span>' : ''), 'integrations' => 'University systems'];
+$tabs = ['health' => 'System health', 'center' => 'Security center', 'users' => 'Users & access', 'security' => 'Security events', 'audit' => 'Activity log', 'errors' => 'Error log', 'alerts' => 'IT alerts' . ($openAlerts ? ' <span class="count">' . count($openAlerts) . '</span>' : ''), 'integrations' => 'University systems', 'golive' => 'Go-live', 'review' => 'Access review' . (($reviewDue = AccessReview::progress()['due']) ? ' <span class="count">' . $reviewDue . '</span>' : '')];
 V::header('System administration', $user, ['subtitle' => 'Keep SAQF running and secure; IT cannot make academic decisions']);
 echo V::tabs($tabs, $tab, 'admin.php');
-if (!Auth::recentlyVerified() && in_array($tab, ['users', 'health'], true)): ?>
+if (!Auth::recentlyVerified() && in_array($tab, ['users', 'health', 'review'], true)): ?>
 <section class="card" style="margin-bottom:14px;border-color:#F6DFC3"><div class="card-h"><?= V::icon('lock') ?><h2>Confirm your identity to change accounts or access</h2></div><div class="card-b small">
   <form method="post" class="row"><?= Csrf::field() ?><input type="hidden" name="op" value="reauth"><input type="password" name="password" placeholder="Your password" required autocomplete="current-password" style="width:220px"><?php if (Mfa::enabled($user)): ?><input type="text" name="code" placeholder="Authenticator code" inputmode="numeric" autocomplete="one-time-code" required style="width:170px"><?php endif; ?><button class="btn btn-sm btn-primary">Confirm</button>
   <span class="muted">Required when your sign-in is older than <?= (int) Policy::get('security.reauth_minutes') ?> minutes.</span></form></div></section>
@@ -488,6 +537,12 @@ if ($tab === 'health'):
 <?php foreach ($checks as $c): ?><tr><td style="width:34px"><?= $c['ok'] === true ? V::pill('✓', 'green') : ($c['ok'] === false ? V::pill('!', 'amber') : V::pill('i', 'grey')) ?></td><td><strong><?= V::h($c['label']) ?></strong><div class="small"><?= V::h($c['status']) ?></div><?php if ($c['ok'] !== true && $c['fix']): ?><div class="tiny muted">How to fix: <?= V::h($c['fix']) ?></div><?php endif; ?></td></tr><?php endforeach; ?>
 </tbody></table></div></section>
 <aside class="stack">
+  <?php $st = SelfTest::last(); ?>
+  <section class="card"><div class="card-h"><h2>Live security self-test</h2><?= $st ? V::pill($st['passed'] . ' of ' . $st['total'] . ' passed', $st['passed'] === $st['total'] ? 'green' : 'red') : V::pill('not run', 'grey') ?></div><div class="card-b small">
+    <p class="muted">Tries each protection for real on this system: weak passwords, forged requests, editing the audit log, encryption, pseudonymised student identities. Nothing is changed. Also runs every night.</p>
+    <?php if ($st): ?><table><tbody><?php foreach ($st['tests'] as $t): ?><tr><td style="width:30px"><?= $t['ok'] ? V::pill('✓', 'green') : V::pill('!', 'red') ?></td><td><strong class="small"><?= V::h($t['name']) ?></strong><div class="tiny muted"><?= V::h($t['detail']) ?></div></td></tr><?php endforeach; ?></tbody></table><p class="tiny muted">Last run <?= V::h(V::ago($st['at'])) ?>.</p><?php endif; ?>
+    <div class="row"><form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="selftest"><button class="btn btn-sm btn-primary">Run security self-test</button></form>
+      <a class="btn btn-sm" href="security_report.php" target="_blank" rel="noopener">Security evidence report</a></div></div></section>
   <section class="card"><div class="card-h"><h2>People</h2></div><div class="card-b small"><?php $p = SecurityCenter::people(); ?>
     <div class="row between"><span>Administrators</span><strong><?= (int) $p['admins'] ?></strong></div>
     <div class="row between"><span>… with two-step verification</span><strong><?= (int) $p['admins_mfa'] ?></strong></div>
@@ -496,6 +551,73 @@ if ($tab === 'health'):
     <div class="row between"><span>Dormant accounts (&gt; <?= (int) Policy::get('auth.dormant_days') ?> days)</span><strong><?= count($p['dormant']) ?></strong></div>
     <?php if ($p['dormant']): ?><p class="tiny muted" style="margin-top:6px">Review: <?= V::h(implode(', ', array_slice($p['dormant'], 0, 8))) ?><?= count($p['dormant']) > 8 ? ' …' : '' ?></p><?php endif; ?></div></section>
   <section class="card"><div class="card-h"><h2>Last 7 days</h2></div><div class="card-b small"><?php foreach (SecurityCenter::week() as $label => $n): ?><div class="row between"><span><?= V::h($label) ?></span><strong><?= (int) $n ?></strong></div><?php endforeach; ?></div></section>
+</aside></div>
+
+<?php elseif ($tab === 'golive'):
+    $systems = GoLive::systems();
+    $prog = GoLive::progress($systems);
+    $report = $_SESSION['pack_report'] ?? null;
+    unset($_SESSION['pack_report']);
+    $stagingPresent = is_file(DataPack::stagingDir() . '/institution.json');
+?>
+<div class="split"><div class="stack">
+  <section class="card"><div class="card-h"><?= V::icon('bolt') ?><h2>Ready to connect to the university</h2><span class="right muted small"><?= (int) $prog['live'] ?> of <?= (int) $prog['total'] ?> running on the university's own systems</span></div><div class="card-b tight"><table><tbody>
+  <?php foreach ($systems as $sy): ?><tr><td style="width:96px"><?= V::pill(['live' => 'Live', 'demo' => 'Demo data', 'off' => 'Off'][$sy['mode']], ['live' => 'green', 'demo' => 'amber', 'off' => 'grey'][$sy['mode']]) ?></td>
+    <td><strong><?= V::h($sy['label']) ?></strong> <span class="muted small">· <?= V::h($sy['headline']) ?></span><div class="small"><?= V::h($sy['detail']) ?></div>
+      <?php if ($sy['mode'] !== 'live' || $sy['missing']): ?><div class="tiny muted">Next step: <?= V::h($sy['next']) ?></div><?php endif; ?></td></tr><?php endforeach; ?>
+  </tbody></table></div></section>
+  <section class="card"><div class="card-h"><h2>Check the Registrar catalogue</h2><span class="right muted small">Nothing is changed by a check</span></div><div class="card-b small">
+    <p>SAQF checks a catalogue completely before using it: structure, owning departments, credit hours, prerequisites and outcomes. A faulty export is refused as a whole, so it can never half-load over good data.</p>
+    <p class="muted"><?= $stagingPresent ? 'A Registrar export is waiting in <span class="mono">storage/inbox/catalog</span> and is used automatically.' : 'To replace the bundled YU data, put the Registrar export in <span class="mono">storage/inbox/catalog</span> (same layout as the template below) or set <span class="mono">SAQF_INSTITUTION_DIR</span>.' ?></p>
+    <div class="row"><form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="pack_check"><input type="hidden" name="which" value="active"><button class="btn btn-sm btn-primary">Check the catalogue in use</button></form>
+      <?php if ($stagingPresent): ?><form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="pack_check"><input type="hidden" name="which" value="staging"><button class="btn btn-sm">Check the waiting export</button></form><?php endif; ?>
+      <form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="check"><button class="btn btn-sm">Test SIS and LMS connections</button></form></div>
+    <?php if ($report): ?><div class="fieldset" style="margin-top:10px"><div class="row"><?= V::pill($report['ok'] ? 'Passed' : 'Not usable yet', $report['ok'] ? 'green' : 'red') ?> <strong><?= V::h($report['dir']) ?></strong></div>
+      <?php if ($report['summary']): ?><p class="small"><?= V::h(implode(' · ', array_map(static fn($k, $v) => $v . ' ' . $k, array_keys($report['summary']), $report['summary']))) ?></p><?php endif; ?>
+      <?php foreach ($report['errors'] as $e): ?><div class="small"><?= V::pill('Problem', 'red') ?> <?= V::h($e) ?></div><?php endforeach; ?>
+      <?php foreach ($report['warnings'] as $w): ?><div class="small"><?= V::pill('Note', 'amber') ?> <?= V::h($w) ?></div><?php endforeach; ?></div><?php endif; ?>
+  </div></section>
+</div><aside class="stack">
+  <section class="card"><div class="card-h"><h2>Templates for IT</h2></div><div class="card-b small">
+    <p class="muted">These are today's demo data in exactly the layout SAQF reads. Replace their content with the university's own, and nothing else in SAQF changes.</p>
+    <div class="stack" style="gap:6px">
+      <a class="btn btn-sm" href="admin.php?tab=golive&amp;download=catalogue-pack">Registrar catalogue (ZIP: programs, study plans, outcomes)</a>
+      <a class="btn btn-sm" href="admin.php?tab=golive&amp;download=sis-terms">SIS: terms.csv</a>
+      <a class="btn btn-sm" href="admin.php?tab=golive&amp;download=sis-assignments">SIS: assignments.csv</a>
+      <a class="btn btn-sm" href="admin.php?tab=golive&amp;download=gradebook">LMS: gradebook export example</a>
+      <a class="btn btn-sm" href="admin.php?tab=golive&amp;download=env">Settings file for go-live (.env)</a></div>
+    <p class="tiny muted" style="margin-top:8px">Folders: <span class="mono">storage/inbox/catalog</span>, <span class="mono">storage/inbox/sis</span>, <span class="mono">storage/inbox/lms/&lt;term&gt;/&lt;course&gt;/*.csv</span>. Full guide: docs/INTEGRATIONS.md.</p></div></section>
+  <section class="card"><div class="card-h"><h2>What changes at go-live</h2></div><div class="card-b small"><ol style="padding-left:18px;margin:0">
+    <li>IT provides access: SIS export or API, an LMS read-only token, a sign-in registration, a mail account.</li>
+    <li>IT fills in the settings file above; nothing is rebuilt.</li>
+    <li>Press <em>Test connections</em>; SAQF reports each system in plain words.</li>
+    <li>The scheduler takes over: calendar, assignments, grades and catalogue update themselves.</li>
+    <li>Demo accounts, the simulator and the guided tour switch off in production mode.</li></ol></div></section>
+</aside></div>
+
+<?php elseif ($tab === 'review'):
+    $rows = AccessReview::rows();
+    $prog = AccessReview::progress();
+    $recent = Db::all('SELECT r.*, u.username, rv.full_name AS reviewer FROM access_reviews r JOIN users u ON u.id = r.user_id LEFT JOIN users rv ON rv.id = r.reviewer_id ORDER BY r.id DESC LIMIT 8');
+?>
+<div class="split"><section class="card"><div class="card-h"><?= V::icon('shield') ?><h2>Access review</h2><span class="right muted small"><?= (int) $prog['current'] ?> of <?= (int) $prog['total'] ?> confirmed in the last <?= (int) $prog['days'] ?> days</span></div>
+<form method="post" class="card-b tight"><?= Csrf::field() ?><input type="hidden" name="op" value="review_confirm">
+<table><thead><tr><th style="width:30px"></th><th>Person</th><th>Access</th><th>Last sign-in</th><th>Last confirmed</th><th></th></tr></thead><tbody>
+<?php foreach ($rows as $r): $self = (int) $r['id'] === $user['id']; ?><tr>
+  <td><?php if (!$self && $r['due']): ?><input type="checkbox" name="users[]" value="<?= (int) $r['id'] ?>" aria-label="Confirm <?= V::h($r['full_name']) ?>"><?php endif; ?></td>
+  <td><strong><?= V::h($r['full_name']) ?></strong><div class="tiny muted mono"><?= V::h($r['username']) ?></div></td>
+  <td class="small"><?= V::who($r['role']) ?><?= $r['department_code'] ? ' <span class="muted">' . V::h($r['department_code']) . '</span>' : '' ?><?= $r['role'] === 'admin' && $r['auth_source'] !== 'sso' ? ($r['mfa_enabled_at'] ? ' ' . V::pill('2-step', 'green') : ' ' . V::pill('no 2-step', 'amber')) : '' ?><?= $r['role_changed'] ? '<div class="tiny muted">Role changed since the last review (was ' . V::h($r['reviewed_role']) . ')</div>' : '' ?></td>
+  <td class="small nowrap"><?= $r['last_login_at'] ? V::h(V::ago($r['last_login_at'])) : '<span class="muted">never</span>' ?></td>
+  <td class="small nowrap"><?= $r['reviewed_at'] ? V::h(V::date($r['reviewed_at'])) . '<div class="tiny muted">by ' . V::h($r['reviewer'] ?? '—') . '</div>' : '<span class="muted">never</span>' ?></td>
+  <td class="small"><?= $self ? '<span class="tiny muted">' . ($r['solo'] ? 'You are the only administrator: add a second so your access can be reviewed' : 'Another administrator reviews you') . '</span>' : ($r['due'] ? V::pill('Due', 'amber') : V::pill('Current', 'green')) ?></td></tr><?php endforeach; ?>
+</tbody></table>
+<div class="row" style="padding:12px 14px"><input type="text" name="reason" placeholder="Note (e.g. checked with HR list of <?= V::h(date('M Y')) ?>)" style="width:320px"><button class="btn btn-sm btn-primary">Confirm access for the ticked people</button></div></form></section>
+<aside class="stack">
+  <section class="card"><div class="card-h"><h2>Why this exists</h2></div><div class="card-b small">People change jobs; access should not outlive the job. Every <?= (int) $prog['days'] ?> days an administrator other than the person concerned confirms who still needs access and whether the role is right. A role change makes the next review due at once. Nobody can review their own access, and every decision is kept in the activity log.</div></section>
+  <section class="card"><div class="card-h"><h2>Remove someone's access</h2></div><div class="card-b small"><form method="post" data-confirm="Disable this account and sign it out everywhere?"><?= Csrf::field() ?><input type="hidden" name="op" value="review_remove">
+    <select name="user" required><option value="">Choose a person…</option><?php foreach ($rows as $r): if ((int) $r['id'] === $user['id']) { continue; } ?><option value="<?= (int) $r['id'] ?>"><?= V::h($r['full_name']) ?> (<?= V::h($r['username']) ?>)</option><?php endforeach; ?></select>
+    <input type="text" name="reason" placeholder="Reason (audited)" required style="margin-top:6px"><button class="btn btn-sm" style="margin-top:6px">Remove access</button></form></div></section>
+  <section class="card"><div class="card-h"><h2>Recent decisions</h2></div><div class="card-b tight"><table><tbody><?php foreach ($recent as $d): ?><tr><td class="small"><?= V::h($d['username']) ?><div class="tiny muted"><?= V::h(V::ago($d['reviewed_at'])) ?> · <?= V::h($d['reviewer'] ?? '—') ?></div></td><td><?= V::pill($d['decision'] === 'confirmed' ? 'Confirmed' : 'Removed', $d['decision'] === 'confirmed' ? 'green' : 'red') ?></td></tr><?php endforeach; ?><?= $recent ? '' : '<tr><td class="muted small">No decisions yet.</td></tr>' ?></tbody></table></div></section>
 </aside></div>
 
 <?php elseif ($tab === 'alerts'):

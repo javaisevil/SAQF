@@ -56,6 +56,8 @@ jobs:
         run: php bin/install.php --demo --fresh && php tests/features_test.php
       - name: Plain wording, whole numbers, Arabic course content
         run: php bin/install.php --demo --fresh && php tests/wording_test.php
+      - name: Go-live readiness, data pack, access review, live security self-test
+        run: php bin/install.php --demo --fresh && php tests/readiness_test.php
       - name: Upgrade path (migrations are idempotent)
         run: php bin/migrate.php && php bin/migrate.php --status
 
