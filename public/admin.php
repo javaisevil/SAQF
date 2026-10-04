@@ -32,6 +32,7 @@ use Saqf\Security\SecurityCenter;
 use Saqf\Security\SelfTest;
 use Saqf\Security\Sessions;
 use Saqf\Security\Users;
+use Saqf\Security\Witness;
 use Saqf\Web\View as V;
 
 $user = saqf_page(['admin']);
@@ -247,6 +248,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 }
                 Audit::record('integration.checked', 'integration', null, 'Connection test: ' . implode(' | ', $msgs));
                 Session::flash($allOk ? 'success' : 'error', implode(' · ', $msgs));
+                break;
+            case 'witness_take':
+                $w = Witness::take($user['full_name']);
+                Session::flash($w && $w['sent_to'] !== '' ? 'success' : 'info', $w ? 'Checkpoint recorded' . ($w['sent_to'] !== '' ? ' and sent by ' . $w['sent_to'] . '. Keep that message.' : '. Nothing was sent outside the server (no e-mail or webhook is configured): copy the line below and keep it somewhere IT controls.') : 'There is nothing to witness yet.');
+                break;
+            case 'witness_verify':
+                $v = Witness::verifyLine((string) ($_POST['line'] ?? ''));
+                Session::flash($v['ok'] ? 'success' : 'error', $v['message']);
                 break;
             case 'selftest':
                 $r = SelfTest::runAndStore();
@@ -523,6 +532,16 @@ if ($tab === 'health'):
     <td class="tiny"><?php if ($r['old_value'] || $r['new_value']): ?><details><summary>view</summary><div class="mono" style="white-space:pre-wrap;max-width:360px" translate="no"><?= $r['old_value'] ? 'old: ' . V::h($r['old_value']) . "\n" : '' ?><?= $r['new_value'] ? 'new: ' . V::h($r['new_value']) : '' ?></div></details><?php endif; ?><span class="mono muted" translate="no" title="<?= V::h($r['hash']) ?>"><?= V::h(substr($r['hash'], 0, 8)) ?></span></td></tr><?php endforeach; ?>
   </tbody></table></div><div class="row" style="padding:10px 14px"><?php if ($page > 1): ?><a class="btn btn-sm" href="?<?= V::h(http_build_query(array_merge($_GET, ['page' => $page - 1]))) ?>">Newer</a><?php endif; ?><?php if (count($rows) === 100): ?><a class="btn btn-sm" href="?<?= V::h(http_build_query(array_merge($_GET, ['page' => $page + 1]))) ?>">Older</a><?php endif; ?></div></div></section>
 
+<section class="card"><div class="card-h"><h2>Witnessed checkpoints</h2><span class="right muted small">Proof that history up to a point is unchanged, kept outside this server</span></div>
+  <div class="card-b small">
+    <p class="muted">Every night SAQF records the last entry of the activity log (its number, the count and its hash) and sends that line to administrators by e-mail and to the alert webhook, when configured. If someone with database access ever rewrote the log, the copies IT already holds would no longer match. It does not stop tampering; it makes a quiet rewrite detectable, as long as the messages are kept.</p>
+    <?php $wl = Witness::recent(5); ?>
+    <?php if ($wl): ?><table><tbody><?php foreach ($wl as $w): ?><tr><td class="nowrap tiny"><?= V::h(V::date($w['taken_at'], 'j M H:i')) ?></td><td class="mono tiny" translate="no" style="word-break:break-all"><?= V::h($w['line']) ?></td><td class="tiny"><?= $w['sent_to'] !== '' ? V::pill('sent by ' . $w['sent_to'], 'green') : V::pill('not sent outside the server', 'amber') ?></td></tr><?php endforeach; ?></tbody></table><?php else: ?><p class="muted">No checkpoint has been taken yet.</p><?php endif; ?>
+    <div class="row" style="margin-top:10px;flex-wrap:wrap">
+      <form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="witness_take"><button class="btn btn-sm" type="submit">Take a checkpoint now</button></form></div>
+    <form method="post" class="row" style="margin-top:10px"><?= Csrf::field() ?><input type="hidden" name="op" value="witness_verify"><label class="sr-only" for="wline">Witness line</label><input id="wline" type="text" name="line" class="mono" placeholder="Paste a witness line from an e-mail or message: SAQF-WITNESS/1 …" style="flex:1;min-width:260px" required><button class="btn btn-sm" type="submit">Verify it against the log</button></form>
+  </div></section>
+
 <?php elseif ($tab === 'errors'):
     $ref = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) ($_GET['ref'] ?? '')));
     $rows = Db::all('SELECT e.*, u.username FROM system_errors e LEFT JOIN users u ON u.id = e.user_id' . ($ref ? ' WHERE e.ref = ?' : '') . ' ORDER BY e.id DESC LIMIT 100', $ref ? [$ref] : []);
@@ -570,6 +589,10 @@ if ($tab === 'health'):
     <td><strong><?= V::h($sy['label']) ?></strong> <span class="muted small">· <?= V::h($sy['headline']) ?></span><div class="small"><?= V::h($sy['detail']) ?></div>
       <?php if ($sy['mode'] !== 'live' || $sy['missing']): ?><div class="tiny muted">Next step: <?= V::h($sy['next']) ?></div><?php endif; ?></td></tr><?php endforeach; ?>
   </tbody></table></div></section>
+  <?php $pf = \Saqf\Security\Preflight::run(); $pfs = \Saqf\Security\Preflight::summary($pf); ?>
+  <section class="card"><div class="card-h"><h2>Production preflight</h2><span class="right"><?= $pfs['ready'] ? V::pill('No blockers', 'green') : V::pill($pfs['blockers'] . ' blocker' . ($pfs['blockers'] === 1 ? '' : 's'), 'red') ?> <?= $pfs['warnings'] ? V::pill($pfs['warnings'] . ' to review', 'amber') : '' ?></span></div>
+    <div class="card-b tight"><p class="small muted" style="padding:10px 14px 0;margin:0">Judged against the production rules, whatever mode this installation runs in. Also available as <span class="mono">php bin/preflight.php</span>. A list of known pre-conditions, not a security approval.</p>
+      <table><tbody><?php foreach ($pf as $c): if ($c['pass'] && $c['severity'] === 'info') { continue; } ?><tr><td style="width:84px"><?= $c['pass'] ? V::pill('ok', 'green') : ($c['severity'] === 'blocker' ? V::pill('Blocker', 'red') : V::pill('Review', 'amber')) ?></td><td><strong><?= V::h($c['title']) ?></strong><div class="small"><?= V::h($c['detail']) ?></div><?php if (!$c['pass'] && $c['fix'] !== ''): ?><div class="tiny muted">How to fix: <?= V::h($c['fix']) ?></div><?php endif; ?></td></tr><?php endforeach; ?></tbody></table></div></section>
   <section class="card"><div class="card-h"><h2>Check the Registrar catalogue</h2><span class="right muted small">Nothing is changed by a check</span></div><div class="card-b small">
     <p>SAQF checks a catalogue completely before using it: structure, owning departments, credit hours, prerequisites and outcomes. A faulty export is refused as a whole, so it can never half-load over good data.</p>
     <p class="muted"><?= $stagingPresent ? 'A Registrar export is waiting in <span class="mono">storage/inbox/catalog</span> and is used automatically.' : 'To replace the bundled YU data, put the Registrar export in <span class="mono">storage/inbox/catalog</span> (same layout as the template below) or set <span class="mono">SAQF_INSTITUTION_DIR</span>.' ?></p>

@@ -101,6 +101,11 @@ jobs:
           ls backups/ | grep -q 'sql.gz.enc$'
           docker compose exec -T app cat storage/backups/last-backup.json | tee /tmp/status.json
           grep -q '"status":"ok"' /tmp/status.json && grep -q '"encrypted":true' /tmp/status.json
+      - name: Restore drill in a scratch server (does not touch the live database)
+        run: |
+          docker compose exec -T backup sh /usr/local/bin/saqf-restore-drill | tee /tmp/drill.txt
+          docker compose exec -T app cat storage/backups/last-restore-drill.json | tee /tmp/drill.json
+          grep -q '"ok":true' /tmp/drill.json && grep -q '"audit_head":"match"' /tmp/drill.json
       - name: Restore drill (database and evidence files, then audit chain)
         run: |
           docker compose stop app
@@ -172,6 +177,30 @@ jobs:
           ls backups | grep -q 'sql.gz.enc$'
           docker compose exec -T app cat storage/backups/last-backup.json | tee /tmp/status.json
           grep -q '"status":"ok"' /tmp/status.json && grep -q '"encrypted":true' /tmp/status.json
+      - name: Restore drill passes with the passphrase from a file
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T backup sh /usr/local/bin/saqf-restore-drill | tee /tmp/drill.txt
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T app cat storage/backups/last-restore-drill.json | tee /tmp/drill.json
+          grep -q '"ok":true' /tmp/drill.json
+      - name: The preflight now sees the drill
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T app php bin/preflight.php | tee /tmp/preflight2.txt || true
+          grep -q 'ok  \] A restore drill passed' /tmp/preflight2.txt
       - name: Logs on failure
         if: failure()
         run: docker compose -f docker-compose.yml -f docker-compose.prod.yml logs
+
+  scan:
+    name: Image and configuration scan (informational)
+    runs-on: ubuntu-24.04
+    # Reports known vulnerabilities in the base image, leaked secrets and misconfigurations. It does not block
+    # a release: findings are read by a person. Not a penetration test.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the application image
+        run: docker build -t saqf-app:scan .
+      - name: Scan the repository for secrets and configuration problems
+        run: docker run --rm -v "$PWD:/src:ro" aquasec/trivy:latest fs --scanners secret,misconfig --severity HIGH,CRITICAL --skip-dirs /src/.git /src || true
+      - name: Scan the application image for known vulnerabilities
+        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed saqf-app:scan || true

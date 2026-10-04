@@ -188,7 +188,7 @@ final class View
             case 'leadership':
                 return [['institution.php', 'University overview', 'home'], ['programs.php', 'Programs', 'grid'], ['exceptions.php', 'Problems to sort out', 'flag'], ['improvements.php', 'Improvements', 'loop'], ['catalog.php', 'Study plans', 'book']];
             case 'admin':
-                return [['admin.php', 'System health', 'home'], ['admin.php?tab=users', 'Users & access', 'users'], ['admin.php?tab=security', 'Security events', 'shield'], ['admin.php?tab=audit', 'Activity log', 'list'], ['admin.php?tab=errors', 'Error log', 'alert'], ['admin.php?tab=integrations', 'University systems', 'plug'], ['translations.php', 'Arabic wording', 'globe'], ['policies.php', 'Policies (read-only)', 'sliders']];
+                return [['admin.php', 'System health', 'home'], ['admin.php?tab=users', 'Users & access', 'users'], ['admin.php?tab=security', 'Security events', 'shield'], ['incidents.php', 'Security incidents', 'alert'], ['admin.php?tab=audit', 'Activity log', 'list'], ['admin.php?tab=errors', 'Error log', 'alert'], ['admin.php?tab=integrations', 'University systems', 'plug'], ['translations.php', 'Arabic wording', 'globe'], ['policies.php', 'Policies (read-only)', 'sliders']];
         }
         return $common;
     }

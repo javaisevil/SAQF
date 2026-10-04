@@ -59,6 +59,10 @@ if (PHP_SAPI !== 'cli') {
     header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()');
     header('Cross-Origin-Opener-Policy: same-origin');
     header('Cross-Origin-Resource-Policy: same-origin');
+    // Pages hold personal and academic records: browsers and proxies must not keep a copy, so the Back button
+    // after signing out never shows a page. (Downloads and the health probe set their own cache headers.)
+    header('Cache-Control: no-store');
+    header('X-Permitted-Cross-Domain-Policies: none');
     // No inline scripts anywhere: script-src is 'self' only, so injected markup cannot run code.
     header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'");
     if (Request::isHttps()) {

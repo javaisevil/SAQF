@@ -72,6 +72,17 @@ final class SecurityCenter
             . ' Tamper-evident, not tamper-proof: the chain reveals an edited or deleted entry when it is verified, but someone with database administrator rights could still change rows.'
             . ($guard ? ' Append-only database triggers are installed.' : ' Append-only database triggers were NOT found (apply database/audit_guard.sql).'),
             'The scheduler verifies the chain nightly; use "Verify audit chain" on System health now. Keep exported copies of the log off this server if independent evidence is needed.');
+        $wit = Witness::external();
+        $witHead = Witness::recent(1);
+        $add('Audit-chain witnesses', $wit === true ? true : null,
+            $witHead ? 'Last checkpoint ' . date('j M H:i', strtotime((string) $witHead[0]['taken_at'])) . ($wit ? ' was sent by ' . $witHead[0]['sent_to'] . ' (' . 'SAQF cannot see whether the message is being kept).' : ' stayed on this server: no e-mail or webhook is configured, so it cannot prove anything against someone with database access.') : 'No checkpoint has been taken yet (the scheduler takes one every night).',
+            'Configure SAQF_MAIL_* or SAQF_ALERT_WEBHOOK and keep the messages (a mailbox rule or channel with retention). Verify with: php bin/verify_audit.php --witness "<line>".');
+        $drill = self::restoreDrill();
+        $add('Restore drill', $drill !== null && !empty($drill['ok']) && time() - strtotime((string) $drill['finished_at']) < 100 * 86400 ? true : null,
+            $drill === null ? 'No restore drill has been recorded: nobody has shown that these backups can actually be restored.' : 'Last restore drill ' . (!empty($drill['ok']) ? 'passed' : 'FAILED') . ' at ' . $drill['finished_at'] . ' (' . ($drill['message'] ?? '') . '). It restores the newest backup into a scratch database server and checks the data; it does not prove the hardware, the network path or the recovery time.',
+            'Run docker/restore_drill.sh (docs/OPERATIONS.md) at least quarterly.');
+        $open = (int) Db::val('SELECT COUNT(*) FROM security_incidents WHERE status <> "closed"');
+        $add('Incident register', true, ($open ? $open . ' open incident(s). ' : 'No open incident. ') . 'Security incidents can be registered with a notification clock for personal-data breaches; the decisions stay with the data protection officer.', '');
         $add('Backups', self::backupOk(), self::backupLine(), 'Run the backup service (docker compose) with SAQF_BACKUP_PASSPHRASE set (encryption) and SAQF_BACKUP_OFFSITE_PATH pointing at a share on another server; then do a restore drill (docker/restore.sh) and record it.');
         $scans = self::scans();
         $scanLine = $scans['total'] ? ' Recorded so far: ' . $scans['clean'] . ' of ' . $scans['total'] . ' stored file(s) scanned clean, ' . $scans['unscanned'] . ' stored without a scan.' : ' No evidence files stored yet.';

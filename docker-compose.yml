@@ -118,6 +118,7 @@ services:
     volumes:
       - ./docker/backup.sh:/usr/local/bin/saqf-backup:ro
       - ./docker/restore.sh:/usr/local/bin/saqf-restore:ro
+      - ./docker/restore_drill.sh:/usr/local/bin/saqf-restore-drill:ro
       - ./backups:/backups
       - ${SAQF_BACKUP_OFFSITE_PATH:-./backups/offsite-not-configured}:/offsite
       - saqf_evidence:/evidence

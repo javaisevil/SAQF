@@ -120,6 +120,8 @@ final class Scheduler
                         $v['ok'] ? Alerts::resolve('audit.chain')
                             : Alerts::raise('audit.chain', 'critical', 'Audit log integrity check failed', $v['message'] . ' Restore the audit_log table from the last good backup and investigate database access.');
                     });
+                    // Checkpoint of the audit chain, sent outside the server; earlier ones are re-checked first.
+                    self::step($stats, static fn() => \Saqf\Security\Witness::nightly());
                     // The protections are tried for real every night; a failure is an IT alert.
                     self::step($stats, static function () {
                         $r = \Saqf\Security\SelfTest::runAndStore();
@@ -135,6 +137,9 @@ final class Scheduler
                     self::step($stats, static fn() => Throttle::prune());
                     self::step($stats, static fn() => \Saqf\Security\BotGuard::prune());
                 }
+
+                // Personal-data incidents: the notification clock is watched on every run.
+                self::step($stats, static fn() => \Saqf\Security\Incidents::watch());
 
                 // Password guessing: the alert clears after an hour without throttled attempts.
                 self::step($stats, static function () {

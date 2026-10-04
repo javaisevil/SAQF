@@ -1,0 +1,10 @@
+# Keeps the pinned build inputs current: GitHub Actions and the Docker base images. (SAQF has no Composer or
+# npm dependencies, so there is nothing else to update.) Free for public repositories.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: {interval: weekly}
+  - package-ecosystem: docker
+    directory: /
+    schedule: {interval: weekly}

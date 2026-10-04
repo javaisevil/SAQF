@@ -21,6 +21,7 @@ require __DIR__ . '/support.php';
 use Saqf\Core\Config;
 use Saqf\Core\Db;
 use Saqf\Core\Secrets;
+use Saqf\Demo\Story;
 use Saqf\Integration\FileLmsSource;
 use Saqf\Integration\Gradebook;
 use Saqf\Integration\Http;
@@ -361,5 +362,185 @@ ok($exit === 1 && str_contains($out, '3 assignment row(s): 1 clean, 1 with a war
 ok($exit === 1 && str_contains($out, '2 student(s), 1 column(s) match the specification') && str_contains($out, 'ignored: Attendance') && str_contains($out, 'REJECTED 2026-1/SWE401/bad.csv'), 'LMS dry run: students counted, matching and ignored columns, the faulty file rejected with its line');
 ok(!str_contains($out, '2099555'), 'no student number is printed');
 ok($counts() === $before, 'nothing was written to the database (terms, courses, grade batches, results, audit log unchanged)');
+
+// ---------------------------------------------------------------------------------------------
+section('8. Secrets from files, headers, security.txt');
+$sf = tempdir('saqf-secrets');
+file_put_contents("$sf/dbpass", "from-a-file-secret\n");
+putenv("SAQF_DB_PASS_FILE=$sf/dbpass");
+$savedPass = getenv('SAQF_DB_PASS');
+putenv('SAQF_DB_PASS=');
+ok(Config::get('SAQF_DB_PASS') === 'from-a-file-secret' && Config::isFromFile('SAQF_DB_PASS'), 'a secret supplied as <KEY>_FILE is read from the file (trailing newline removed) and reported as file-based');
+putenv('SAQF_DB_PASS=explicit-value');
+ok(Config::get('SAQF_DB_PASS') === 'explicit-value' && !Config::isFromFile('SAQF_DB_PASS'), 'an explicit value wins over the file');
+putenv($savedPass === false ? 'SAQF_DB_PASS' : 'SAQF_DB_PASS=' . $savedPass);
+putenv('SAQF_DB_PASS_FILE');
+file_put_contents("$sf/other", "not-a-secret-key\n");
+putenv("SAQF_SOMETHING_ELSE_FILE=$sf/other");
+ok(Config::get('SAQF_SOMETHING_ELSE') === null, 'only the named secret settings accept *_FILE (no surprises for ordinary settings)');
+putenv('SAQF_SOMETHING_ELSE_FILE');
+file_put_contents("$sf/huge", str_repeat('x', 20000));
+putenv("SAQF_MOODLE_TOKEN_FILE=$sf/huge");
+ok(Config::get('SAQF_MOODLE_TOKEN') === null, 'an oversized secret file is ignored');
+putenv('SAQF_MOODLE_TOKEN_FILE');
+
+$keyFile = "$sf/appkey";
+file_put_contents($keyFile, bin2hex(random_bytes(32)) . "\n");
+Db::exec('DELETE FROM system_settings WHERE setting_key = "app.key"');
+$prodFile = serve(dirname(__DIR__) . '/public', ['APP_ENV' => 'production', 'SAQF_DEMO' => 'false', 'SAQF_APP_KEY' => '', 'SAQF_APP_KEY_FILE' => $keyFile]);
+[$code, $body] = http(jar(), "$prodFile/health.php");
+ok($code === 200 && (json_decode($body, true)['app_key'] ?? '') === 'ok' && Secrets::storedKey() === null, 'production with SAQF_APP_KEY_FILE: health says the key is ok and nothing was stored in the database');
+Db::exec('INSERT INTO system_settings (setting_key, value, updated_at) VALUES ("app.key", ?, NOW())', [$stored]);
+
+$ch = curl_init("$app/login.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true]);
+$raw = (string) curl_exec($ch);
+curl_close($ch);
+ok(stripos($raw, "Cache-Control: no-store") !== false, 'pages are sent with Cache-Control: no-store (nothing cached after sign-out)');
+$lj = jar();
+[, $html] = http($lj, "$app/login.php");
+$ch = curl_init("$app/logout.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true, CURLOPT_POST => true, CURLOPT_POSTFIELDS => http_build_query(['_csrf' => csrf_of($html)]), CURLOPT_COOKIEFILE => $lj, CURLOPT_COOKIEJAR => $lj]);
+$raw = (string) curl_exec($ch);
+curl_close($ch);
+ok(stripos($raw, 'Clear-Site-Data: "cache", "storage"') !== false, 'signing out asks the browser to clear cached pages and site storage');
+[$code] = http(jar(), "$app/security_txt.php");
+ok($code === 404, 'security.txt names no contact (404) until the university configures one');
+$secTxt = serve(dirname(__DIR__) . '/public', ['SAQF_SECURITY_CONTACT' => 'mailto:security@example.edu', 'SAQF_BASE_URL' => 'https://saqf.example.edu']);
+[$code, $body] = http(jar(), "$secTxt/security_txt.php");
+ok($code === 200 && str_contains($body, 'Contact: mailto:security@example.edu') && str_contains($body, 'Expires: ') && str_contains($body, 'Canonical: https://saqf.example.edu/.well-known/security.txt'), 'with a contact configured it serves an RFC 9116 security.txt');
+$badTxt = serve(dirname(__DIR__) . '/public', ['SAQF_SECURITY_CONTACT' => 'javascript:alert(1)']);
+[$code] = http(jar(), "$badTxt/security_txt.php");
+ok($code === 404, 'a contact that is not a mailto: or https:// address is never published');
+
+// ---------------------------------------------------------------------------------------------
+section('9. Production preflight');
+[$exit, $out] = run_cmd([PHP_BINARY, 'bin/preflight.php', '--json']);
+$pf = json_decode($out, true);
+$byId = array_column($pf['checks'] ?? [], null, 'id');
+ok($exit === 1 && ($pf['summary']['ready'] ?? true) === false, 'a demo installation is reported NOT READY (exit code 1)');
+ok(!($byId['demo_accounts']['pass'] ?? true) && str_contains($byId['demo_accounts']['detail'], 'f.omar'), 'active accounts that still use the published demo password are named');
+ok(($byId['audit_chain']['pass'] ?? false) && ($byId['audit_guard']['pass'] ?? false), 'the audit chain and its append-only triggers pass');
+ok(!str_contains($out, $stored) && !str_contains($out, Story::PASSWORD), 'the report never prints the application key or the demo password');
+[$exit, $text] = run_cmd([PHP_BINARY, 'bin/preflight.php']);
+ok(str_contains($text, 'NOT READY for real users or real data') && str_contains($text, 'not a security approval') === false, 'the human report says NOT READY and offers a fix for each failing line');
+
+// ---------------------------------------------------------------------------------------------
+section('10. Restore drill');
+if (!($hasTools && trim((string) shell_exec('command -v mysqld')) !== '' && trim((string) shell_exec('command -v mysql')) !== '')) {
+    echo "  (skipped: the restore drill needs mysqld, mysql, mysqldump and openssl on this machine; not counted as passed)\n";
+} else {
+    $bd = tempdir('saqf-drill-b');
+    $sd = tempdir('saqf-drill-s');
+    $env = $db0 = ['SAQF_DB_HOST' => (string) Config::get('SAQF_DB_HOST', '127.0.0.1'), 'SAQF_DB_PORT' => (string) Config::get('SAQF_DB_PORT', '3306'), 'SAQF_DB_NAME' => (string) Config::get('SAQF_DB_NAME', 'saqf'),
+        'SAQF_DB_USER' => (string) Config::get('SAQF_DB_USER', 'root'), 'SAQF_DB_PASS' => (string) Config::get('SAQF_DB_PASS', ''), 'SAQF_BACKUP_DIR' => $bd, 'SAQF_BACKUP_STATUS_DIR' => $sd,
+        'SAQF_BACKUP_FILES_DIR' => \Saqf\Quality\Evidence::dir(), 'SAQF_BACKUP_PASSPHRASE' => 'drill-test-passphrase'];
+    $rd = static fn() => json_decode((string) @file_get_contents("$sd/last-restore-drill.json"), true) ?: [];
+    [$exit] = run_cmd(['sh', 'docker/backup.sh'], $env);
+    ok($exit === 0 && count(glob("$bd/saqf-2*.audithead") ?: []) === 1, 'the backup records the audit-chain head it contains');
+    [$exit, $out] = run_cmd(['sh', 'docker/restore_drill.sh'], $env);
+    $r = $rd();
+    ok($exit === 0 && ($r['ok'] ?? false) === true && ($r['audit_head'] ?? '') === 'match' && ($r['triggers'] ?? 0) >= 2 && ($r['evidence_missing'] ?? 1) === 0 && ($r['tables'] ?? 0) >= 20, 'the drill restores the newest backup into a scratch server: ' . ($r['tables'] ?? '?') . ' tables, ' . ($r['audit_entries'] ?? '?') . ' audit entries, chain head matches, triggers present, ' . ($r['evidence_checked'] ?? '?') . ' evidence files all in the archive');
+    putenv("SAQF_BACKUP_MONITOR_DIR=$sd");
+    ok(SecurityCenter::restoreDrill()['ok'] === true && (check_by_label('Restore drill')['ok'] ?? null) === true, 'the Security center shows the recorded drill');
+    $pre = array_column(\Saqf\Security\Preflight::run(), null, 'id');
+    ok($pre['restore_drill']['pass'] === true, 'and the preflight counts it');
+    [$exit, $out] = run_cmd(['sh', 'docker/restore_drill.sh'], ['SAQF_BACKUP_PASSPHRASE' => 'wrong-passphrase'] + $env);
+    ok($exit !== 0 && ($rd()['ok'] ?? true) === false && str_contains((string) ($rd()['message'] ?? ''), 'decrypted'), 'a wrong passphrase fails the drill and records the failure');
+    $bak = glob("$bd/saqf-2*.sql.gz.enc")[0];
+    file_put_contents($bak, 'x', FILE_APPEND);
+    [$exit] = run_cmd(['sh', 'docker/restore_drill.sh'], $env);
+    ok($exit !== 0 && str_contains((string) ($rd()['message'] ?? ''), 'checksum'), 'a backup that was altered after it was written is refused by its checksum');
+    putenv('SAQF_BACKUP_MONITOR_DIR');
+}
+
+// ---------------------------------------------------------------------------------------------
+section('11. Security incident register (notification clock)');
+$it = as_user($app, 'it.admin');
+[$code, $html] = http($it, "$app/incidents.php");
+ok($code === 200 && str_contains($html, 'does not replace it') && str_contains($html, 'SAQF never contacts an authority'), 'administrators see the register, with the statement that decisions stay with people');
+foreach (['f.omar', 'hod.ced', 'qa.director', 'dean.coe', 'vp.academic'] as $u) {
+    [$c] = http(as_user($app, $u), "$app/incidents.php");
+    if ($c !== 403) {
+        ok(false, "$u must not open the incident register ($c)");
+    }
+}
+ok(true, 'no other role can open the incident register (403)');
+[$code, , $loc] = http($it, "$app/incidents.php", ['_csrf' => 'forged', 'op' => 'open', 'title' => 'Forged request', 'category' => 'other', 'severity' => 'low', 'detected_at' => '2026-10-01T09:00', 'description' => 'A forged request without the token']);
+ok(!Db::val('SELECT 1 FROM security_incidents WHERE title = "Forged request"'), 'a request without the anti-forgery token registers nothing');
+[, $html] = http($it, "$app/incidents.php");
+http($it, "$app/incidents.php", ['_csrf' => csrf_of($html), 'op' => 'open', 'title' => 'Mailbox rule forwarded exports', 'category' => 'data_exposure', 'severity' => 'high', 'detected_at' => \Saqf\Core\Clock::now()->modify('-2 hours')->format('Y-m-d\TH:i'), 'personal_data' => '1', 'subjects' => '40', 'description' => 'Synthetic test incident: course exports were forwarded to an outside address.']);
+$inc = Db::one('SELECT * FROM security_incidents WHERE title = "Mailbox rule forwarded exports"');
+$c = \Saqf\Security\Incidents::clock($inc);
+ok($inc && $c['state'] === 'open' && $c['hours_left'] > 69 && $c['hours_left'] < 71, 'a personal-data incident starts a 72-hour clock (about ' . ($c['hours_left'] ?? '?') . ' h left)');
+ok((bool) Db::val('SELECT 1 FROM audit_log WHERE action = "incident.opened"') && (bool) Db::val('SELECT 1 FROM incident_events WHERE incident_id = ?', [$inc['id']]), 'registering it is in the audit log and the timeline');
+Db::exec('UPDATE security_incidents SET detected_at = ? WHERE id = ?', [\Saqf\Core\Clock::now()->modify('-80 hours')->format('Y-m-d H:i:s'), $inc['id']]);
+\Saqf\Security\Incidents::watch();
+ok((bool) Db::val('SELECT 1 FROM alerts WHERE kind = "incident.overdue" AND severity = "critical" AND resolved_at IS NULL'), 'past the window, a critical IT alert is raised');
+[, $html] = http($it, "$app/incidents.php?id={$inc['id']}");
+ok(str_contains($html, 'Past the 72-hour window'), 'and the incident page says so');
+http($it, "$app/incidents.php", ['_csrf' => csrf_of($html), 'op' => 'update', 'id' => $inc['id'], 'action' => 'authority_notified', 'note' => '']);
+ok(Db::val('SELECT authority_notified_at FROM security_incidents WHERE id = ?', [$inc['id']]) === null, 'recording a notification without saying who and how is refused');
+[, $html] = http($it, "$app/incidents.php?id={$inc['id']}");
+http($it, "$app/incidents.php", ['_csrf' => csrf_of($html), 'op' => 'update', 'id' => $inc['id'], 'action' => 'authority_notified', 'note' => 'Filed by the data protection officer, reference TEST-1']);
+ok(Db::val('SELECT authority_notified_at FROM security_incidents WHERE id = ?', [$inc['id']]) !== null && !Db::val('SELECT 1 FROM alerts WHERE kind = "incident.overdue" AND resolved_at IS NULL'), 'recording who notified the authority clears the alert');
+[, $html] = http($it, "$app/incidents.php?id={$inc['id']}");
+http($it, "$app/incidents.php", ['_csrf' => csrf_of($html), 'op' => 'update', 'id' => $inc['id'], 'action' => 'closed', 'note' => 'too short']);
+ok(Db::val('SELECT status FROM security_incidents WHERE id = ?', [$inc['id']]) !== 'closed', 'an incident cannot be closed without saying how it ended');
+[, $html] = http($it, "$app/incidents.php?id={$inc['id']}");
+http($it, "$app/incidents.php", ['_csrf' => csrf_of($html), 'op' => 'update', 'id' => $inc['id'], 'action' => 'closed', 'note' => 'The rule was removed, the recipient confirmed deletion, mailbox rules are now reviewed monthly.']);
+ok(Db::val('SELECT status FROM security_incidents WHERE id = ?', [$inc['id']]) === 'closed', 'with an explanation it closes');
+throws(static fn() => \Saqf\Security\Incidents::update(Db::one('SELECT * FROM users WHERE username = "it.admin"'), (int) $inc['id'], 'note', 'late note'), 'a closed incident cannot be changed', InvalidArgumentException::class);
+$noPd = \Saqf\Security\Incidents::create(Db::one('SELECT * FROM users WHERE username = "it.admin"'), 'Planned outage', 'availability', 'low', false, \Saqf\Core\Clock::now()->modify('-1 hour')->format('Y-m-d H:i:s'), 'Synthetic: the server was unavailable for ten minutes during an upgrade.', null);
+ok(\Saqf\Security\Incidents::clock(Db::one('SELECT * FROM security_incidents WHERE id = ?', [$noPd]))['state'] === 'not_applicable', 'an incident without personal data starts no notification clock');
+
+// ---------------------------------------------------------------------------------------------
+section('12. Audit-chain witnesses (checkpoints kept outside the server)');
+$w = \Saqf\Security\Witness::take('test');
+ok($w && preg_match('/^SAQF-WITNESS\/1 [0-9a-f]{10} \S+ id=\d+ entries=\d+ sha256=[0-9a-f]{64}$/', $w['line']) === 1 && $w['sent_to'] === '', 'a witness line is produced; with no e-mail or webhook it says it stayed on the server');
+$wc = check_by_label('Audit-chain witnesses');
+ok(\Saqf\Security\Witness::external() === false && $wc !== null && $wc['ok'] === null && str_contains($wc['status'], 'cannot prove anything'), 'and the Security center does not claim it proves anything');
+ok(\Saqf\Security\Witness::verifyLine($w['line'])['ok'], 'the witness verifies against the log it was taken from');
+\Saqf\Core\Audit::asSystem(static fn() => \Saqf\Core\Audit::record('test.after_witness', 'system', null, 'activity after the checkpoint'));
+ok(\Saqf\Security\Witness::verifyLine($w['line'])['ok'], 'later activity does not invalidate an earlier witness');
+preg_match('/id=(\d+) entries=(\d+) sha256=([0-9a-f]{64})/', $w['line'], $wm);
+ok(!\Saqf\Security\Witness::verifyLine(str_replace($wm[3], str_repeat('0', 64), $w['line']))['ok'], 'a wrong hash is detected');
+ok(!\Saqf\Security\Witness::verifyLine(str_replace('entries=' . $wm[2], 'entries=' . ($wm[2] + 5), $w['line']))['ok'], 'a wrong entry count is detected (removed or inserted entries)');
+ok(!\Saqf\Security\Witness::verifyLine(str_replace('id=' . $wm[1], 'id=99999999', $w['line']))['ok'], 'an entry that no longer exists is detected (truncated log)');
+ok(!\Saqf\Security\Witness::verifyLine('not a witness')['ok'], 'text that is not a witness line is refused');
+[$exit, $out] = run_cmd([PHP_BINARY, 'bin/verify_audit.php', '--witness', $w['line']]);
+ok($exit === 0 && str_contains($out, 'unchanged'), 'the command line verifies a witness an administrator kept (exit 0)');
+$sent = Db::val('SELECT COUNT(*) FROM audit_witnesses');
+\Saqf\Security\Witness::nightly();
+ok((int) Db::val('SELECT COUNT(*) FROM audit_witnesses') === $sent + 1 && !Db::val('SELECT 1 FROM alerts WHERE kind = "audit.witness" AND resolved_at IS NULL'), 'the nightly job checks the earlier witnesses, raises no alert, and takes a new one');
+$wl = \Saqf\Security\Witness::take('test');
+[, $html] = http($it, "$app/admin.php?tab=audit");
+ok(str_contains($html, 'Witnessed checkpoints') && str_contains($html, 'SAQF-WITNESS/1') && str_contains($html, 'Verify it against the log'), 'the Activity log page lists the checkpoints and verifies a pasted one');
+[$code, , $loc] = http($it, "$app/admin.php?tab=audit", ['_csrf' => csrf_of($html), 'op' => 'witness_verify', 'line' => $wl['line']]);
+ok($code === 302, 'pasting a witness line is accepted through the page (token required)');
+
+// A database administrator drops the triggers and rewrites history from entry 10 on, recomputing every hash.
+// The activity-log check cannot see it; the witness IT already holds can.
+$lineBefore = \Saqf\Security\Witness::take('test')['line'];
+Db::pdo()->exec('DROP TRIGGER IF EXISTS audit_log_no_update');
+Db::pdo()->exec('DROP TRIGGER IF EXISTS audit_log_no_delete');
+$prev = (string) Db::val('SELECT hash FROM audit_log WHERE id = 9');
+foreach (Db::all('SELECT * FROM audit_log WHERE id >= 10 ORDER BY id') as $row) {
+    if ((int) $row['id'] === 10) {
+        $row['summary'] = 'quietly rewritten history';
+    }
+    $row['prev_hash'] = $prev;
+    $row['hash'] = hash('sha256', $prev . '|' . \Saqf\Core\Audit::canonical($row));
+    Db::exec('UPDATE audit_log SET summary = ?, prev_hash = ?, hash = ? WHERE id = ?', [$row['summary'], $row['prev_hash'], $row['hash'], $row['id']]);
+    $prev = $row['hash'];
+}
+ok(\Saqf\Core\Audit::verify()['ok'] === true, 'a consistent rewrite passes the ordinary chain check (the limitation the witness exists for)');
+$v = \Saqf\Security\Witness::verifyLine($lineBefore);
+ok(!$v['ok'] && str_contains($v['message'], 'rewritten'), 'the witness taken before the rewrite catches it: ' . $v['message']);
+ok(\Saqf\Security\Witness::verifyStored()['failed'] !== [], 'so do the stored checkpoints');
+\Saqf\Security\Witness::nightly();
+ok((bool) Db::val('SELECT 1 FROM alerts WHERE kind = "audit.witness" AND severity = "critical" AND resolved_at IS NULL'), 'and the nightly job raises a critical alert');
+[$exit] = run_cmd([PHP_BINARY, 'bin/verify_audit.php', '--witness', $lineBefore]);
+ok($exit === 2, 'the command line exits with 2 for a rewritten history');
 
 finish();

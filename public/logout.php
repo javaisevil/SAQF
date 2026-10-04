@@ -11,6 +11,8 @@ use Saqf\Security\Oidc;
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && Csrf::valid()) {
     $viaSso = ($_SESSION['auth'] ?? '') === 'sso';
     Auth::logout();
+    // Ask the browser to drop cached pages and site storage as well (honoured over HTTPS and on localhost).
+    header('Clear-Site-Data: "cache", "storage"');
     // Also end the university identity-provider session when SAQF was entered through it.
     if ($viaSso && ($url = Oidc::logoutUrl())) {
         saqf_redirect($url);

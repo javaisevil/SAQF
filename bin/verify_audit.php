@@ -7,6 +7,7 @@ declare(strict_types=1);
  * and for verifying a restored backup.
  *
  *   php bin/verify_audit.php
+ *   php bin/verify_audit.php --witness "SAQF-WITNESS/1 <instance> <time> id=… entries=… sha256=…"
  */
 
 require __DIR__ . '/../src/bootstrap.php';
@@ -14,6 +15,15 @@ require __DIR__ . '/../src/bootstrap.php';
 use Saqf\Core\Audit;
 use Saqf\Core\Clock;
 use Saqf\Core\Db;
+use Saqf\Security\Witness;
+
+// php bin/verify_audit.php --witness "SAQF-WITNESS/1 …": checks a checkpoint IT received earlier by e-mail or
+// webhook against the log as it is now (exit 0 = unchanged up to that point, 2 = history differs).
+if (($argv[1] ?? '') === '--witness') {
+    $w = Witness::verifyLine((string) ($argv[2] ?? ''));
+    echo $w['message'] . "\n";
+    exit($w['ok'] ? 0 : 2);
+}
 
 $v = Audit::verify();
 Db::exec(

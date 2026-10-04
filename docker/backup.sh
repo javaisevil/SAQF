@@ -75,6 +75,11 @@ backup() {
     return 1
   fi
   mv "$tmp.gz" "$dir/saqf-$stamp.sql.gz"
+  # The newest audit-chain entry read just before the dump (id:hash): the restore drill checks that the restored
+  # database contains it. Absent when the database user cannot read audit_log or the table is empty.
+  head=$(MYSQL_PWD="${SAQF_DB_PASS:-}" mysql --host="${SAQF_DB_HOST:-127.0.0.1}" --port="${SAQF_DB_PORT:-3306}" --user="${SAQF_DB_USER:-saqf}" -N -B \
+    -e 'SELECT CONCAT(id, ":", hash) FROM audit_log ORDER BY id DESC LIMIT 1' "${SAQF_DB_NAME:-saqf}" 2>/dev/null || true)
+  [ -n "$head" ] && printf '%s\n' "$head" > "$dir/saqf-$stamp.audithead"
   db=$(seal "$dir/saqf-$stamp.sql.gz") || { log "BACKUP FAILED (encryption)" >&2; status failed "" 0 false false false false "encryption failed"; return 1; }
   made="$db"
 
@@ -114,6 +119,7 @@ backup() {
       for f in $made; do
         cp "$f" "$f.sha256" "$offsite/" && (cd "$offsite" && sha256sum -c "$(basename "$f").sha256" >/dev/null) || copied=false
       done
+      [ -f "$dir/saqf-$stamp.audithead" ] && cp "$dir/saqf-$stamp.audithead" "$offsite/" 2>/dev/null
     else
       copied=false
     fi
@@ -145,6 +151,14 @@ if [ "${1:-}" = "--loop" ]; then
   sleep "${SAQF_BACKUP_START_DELAY:-900}"   # let a first-time installation finish before the first dump
   while true; do
     backup || true
+    # Monthly (SAQF_DRILL_EVERY_DAYS, 0 = never): prove the newest backup restores, in a scratch server.
+    drill_days="${SAQF_DRILL_EVERY_DAYS:-30}"
+    last="$status_dir/last-restore-drill.json"
+    if [ "$drill_days" -gt 0 ] 2>/dev/null && [ -f /usr/local/bin/saqf-restore-drill ]; then
+      if [ ! -f "$last" ] || [ -n "$(find "$last" -mtime +"$drill_days" 2>/dev/null)" ]; then
+        sh /usr/local/bin/saqf-restore-drill || true
+      fi
+    fi
     sleep $(( ${SAQF_BACKUP_INTERVAL_HOURS:-24} * 3600 ))
   done
 else
