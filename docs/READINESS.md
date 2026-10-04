@@ -13,7 +13,7 @@ by anyone. Nothing in SAQF approves an NCAAA report.
 | Sign-in | Demo accounts and one-click demo sign-in | University SSO (OIDC) + break-glass admin passwords | Same, with the IdP's MFA policy confirmed |
 | Integrations | Simulated (`SAQF_SIS_SOURCE=demo`, `SAQF_LMS_SOURCE=demo`) | Approved export files or read-only API agreed with IT (see the integration contract in [INTEGRATIONS.md](INTEGRATIONS.md#edugate-and-lms-integration-contract-awaiting-university-it)) | Same, monitored, with reconciliation reports reviewed each term |
 | Who may say it is ready | The project team | Deanship of Quality + IT security + the pilot department | The university's governance (IT, information security, Deanship of Quality) |
-| Status | **Done** — `docker compose up --build`; 10 automated test suites in CI | **Not started** — prerequisites below | **Not started** |
+| Status | **Done** — `docker compose up --build`; the automated suites of `bin/test_all.sh` in CI, plus a hardened production configuration verified in CI | **Not started** — prerequisites below | **Not started** |
 
 ## Prerequisites still open before a pilot
 
@@ -28,15 +28,17 @@ Each item names who has to act. None of these can be completed by the developmen
 | 5 | **Backups and a restore test:** encrypted backups copied to a share on another machine, and a restore drill performed and recorded on the university's infrastructure (CI only proves the scripts on a throw-away demo stack) | University IT | System health / Security center: *Backups* (says that a restore has not been tested from SAQF) |
 | 6 | **Malware-scanning policy:** ClamAV (bundled profile) with monitored signature updates, or a documented decision that university controls cover uploads | IT security | Security center: *Evidence virus scanning* with recorded scan counts |
 | 7 | **Retention, privacy and accessibility policy:** how long course files, evidence and audit logs are kept; the privacy notice for staff and students; an accessibility review of the main faculty pages | Records office, legal/privacy, accessibility lead | Not in SAQF: documented outside it |
-| 8 | **Independent security review** (penetration test or equivalent) of the pilot deployment. The built-in self-test is not a substitute | IT security (or an approved external reviewer) | Security evidence report lists it under *Not covered by this report* |
+| 8 | **Independent security review** (penetration test or equivalent) of the pilot deployment, including a review of the hand-written passkey (WebAuthn/CBOR) code. The built-in self-test is not a substitute | IT security (or an approved external reviewer) | Security evidence report lists it under *Not covered by this report*; Security center *Passkeys* |
 | 9 | **Quality policy confirmation:** achievement method and thresholds, and the course file checklist | Deanship of Quality | Quality policies; the Closeout tab says "SAQF's default" until Quality changes it |
-| 10 | **Department pilot:** one department, one term, with success measures agreed in advance (time spent on course files, return rounds, approval time) and the existing process kept as fall-back | Head of Department + Deanship of Quality | — |
+| 10 | **Production configuration and preflight:** deploy with `docker-compose.prod.yml` and secret files ([DEPLOY.md](DEPLOY.md)), and bring `php bin/preflight.php` to "ready" (no demo accounts, https, key, backups, a recorded restore drill) | University IT | Administration → Go-live → *Production preflight* |
+| 11 | **Data-protection decisions:** retention, deletion and data-subject requests ([PRIVACY.md](PRIVACY.md)), and the incident-notification procedure that the incident register supports | DPO / legal | Not in SAQF |
+| 12 | **Department pilot:** one department, one term, with success measures agreed in advance (time spent on course files, return rounds, approval time) and the existing process kept as fall-back | Head of Department + Deanship of Quality | — |
 
 ## What the demo does prove
 
 - The faculty course-file workflow end to end on realistic (fictional) data, in English and Arabic.
 - The security controls listed in the Security center, each with its live, recorded status.
-- That the code paths for SIS/LMS files, Moodle, Blackboard, a generic SIS REST API and OIDC work **against local stand-in servers** (`tests/mock/`). That is not the same as working against YU's systems.
+- That the code paths for SIS/LMS files, Moodle, Blackboard, a generic SIS REST API, **a mapped JSON API of a different shape** and OIDC work **against local stand-in servers** (`tests/mock/`, including a *simulated* university API in `tests/mock/uni_api.php`). That is not the same as working against YU's systems.
 - That a production-mode installation refuses demo shortcuts, plain-http connectors and a missing application key.
 
 ## What the demo does not prove
