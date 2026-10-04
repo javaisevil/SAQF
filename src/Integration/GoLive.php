@@ -125,7 +125,7 @@ final class GoLive
             'SAQF_SIS_SOURCE=file',
             '# SAQF_SIS_URL=https://integration.yu.edu.sa/saqf',
             '# SAQF_SIS_TOKEN=',
-            '# SAQF_SIS_MAPPING=config/sis.mapping.json',
+            '# SAQF_SIS_MAPPING=config/mappings/sis.json',
             '',
             '# LMS: moodle, blackboard, or mapped (SAQF_LMS_MAPPING, SAQF_LMS_URL, SAQF_LMS_TOKEN)',
             'SAQF_LMS_SOURCE=moodle',

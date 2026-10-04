@@ -158,7 +158,7 @@ as every other source (dates, course codes, section codes, pseudonymisation) run
 
 | Setting | Meaning |
 |---|---|
-| `SAQF_SIS_MAPPING` / `SAQF_LMS_MAPPING` | path of the mapping file (relative to the SAQF folder or absolute) |
+| `SAQF_SIS_MAPPING` / `SAQF_LMS_MAPPING` | path of the mapping file (relative to the SAQF folder or absolute); with Docker, put it in `./config/mappings`, mounted read-only (`SAQF_SIS_MAPPING=config/mappings/sis.json`) |
 | `SAQF_SIS_URL` / `SAQF_LMS_URL` | base address of the API (`https://` in production; plain `http://` is refused there) |
 | `SAQF_SIS_TOKEN` / `SAQF_LMS_TOKEN` | bearer token or API key (`auth.type` `bearer` or `header`) |
 | `SAQF_SIS_CLIENT_ID` + `SAQF_SIS_CLIENT_SECRET` (same for `LMS`) | OAuth2 client-credentials (`auth.type` `oauth2`, with `auth.token_url`) |
@@ -206,12 +206,13 @@ Every secret may be given as a file instead (`…_FILE`, the Docker secrets patt
 **Check a mapping before anything is connected** (no network, no database):
 
 ```
-php bin/mapping_check.php config/sis.mapping.json --system=sis \
+php bin/mapping_check.php config/mappings/sis.json --system=sis \
     --sample=terms=samples/terms.json --sample=assignments=samples/assignments.json --term=2026-1
-php bin/mapping_check.php config/lms.mapping.json --system=lms --sample=grades=samples/marks.json
+php bin/mapping_check.php config/mappings/lms.json --system=lms --sample=grades=samples/marks.json
 ```
 
 Save an (anonymised) response from the university's API, run the command, and read what SAQF would take from it.
+A worked example with saved answers of the simulated API is in [`docs/mappings/README.md`](mappings/README.md).
 Student numbers are never printed (they become pseudonyms first) and instructors' e-mail addresses are masked.
 Then set the settings, press *Test connections* in Administration → Go-live, and follow the sign-off steps of the
 [integration contract](#edugate-and-lms-integration-contract-awaiting-university-it).

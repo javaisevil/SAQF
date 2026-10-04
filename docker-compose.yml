@@ -28,6 +28,9 @@ services:
       SAQF_ADMIN_ALLOWED_IPS: ${SAQF_ADMIN_ALLOWED_IPS:-}
       SAQF_ALERT_WEBHOOK: ${SAQF_ALERT_WEBHOOK:-}
       SAQF_CLAMAV_HOST: ${SAQF_CLAMAV_HOST:-}
+      SAQF_BOT_CHECK: ${SAQF_BOT_CHECK:-}
+      SAQF_SECURITY_CONTACT: ${SAQF_SECURITY_CONTACT:-}
+      SAQF_WITNESS_EMAIL: ${SAQF_WITNESS_EMAIL:-}
       SAQF_STORAGE_DIR: /var/www/saqf/storage/evidence
       SAQF_BACKUP_MONITOR_DIR: /var/www/saqf/storage/backups
       # University systems (docs/INTEGRATIONS.md)
@@ -35,7 +38,16 @@ services:
       SAQF_SIS_SOURCE: ${SAQF_SIS_SOURCE:-}
       SAQF_SIS_URL: ${SAQF_SIS_URL:-}
       SAQF_SIS_TOKEN: ${SAQF_SIS_TOKEN:-}
+      # Mapped connectors (any JSON API, described by a mapping file in ./config/mappings)
+      SAQF_SIS_MAPPING: ${SAQF_SIS_MAPPING:-}
+      SAQF_SIS_CLIENT_ID: ${SAQF_SIS_CLIENT_ID:-}
+      SAQF_SIS_CLIENT_SECRET: ${SAQF_SIS_CLIENT_SECRET:-}
       SAQF_LMS_SOURCE: ${SAQF_LMS_SOURCE:-}
+      SAQF_LMS_MAPPING: ${SAQF_LMS_MAPPING:-}
+      SAQF_LMS_URL: ${SAQF_LMS_URL:-}
+      SAQF_LMS_TOKEN: ${SAQF_LMS_TOKEN:-}
+      SAQF_LMS_CLIENT_ID: ${SAQF_LMS_CLIENT_ID:-}
+      SAQF_LMS_CLIENT_SECRET: ${SAQF_LMS_CLIENT_SECRET:-}
       SAQF_LMS_COURSE_KEY: ${SAQF_LMS_COURSE_KEY:-}
       SAQF_LMS_POLL_MINUTES: ${SAQF_LMS_POLL_MINUTES:-}
       SAQF_MOODLE_URL: ${SAQF_MOODLE_URL:-}
@@ -57,6 +69,7 @@ services:
       SAQF_OIDC_DEFAULT_ROLE: ${SAQF_OIDC_DEFAULT_ROLE:-}
       SAQF_OIDC_CLIENT_AUTH: ${SAQF_OIDC_CLIENT_AUTH:-}
       SAQF_OIDC_BUTTON_LABEL: ${SAQF_OIDC_BUTTON_LABEL:-}
+      SAQF_OIDC_REQUIRE_MFA: ${SAQF_OIDC_REQUIRE_MFA:-}
       SAQF_PASSWORD_LOGIN: ${SAQF_PASSWORD_LOGIN:-}
       # E-mail
       SAQF_MAIL_TRANSPORT: ${SAQF_MAIL_TRANSPORT:-}
@@ -70,6 +83,8 @@ services:
     volumes:
       # SIS / LMS export drop folders (read-only for SAQF)
       - ./storage/inbox:/var/www/saqf/storage/inbox:ro
+      # Mapping files for the mapped connectors (SAQF_SIS_MAPPING=config/mappings/sis.json); data only, never executed
+      - ./config/mappings:/var/www/saqf/config/mappings:ro
       # Course-file evidence (outside the web root; included in every backup)
       - saqf_evidence:/var/www/saqf/storage/evidence
       # Backup status written by the backup service (System health and IT alerts read it)
@@ -114,6 +129,7 @@ services:
       SAQF_BACKUP_START_DELAY: ${SAQF_BACKUP_START_DELAY:-900}
       SAQF_BACKUP_PASSPHRASE: ${SAQF_BACKUP_PASSPHRASE:-}
       SAQF_BACKUP_OFFSITE_DIR: ${SAQF_BACKUP_OFFSITE_PATH:+/offsite}
+      SAQF_DRILL_EVERY_DAYS: ${SAQF_DRILL_EVERY_DAYS:-30}
       TZ: Asia/Riyadh
     volumes:
       - ./docker/backup.sh:/usr/local/bin/saqf-backup:ro

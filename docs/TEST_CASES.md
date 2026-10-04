@@ -4,9 +4,9 @@ Each row is one thing SAQF does, how to see it yourself in the demo, and what yo
 
 **Start:** `docker compose up -d --build`, open http://localhost:8080. To start again from a clean story at any time: `docker compose exec app php bin/install.php --demo --fresh`.
 **Signing in:** use the one-click buttons on the sign-in page, or **Switch role** in the yellow demo bar. Every demo password is `Yamamah@2026`.
-**Run every automated test:** `docker compose exec app sh bin/test_all.sh` → *Total: 650 checks passed, 0 failed.* (10 suites; it reinstalls the demo database named by `SAQF_DB_NAME` — never point it at real data.)
+**Run every automated test:** `docker compose exec app sh bin/test_all.sh` → *Total: 1006 checks passed, 0 failed* on the last run (14 suites and the upgrade check; it reinstalls the demo database named by `SAQF_DB_NAME` — never point it at real data.)
 
-Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.php`, **H** = `tests/http_smoke.php`, **S** = `tests/sso_test.php`, **F** = `tests/features_test.php`, **W** = `tests/wording_test.php`, **R** = `tests/readiness_test.php`, **G** = `tests/signin_test.php`, **X** = `tests/hardening_test.php`, **C** = `tests/closeout_test.php`.
+Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.php`, **H** = `tests/http_smoke.php`, **S** = `tests/sso_test.php`, **F** = `tests/features_test.php`, **W** = `tests/wording_test.php`, **R** = `tests/readiness_test.php`, **G** = `tests/signin_test.php`, **X** = `tests/hardening_test.php`, **C** = `tests/closeout_test.php`, **K** = `tests/passkey_test.php`, **I** = `tests/injection_test.php`, **U** = `tests/usability_test.php`, **M** = `tests/mapping_test.php`.
 
 ---
 
@@ -148,6 +148,24 @@ Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.
 | 10.9 | Backups as recorded | **System health → Backups** | Healthy only for a recent, verified run that included the evidence (and, in production, encryption and a second copy); "a restore has not been tested from SAQF" | X |
 | 10.10 | Integration dry run | `php bin/dry_run.php sis <folder>` / `lms <folder>` on synthetic exports | Row counts, rejected and warned rows, matching and ignored gradebook columns; nothing written, no student number printed | X |
 
+## 11. Faculty time savers, integration by configuration and security operations (SAQF 2.6)
+
+| # | Feature | How to see it | What you should see | Test |
+|---|---|---|---|---|
+| 11.1 | Gradebook preview before import | **SWE 401 → Results & achievement**, upload `docs/demo/SWE401-final-exam-marks.csv` (synthetic) | "Check before importing": 29 students, the Final exam average 66.5%, range 20–89.4%, sections 01 and 02, and "Nothing imported yet"; **Import these marks** then says 29 results imported | U §1 |
+| 11.2 | Facts for your reading | **Course report** tab after the import | Plain facts (goals met or missed, change from last term, the gap between sections) next to the box the instructor writes in; SAQF writes no interpretation | U §2 |
+| 11.3 | Progress on the home page | Faculty **My courses** | Each course card shows "Course file: n of 7 done" and the next step | U §3 |
+| 11.4 | Deadline-aware reminders | (automated) | Reminders 14, 7 and 2 days before grades are due, then weekly; Heads of Department hear weekly about overdue files | U §4 |
+| 11.5 | Closeout board | **Course file closeout** in the sidebar (Head of Department or Quality) | Every course of the department with a progress bar; a CSV export that is audited | U §5 |
+| 11.6 | Several evidence files at once | **Evidence** tab, choose the three synthetic PDFs in `docs/demo/` | Each file pre-filled (paper, rubric, marked samples) for the Final exam; titles come from the assessment, never from the file name | U §6 |
+| 11.7 | Section scope and identifiers | (automated) | A section instructor cannot overwrite another section's marks; student numbers in evidence file names are masked; an administrator's two-step reset revokes passkeys | U §7 |
+| 11.8 | Passkeys | On **localhost**, **Account & security → Add a passkey** (needs a device with a PIN, fingerprint or face unlock) | After the password, the second step offers the passkey; removing it brings back the e-mailed code. The code is not independently reviewed | K |
+| 11.9 | Hostile input | (automated) | Script and markup typed into forms are shown as text on every page in English and Arabic; SQL meta-characters are harmless; CSP violation reports are reduced and rate limited | I |
+| 11.10 | Any JSON API by mapping file | `php bin/mapping_check.php docs/mappings/university-lms.simulated.json --system=lms --sample=grades=docs/mappings/samples/marks.json` | "36 row(s) read → 2 assessment(s), 12 student(s)…" and that student identifiers are shown nowhere; no database or network needed. The API is SIMULATED | M |
+| 11.11 | Go-live preflight | **Administration → Go-live** or `php bin/preflight.php` | In the demo it blocks go-live (demo accounts use a published password, demo mode on) and names each fix | R, X |
+| 11.12 | Audit-chain witness | **Administration → Activity log → Take a checkpoint now** | A `SAQF-WITNESS/1 …` line, sent by e-mail or webhook when configured; pasting it back checks history up to that point | X |
+| 11.13 | Security incidents | **Security incidents** in the sidebar (administrator) | A register; a personal-data incident shows a 72-hour clock from detection; decisions are recorded by people and SAQF contacts no one | X |
+
 ---
 
 ## Last full run
@@ -164,11 +182,15 @@ SAQF test suites (PHP 8.3.6, MySQL 8.0)
   ok   Plain wording, whole numbers, Arabic course content          31 passed  0 failed
   ok   Go-live readiness, data pack, access review, security proof   58 passed  0 failed
   ok   Robot check, two-step codes, trusted browsers, session, help   50 passed  0 failed
-  ok   Privacy and security hardening (pseudonyms, key, https, backups)   72 passed  0 failed
+  ok   Privacy and security hardening (pseudonyms, key, https, backups)  128 passed  0 failed
   ok   Course file closeout, evidence review, course file package   39 passed  0 failed
+  ok   Passkeys (WebAuthn): hostile vectors and the sign-in flow    74 passed  0 failed
+  ok   Injection and output-encoding probes (XSS, SQL, headers, redirects)   28 passed  0 failed
+  ok   Faculty time savers (gradebook preview, facts, reminders, closeout board)   91 passed  0 failed
+  ok   Mapped API connectors (SIS and LMS grades from a mapping file)  107 passed  0 failed
   ok   Database migrations are idempotent (upgrade path)
 
-Total: 650 checks passed, 0 failed.
+Total: 1006 checks passed, 0 failed.
 ```
 
-GitHub runs every suite on every push (PHP 8.3, MySQL 8.0), then starts the Docker stack and runs the HTTP suite inside it (Apache), with HTTPS, encrypted-backup and restore checks.
+GitHub runs every suite on every push (PHP 8.3, MySQL 8.0), then starts the Docker stack and runs the HTTP suite inside it (Apache), with HTTPS, encrypted-backup and restore checks, and finally the hardened production stack (secret files, read-only root, dropped capabilities, preflight).

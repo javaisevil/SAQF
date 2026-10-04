@@ -142,22 +142,23 @@ SAQF_ALERT_WEBHOOK=https://example.webhook.office.com/...
 
 The overlay forces `APP_ENV=production`, `APP_DEBUG=false`, `SAQF_DEMO=false` and `SAQF_AUTO_INSTALL=production`, and blanks the plain variables for the application key, the database passwords and the backup passphrase so the files are used. Anything you put in `.env` for those is ignored.
 
-### 5.2 Variables the compose file does not pass
+### 5.2 Variables the compose file passes
 
-`.env` only feeds the compose files. A variable reaches the app container only if `docker-compose.yml` lists it under `environment:`. The code reads these variables, which the file does not list (found by comparing `Config::get` and `Config::bool` calls in `src/`, `public/` and `bin/` with `docker-compose.yml`):
+`.env` only feeds the compose files: a variable reaches the app container only if `docker-compose.yml` lists it under `environment:`. Every setting the code reads through `Config::get` or `Config::bool` is listed there, including the security contact (`SAQF_SECURITY_CONTACT`), the MFA requirement for university sign-in (`SAQF_OIDC_REQUIRE_MFA`), extra audit-witness recipients (`SAQF_WITNESS_EMAIL`), the robot check (`SAQF_BOT_CHECK`) and the mapped connectors (`SAQF_SIS_MAPPING`, `SAQF_SIS_CLIENT_ID`, `SAQF_SIS_CLIENT_SECRET`, `SAQF_LMS_MAPPING`, `SAQF_LMS_URL`, `SAQF_LMS_TOKEN`, `SAQF_LMS_CLIENT_ID`, `SAQF_LMS_CLIENT_SECRET`). The backup service also receives `SAQF_DRILL_EVERY_DAYS` (default 30; 0 = never). The only ones left out are fixed inside the container (`SAQF_SIS_DIR`, `SAQF_LMS_DIR`: the read-only `./storage/inbox` mount) or are for development (`SAQF_DB_WAIT`, `SAQF_I18N_REPORT`).
 
-| Variable | Effect when it cannot be set |
-|---|---|
-| `SAQF_SECURITY_CONTACT` | `/.well-known/security.txt` answers 404 and the preflight warns "A security contact is published". |
-| `SAQF_OIDC_REQUIRE_MFA` | SAQF cannot refuse sign-in tokens that do not report MFA. |
-| `SAQF_WITNESS_EMAIL` | Extra recipients of audit witnesses cannot be added (administrators with an e-mail address always receive them). |
-| `SAQF_SIS_MAPPING`, `SAQF_LMS_MAPPING`, `SAQF_LMS_URL`, `SAQF_LMS_TOKEN`, `SAQF_SIS_CLIENT_ID`, `SAQF_SIS_CLIENT_SECRET`, `SAQF_LMS_CLIENT_ID`, `SAQF_LMS_CLIENT_SECRET` | The *mapped* SIS and LMS connectors (any JSON API, by mapping file) cannot be configured. |
-| `SAQF_BOT_CHECK` | Only matters if you want to switch the robot check off, which you should not. |
-| `SAQF_DRILL_EVERY_DAYS` (backup service) | The restore drill stays at its default of every 30 days. |
+Mapping files for the mapped connectors go in `./config/mappings` on the host, which is mounted read-only into the app container; name them as `SAQF_SIS_MAPPING=config/mappings/sis.json` (see `config/mappings/README.md`).
+
+To re-check after an upgrade, compare the names the code reads with the compose file:
+
+```sh
+grep -rhoE "Config::(get|bool)\('SAQF_[A-Z0-9_]+" src public bin | sed -E "s/.*'//" | sort -u > /tmp/read.txt
+grep -oE "^ +SAQF_[A-Z0-9_]+" docker-compose.yml | tr -d ' ' | sort -u > /tmp/passed.txt
+comm -23 /tmp/read.txt /tmp/passed.txt
+```
 
 ### 5.3 Local override file
 
-Put additions in `docker-compose.override.yml` (it is in `.gitignore`). Compose reads it automatically only when no `-f` flag is given, so name it in `$DC`:
+Use an override file to give more secrets as files (so they do not appear in `docker inspect`). Put it in `docker-compose.override.yml` (it is in `.gitignore`). Compose reads it automatically only when no `-f` flag is given, so name it in `$DC`:
 
 ```sh
 export DC="docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.override.yml --profile https"
@@ -167,9 +168,6 @@ export DC="docker compose -f docker-compose.yml -f docker-compose.prod.yml -f do
 services:
   app:
     environment:
-      SAQF_SECURITY_CONTACT: ${SAQF_SECURITY_CONTACT:-}
-      SAQF_OIDC_REQUIRE_MFA: ${SAQF_OIDC_REQUIRE_MFA:-}
-      SAQF_WITNESS_EMAIL: ${SAQF_WITNESS_EMAIL:-}
       # a secret from a file instead of .env (any name in Config::SECRET_KEYS accepts <NAME>_FILE)
       SAQF_OIDC_CLIENT_SECRET_FILE: /run/secrets/saqf_oidc_client_secret
     secrets: [saqf_oidc_client_secret]
@@ -178,7 +176,7 @@ secrets:
     file: ./secrets/saqf_oidc_client_secret
 ```
 
-Create such a file the way `bin/make_secrets.sh` does (`umask 077`, `chmod 444`), and add its variables to `.env`. Check the result with `$DC config` before starting. Then confirm the app sees the setting: the preflight line "A security contact is published" turns `ok`, or the Security center row for the control changes. Every later `up`, `run` or `build` must include the override file in `$DC`, otherwise the container is recreated without these variables. (The cleaner long-term fix is to list the variables in `docker-compose.yml`; this override is the stop-gap.)
+Create such a file the way `bin/make_secrets.sh` does (`umask 077`, `chmod 444`) and leave the plain variable empty in `.env` (an environment value wins over the file). Check the result with `$DC config` before starting, then confirm the app sees the setting in the Security center or Go-live page. Every later `up`, `run` or `build` must include the override file in `$DC`, otherwise the container is recreated without these variables.
 
 ### 5.4 Certificates
 
@@ -307,9 +305,9 @@ Do this on staging data first, then in production. [INTEGRATIONS.md](INTEGRATION
 |---|---|---|---|
 | Registrar catalogue | `storage/inbox/catalog/` or `SAQF_INSTITUTION_DIR` | [Registrar catalogue](INTEGRATIONS.md#registrar-catalogue) | Check with *Go-live → Check the catalogue in use* or `$DC exec -T app php bin/pack.php validate` |
 | SIS (calendar, teaching assignments) | `SAQF_SIS_SOURCE`: `file`, `rest`, `mapped`, `none` | [SIS](INTEGRATIONS.md#sis) | Unset means `file` in production: until `terms.csv` and `assignments.csv` are in `storage/inbox/sis/`, *Test connections* reports it as not ready (`src/Integration/FileSources.php`). `./storage/inbox` is mounted read-only into the container |
-| LMS (grades) | `SAQF_LMS_SOURCE`: `moodle`, `blackboard`, `mapped`, `file`, `none` | [LMS](INTEGRATIONS.md#lms) | `SAQF_LMS_COURSE_KEY` must match the LMS course IDs. The mapped connector's variables need section 5.3 |
+| LMS (grades) | `SAQF_LMS_SOURCE`: `moodle`, `blackboard`, `mapped`, `file`, `none` | [LMS](INTEGRATIONS.md#lms) | `SAQF_LMS_COURSE_KEY` must match the LMS course IDs. Mapping files go in `./config/mappings` (section 5.2) |
 | Edugate and the university LMS | the integration contract | [Edugate and LMS integration contract](INTEGRATIONS.md#edugate-and-lms-integration-contract-awaiting-university-it) | No Edugate adapter exists. The contract (read-only scope, delivery, field mapping, anonymised staging sample, dry run, reconciliation, IT sign-off) is awaiting university IT |
-| Sign-in | `SAQF_OIDC_*`, `SAQF_PASSWORD_LOGIN=admins` | [University sign-in](INTEGRATIONS.md#university-sign-in-openid-connect) | Keep password sign-in for administrators as the break-glass route. Multi-factor sign-in for SSO is the identity provider's policy: get it confirmed in writing. `SAQF_OIDC_REQUIRE_MFA` needs section 5.3 |
+| Sign-in | `SAQF_OIDC_*`, `SAQF_PASSWORD_LOGIN=admins` | [University sign-in](INTEGRATIONS.md#university-sign-in-openid-connect) | Keep password sign-in for administrators as the break-glass route. Multi-factor sign-in for SSO is the identity provider's policy: get it confirmed in writing. Set `SAQF_OIDC_REQUIRE_MFA=true` if the identity provider reports MFA in `amr` |
 | E-mail | `SAQF_MAIL_*` | [E-mail](INTEGRATIONS.md#e-mail) | Put the SMTP password in `.env` or a `_FILE` secret (section 4) |
 | Alerts | `SAQF_ALERT_WEBHOOK` | [IT alerts to Teams or Slack](INTEGRATIONS.md#it-alerts-to-teams-or-slack) | Must be `https://` in production |
 | Virus scanning | `--profile antivirus`, `SAQF_CLAMAV_HOST=clamav:3310` | [Virus scanning](INTEGRATIONS.md#virus-scanning) | Add the profile to `$DC` for `up`; uploads pause while the scanner is unreachable, and SAQF does not check the scanner's signature updates |
@@ -524,7 +522,7 @@ The README lists Apache or Nginx, PHP 8.3 and MySQL 8 as requirements, so a hand
 | 13 | Administrators use two-step verification | Preflight line; screen *Security center* | "Password-using administrators have two-step verification" is `ok` |
 | 14 | A second administrator exists, with e-mail | Screen *Users & access*; screen *Access review* | Two administrators with addresses; preflight "A second administrator exists" is `ok` |
 | 15 | University sign-in works | Sign in with a pilot account through the university button; screen *Security center* | "University single sign-on" is in place; "Password sign-in restricted" is in place; the identity provider's MFA confirmation is on file |
-| 16 | The security contact is published | `curl -s https://saqf.example.edu/.well-known/security.txt` | A `Contact:` line (needs section 5.3) |
+| 16 | The security contact is published | `curl -s https://saqf.example.edu/.well-known/security.txt` | A `Contact:` line (set `SAQF_SECURITY_CONTACT`) |
 | 17 | Administrator network restriction (if chosen) | Screen *Security center*; try an administrator sign-in from an unlisted network | The row names your ranges; the sign-in is refused |
 | 18 | A complete backup exists | `$DC exec -T backup sh /usr/local/bin/saqf-backup`; `$DC exec -T app cat storage/backups/last-backup.json` | Exit code 0; `"status":"ok"`, `"verified":true`, `"encrypted":true`, `"offsite":true`, `"files":true` |
 | 19 | The off-site copy is on another machine and intact | `findmnt /mnt/saqf-offsite`; `cd /mnt/saqf-offsite && for f in saqf-*.sha256; do sha256sum -c "$f"; done` | The source is not a local disk of this server; every file reports `OK` |

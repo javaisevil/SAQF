@@ -256,10 +256,13 @@ ok($code === 401 && $c2 === 302, 'an assertion for the wrong challenge does not 
 $lo = json_decode($body, true)['options'];
 $good = assertion($pk, $rp, $lo['challenge'], $orig, 0x05, 1);
 $good['id'] = WebAuthn::b64u($pcred);
+// Counted rather than "the newest session": sessions created in the same second have no order.
+$passkeySessions = static fn(): int => (int) Db::val('SELECT COUNT(*) FROM user_sessions WHERE user_id = ? AND method = "password+passkey"', [$omar['id']]);
+$before = $passkeySessions();
 [$code, $body] = hreq($j2, "$app/passkey.php", ['action' => 'login_finish', 'credential' => $good], ['Content-Type: application/json', "X-CSRF-Token: $csrf2"], true);
 [$c2] = hreq($j2, "$app/faculty.php");
 ok($code === 200 && ($c2 === 200) && (json_decode($body, true)['redirect'] ?? '') === 'index.php', 'a valid assertion completes the sign-in');
-ok((bool) Db::val('SELECT 1 FROM login_attempts WHERE username = "f.omar" AND success = 1 AND reason = "mfa_passkey"') && Db::val('SELECT method FROM user_sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1', [$omar['id']]) === 'password+passkey', 'it is recorded as a password + passkey sign-in');
+ok((bool) Db::val('SELECT 1 FROM login_attempts WHERE username = "f.omar" AND success = 1 AND reason = "mfa_passkey"') && $passkeySessions() === $before + 1, 'it is recorded as a password + passkey sign-in');
 ok((int) Db::val('SELECT sign_count FROM passkeys WHERE user_id = ?', [$omar['id']]) === 1 && Db::val('SELECT last_used_at FROM passkeys WHERE user_id = ?', [$omar['id']]) !== null, 'the counter and last use are updated');
 
 // The same assertion cannot be replayed to sign in again.

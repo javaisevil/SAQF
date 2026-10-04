@@ -79,4 +79,7 @@ return [
     'SAQF Academic Quality' => 'الجودة الأكاديمية — SAQF',
     'Sealed on' => 'خُتم في',
     'The course workspace is ready: outcomes and assessments are shared by every section' => 'مساحة المقرر جاهزة: مخرجات التعلم والتقييمات مشتركة بين كل الشعب',
+    'Type of problem' => 'نوع المشكلة',
+    'Who has to act' => 'من عليه التصرف',
+    'Change the status of this improvement action' => 'تغيير حالة إجراء التحسين هذا',
 ];

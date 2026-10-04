@@ -2,6 +2,8 @@
 
 *For every teammate, technical or not. Read time: about 15 minutes.*
 
+> Written for SAQF 2.4 and kept as the team's background. For the current version (2.6) use [PRESENTATION.md](PRESENTATION.md) and [JUDGES_DEMO.md](JUDGES_DEMO.md); the current test summary is in [TEST_CASES.md](TEST_CASES.md#last-full-run).
+
 ---
 
 ## 1. The one-minute version
@@ -243,13 +245,13 @@ The full script with timings, what to say, what to highlight and a Q&A sheet is 
 4. **Head of Department** (2:15): only what needs a decision.
 5. **Quality** (2:45): allow the CIS 491 exception with a reason; *Import specifications*; *Arabic wording*.
 6. **IT** (3:30): *Publish now* (grades → early warning), *Publish assignment* (new instructor → account + workspace), *Security center*.
-7. **Vice President** (4:30): the whole university. Close with the honest status: a tested, Docker-deployable demo on fictional data, ready to be connected once IT provides access (the 2.5 script in [`JUDGES_DEMO.md`](JUDGES_DEMO.md) is the current one).
+7. **Vice President** (4:30): the whole university. Close with the honest status: a tested, Docker-deployable demo on fictional data, ready to be connected once IT provides access (the current 7-minute script is [`JUDGES_DEMO.md`](JUDGES_DEMO.md)).
 
 ---
 
 ## 11. What was tested
 
-Everything runs with one command: `sh bin/test_all.sh` (or `docker compose exec app sh bin/test_all.sh`) — **650 checks in 10 suites, 0 failures** on the last run (4 Oct 2026, MySQL 8.0, PHP 8.3). The plain-language list of what each feature does and how to see it is [`TEST_CASES.md`](TEST_CASES.md).
+Everything runs with one command: `sh bin/test_all.sh` (or `docker compose exec app sh bin/test_all.sh`) — **1006 checks in 14 suites, 0 failures** on the latest run (2.6, 4 Oct 2026, MySQL 8.0, PHP 8.3; the per-suite numbers below are from 2.4). The plain-language list of what each feature does and how to see it is [`TEST_CASES.md`](TEST_CASES.md).
 
 - **58 automation scenario checks** (`tests/automation_test.php`), including: assignment creates a workspace, editing an outcome re-validates everything, grades trigger achievement, a missed target triggers a finding and a draft action, recurring gaps escalate, the semester rollover inherits structure, improvement effectiveness is evaluated, a PLO change shows its impact, the override lifecycle works, data conflicts are resolved, and a forged audit entry is detected.
 - **118 page and security checks** (`tests/http_smoke.php`), including: every page for every role, plus over 20 deliberate break-in attempts (professor opening another professor's course, a section instructor editing the coordinator's specification, a HoD from another department, faculty calling QA actions, missing CSRF token, anonymous access). Also account lockout, error-log lookup, audit verification from the console, and maintenance mode.
@@ -257,7 +259,7 @@ Everything runs with one command: `sh bin/test_all.sh` (or `docker compose exec 
 - **29 end-to-end sign-in checks** (`tests/sso_test.php`): the full university sign-in through a stand-in identity provider, including the attacks it must refuse and the administrator's two-step sign-in.
 - **91 checks of the new features** (`tests/features_test.php`): sections, the specification import, evidence uploads (including a stand-in virus scanner and the standard EICAR test virus), Word exports, two-step verification (against the official RFC test codes), password rules, sessions, re-confirmation, network rules, IT alerts with a stand-in Teams webhook, backup monitoring, the Arabic interface, and proof that the demo shortcuts do not exist in production mode.
 - **31 plain-wording and Arabic-content checks** (`tests/wording_test.php`): results as whole numbers with no decimals or hashes on screen, course facts in sentences, "What needs you" without jargon, Arabic course names from the Registrar (and a person's correction surviving the next sync), Arabic course content, the instructor typing the Arabic of an outcome, Arabic search, the *Arabic wording* page and spreadsheet (and that IT may word names but not course content), and the Arabic Word report.
-- Visual review of every page at desktop and phone widths, in English and in Arabic; an Arabic crawl of 117 screens finds no interface text left in English (codes such as SWE 401 or ISO 25010 stay as they are).
+- Visual review of every page at desktop and phone widths, in English and in Arabic; an Arabic crawl of every role's screens (`php bin/i18n_coverage.php`; 124 screens in 2.6) shows 93% of the text in Arabic; what stays in English is codes (SWE 401, CLO1, SO2), sign-in names, technical event names and catalogue data quoted as published.
 - **Where it was tested:** real **MySQL 8.0** and the **Docker** stack (Apache, MySQL, the HTTPS proxy, backups) — all six suites pass in both. An encrypted backup was restored and its audit chain verified, and CI repeats that on every push to GitHub (`.github/workflows/ci.yml`), together with HTTPS checks. Running the Docker stack under Apache uncovered one page (generated reports) that answered a refused request with the wrong status code; it is fixed and covered by the tests.
 
 ---

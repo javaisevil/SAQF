@@ -310,7 +310,7 @@ ok($code === 403 && !Db::val('SELECT 1 FROM evidence_files WHERE offering_id = ?
 ok((int) Db::val('SELECT COUNT(*) FROM audit_log WHERE action = "evidence.uploaded" AND object_id = ?', [(string) $oid]) >= 3, 'every file is audited individually');
 
 // ---------------------------------------------------------------------------------------------
-section('7. Findings from the independent review, fixed and pinned');
+section('7. Findings from the automated code review, fixed and pinned');
 // 7a. A section instructor works on their own section only.
 $secs = Db::all('SELECT s.section_code, u.username FROM offering_sections s LEFT JOIN users u ON u.id = s.instructor_id WHERE s.offering_id = ? ORDER BY s.section_code', [$oid]);
 $saraSec = null;
