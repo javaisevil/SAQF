@@ -1,0 +1,89 @@
+openapi: 3.0.3
+info:
+  title: SAQF SIS integration contract (read-only)
+  version: "1"
+  description: |
+    The simple API SAQF's `SAQF_SIS_SOURCE=rest` connector calls. It is a contract SAQF defines for universities
+    that put an integration layer (Ellucian Ethos, MuleSoft, an API gateway) in front of their student information
+    system. It is NOT an Edugate API. If the university's API looks different, use `SAQF_SIS_SOURCE=mapped` with a
+    mapping file instead (docs/INTEGRATIONS.md, Option C).
+
+    SAQF only ever sends GET requests. Production requires https:// (TLS verified). Student data is not part of
+    this contract: no student lists, names, national IDs or individual grades.
+servers:
+  - url: https://integration.example.edu/saqf
+    description: Example only. Set SAQF_SIS_URL to the real base address.
+security:
+  - bearerAuth: []
+paths:
+  /terms:
+    get:
+      summary: Academic calendar
+      responses:
+        "200":
+          description: 'The terms SAQF should know about. A bare list, or the list wrapped as {"terms": [...]}.'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items: { $ref: "#/components/schemas/Term" }
+                  - type: object
+                    properties:
+                      terms:
+                        type: array
+                        items: { $ref: "#/components/schemas/Term" }
+        "401": { description: "The token was refused." }
+  /terms/{code}/assignments:
+    get:
+      summary: Teaching assignments for one term
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema: { type: string, example: "2026-1" }
+      responses:
+        "200":
+          description: 'One row per course (or one row per section for multi-section courses). A bare list, or wrapped as {"assignments": [...]}.'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items: { $ref: "#/components/schemas/Assignment" }
+                  - type: object
+                    properties:
+                      assignments:
+                        type: array
+                        items: { $ref: "#/components/schemas/Assignment" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: "A service account or OAuth2 client created for SAQF with read-only scope, never a person's credentials."
+  schemas:
+    Term:
+      type: object
+      required: [code, name, academic_year, sequence, starts_on, ends_on, grades_due_on]
+      properties:
+        code: { type: string, example: "2026-1" }
+        name: { type: string, example: "Fall 2026" }
+        academic_year: { type: string, example: "2026-2027" }
+        sequence: { type: integer, description: "Increases with time; used to order terms.", example: 3 }
+        starts_on: { type: string, format: date, example: "2026-08-23" }
+        ends_on: { type: string, format: date, example: "2026-12-20" }
+        grades_due_on: { type: string, format: date, example: "2026-12-30" }
+    Assignment:
+      type: object
+      required: [course]
+      properties:
+        course: { type: string, description: "Catalogue course code; 'swe401' and 'SWE 401' are both accepted.", example: "SWE 401" }
+        instructor_id: { type: string, description: "Staff number (matched to the SAQF account's SIS / HR identifier).", example: "YU-F1034" }
+        instructor_name: { type: string, description: "With instructor_email, lets SAQF create the account of a new instructor." }
+        instructor_email: { type: string, format: email, description: "University e-mail address." }
+        department: { type: string, description: "Owning department code.", example: "SWE" }
+        sections: { type: integer, example: 2 }
+        enrolled: { type: integer, example: 41 }
+        section: { type: string, description: "Section code when the row is for one section.", example: "01" }
+        coordinator: { type: boolean, description: "True on the course coordinator's row (owns the course record)." }

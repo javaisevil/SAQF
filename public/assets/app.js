@@ -386,4 +386,38 @@
       if (to) { e.preventDefault(); location.href = to; }
     }
   });
+
+  // Accessibility helpers (progressive enhancement; pages render labels themselves where they can):
+  // a <label> next to a control inside .field is tied to it; any other control still without a name gets one
+  // from nearby text (its placeholder, the first cell of its row, the heading of its card); and scrollable regions
+  // can be reached with the keyboard.
+  function labelControls() {
+    var n = 0;
+    document.querySelectorAll('.field > label:not([for])').forEach(function (lab) {
+      var c = lab.parentNode.querySelector('input:not([type=hidden]), select, textarea');
+      if (!c || c.closest('label')) return;
+      if (!c.id) c.id = 'f-auto-' + (++n);
+      lab.setAttribute('for', c.id);
+    });
+    document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]), select, textarea').forEach(function (c) {
+      if ((c.labels && c.labels.length) || c.getAttribute('aria-label') || c.getAttribute('aria-labelledby') || c.title) return;
+      var name = c.getAttribute('placeholder');
+      if (!name) { var td = c.closest('td'), row = c.closest('tr'), cell = row && row.querySelector('th, td'); name = cell && cell !== td ? cell.textContent : ''; }
+      if (!name) { var card = c.closest('.card'), h = card && card.querySelector('h2, h3'); name = h ? h.textContent : ''; }
+      name = (name || '').replace(/\s+/g, ' ').trim().slice(0, 100);
+      if (name) c.setAttribute('aria-label', name);
+    });
+  }
+  function scrollRegions() {
+    document.querySelectorAll('.table-wrap, .card-b').forEach(function (el) {
+      if (el.hasAttribute('tabindex') || el.scrollWidth <= el.clientWidth + 1 || !/(auto|scroll)/.test(getComputedStyle(el).overflowX)) return;
+      var card = el.closest('.card'), h = card && card.querySelector('h2, h3');
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('role', 'region');
+      el.setAttribute('aria-label', h ? h.textContent.trim() : L('scrollable', 'Scrollable content'));
+    });
+  }
+  labelControls();
+  scrollRegions();
+  window.addEventListener('resize', scrollRegions);
 })();

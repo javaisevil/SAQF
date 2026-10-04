@@ -428,7 +428,7 @@ if ($tab === 'overview'):
         <thead><tr><th>Assessment</th><th>Type</th><th style="width:90px">Week</th><th style="width:110px">Weight %</th><th>Outcomes it measures</th><?php if (!$readOnly): ?><th></th><?php endif; ?></tr></thead><tbody>
         <?php foreach ($spec['assessments'] ?? [] as $a): ?>
           <tr><td class="strong"><?= V::h($a['name']) ?></td><td><?= V::h(Specs::ASSESSMENT_KINDS[$a['kind']] ?? $a['kind']) ?></td><td><?= V::h($a['week'] ?? '—') ?></td>
-            <td><?php if ($readOnly): ?><?= V::pct($a['weight_pct']) ?><?php else: ?><input type="number" min="0" max="100" step="0.5" data-weight data-id="<?= (int) $a['id'] ?>" value="<?= V::h(rtrim(rtrim((string) $a['weight_pct'], '0'), '.')) ?>" style="width:80px"><?php endif; ?></td>
+            <td><?php if ($readOnly): ?><?= V::pct($a['weight_pct']) ?><?php else: ?><input type="number" min="0" max="100" step="0.5" data-weight aria-label="<?= V::h('Weight (%): ' . $a['name']) ?>" data-id="<?= (int) $a['id'] ?>" value="<?= V::h(rtrim(rtrim((string) $a['weight_pct'], '0'), '.')) ?>" style="width:80px"><?php endif; ?></td>
             <td><?php foreach ($spec['clos'] as $c): $on = in_array((int) $c['id'], $a['clos'], true); ?><button class="chip <?= $on ? 'on' : '' ?>" <?= $readOnly ? 'disabled' : 'data-act="link" data-offering="' . $oid . '" data-assessment="' . (int) $a['id'] . '" data-clo="' . (int) $c['id'] . '" data-on="' . ($on ? '0' : '1') . '"' ?>><?= V::h($c['code']) ?></button> <?php endforeach; ?></td>
             <?php if (!$readOnly): ?><td class="num"><button class="btn btn-sm btn-ghost" data-act="delete_assessment" data-offering="<?= $oid ?>" data-assessment="<?= (int) $a['id'] ?>" data-confirm="Remove “<?= V::h($a['name']) ?>” from the draft?">Remove</button></td><?php endif; ?></tr>
         <?php endforeach; ?>
@@ -634,7 +634,7 @@ if ($tab === 'overview'):
         </div>
         <?php if (in_array($ia['status'], ['open', 'in_progress'], true) && ((int) $ia['owner_id'] === $user['id'] || Authz::canDecideCourse($user, $courseId))): ?>
           <form data-api="improvement_status" class="row" style="margin-top:12px"><input type="hidden" name="id" value="<?= (int) $ia['id'] ?>">
-            <select name="status" style="width:auto"><?php if ($ia['status'] === 'open'): ?><option value="in_progress">Mark in progress</option><?php endif; ?><option value="completed">Mark completed</option><option value="cancelled">Cancel</option></select>
+            <select name="status" style="width:auto" aria-label="Change the status of this improvement action"><?php if ($ia['status'] === 'open'): ?><option value="in_progress">Mark in progress</option><?php endif; ?><option value="completed">Mark completed</option><option value="cancelled">Cancel</option></select>
             <input type="text" name="note" placeholder="What was done (or why it was cancelled)" style="flex:1;min-width:240px"><button class="btn btn-sm" type="submit">Update</button></form>
         <?php endif; ?>
       <?php endif; ?>
@@ -663,7 +663,7 @@ if ($tab === 'overview'):
         <p class="tiny muted" style="margin:10px 0 0">These are the numbers, not their meaning. Why the results look like this, and what to do about it, is for you to say below: SAQF never writes it for you.</p></div></section>
     <?php foreach (['interpretation' => 'What the results mean', 'difficulties' => 'Difficulties this term (optional)', 'recommendations' => 'Suggestions for next time (optional)'] as $key => $label): ?>
       <section class="card"><div class="card-h"><h2><?= V::h($label) ?></h2><?= V::source('faculty') ?></div><div class="card-b">
-        <?php if ($canEdit): ?><form data-api="narrative"><input type="hidden" name="offering" value="<?= $oid ?>"><input type="hidden" name="section" value="<?= $key ?>"><textarea name="content" rows="4"><?= V::h($narr[$key]['content'] ?? '') ?></textarea><button class="btn btn-sm" type="submit" style="margin-top:8px">Save</button></form>
+        <?php if ($canEdit): ?><form data-api="narrative"><input type="hidden" name="offering" value="<?= $oid ?>"><input type="hidden" name="section" value="<?= $key ?>"><textarea name="content" rows="4" aria-label="<?= V::h($label) ?>"><?= V::h($narr[$key]['content'] ?? '') ?></textarea><button class="btn btn-sm" type="submit" style="margin-top:8px">Save</button></form>
         <?php else: ?><p><?= isset($narr[$key]) ? nl2br(V::h($narr[$key]['content'])) : '<span class="muted">Not provided.</span>' ?></p><?php endif; ?>
       </div></section>
     <?php endforeach; ?>

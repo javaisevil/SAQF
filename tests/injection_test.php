@@ -215,4 +215,36 @@ ok(!preg_match('/^(Location|Set-Cookie|Link|Refresh):.*evil\.example/mi', $hd), 
 $mail = (string) Db::val('SELECT body FROM mail_outbox ORDER BY id DESC LIMIT 1');
 ok(!str_contains($mail, 'evil.example'), 'password-reset links never use the request\'s Host header');
 
+// ---------------------------------------------------------------------------------------------
+section('6. Browser policy violation reports (public/csp_report.php)');
+[, , $hdr] = http(jar(), "$app/login.php");
+ok(str_contains($hdr, 'report-uri csp_report.php'), 'the page policy names the report address');
+$post = static fn(string $body, array $h = ['Content-Type: application/csp-report']) => http(jar(), "$app/csp_report.php", $body, $h);
+$count = static fn() => (int) Db::val('SELECT COUNT(*) FROM audit_log WHERE action = "security.csp_violation"');
+$base0 = $count();
+$report = json_encode(['csp-report' => ['document-uri' => "$app/workspace.php?id=16&secret=TOKEN123", 'effective-directive' => 'script-src-elem', 'blocked-uri' => 'https://evil.example/steal.js?token=ABC#frag', 'violated-directive' => 'script-src']]);
+[$code] = $post($report);
+ok($code === 204 && $count() === $base0 + 1, 'a violation report is accepted (204) and recorded once');
+$row = Db::one('SELECT summary, new_value FROM audit_log WHERE action = "security.csp_violation" ORDER BY id DESC LIMIT 1');
+ok(str_contains($row['summary'], 'script-src-elem') && str_contains($row['summary'], 'https://evil.example') && !str_contains($row['summary'] . $row['new_value'], 'TOKEN123') && !str_contains($row['summary'] . $row['new_value'], 'ABC') && !str_contains($row['summary'] . $row['new_value'], 'steal.js'), 'only the directive, the blocked host and the page path are kept: no query string, token or file name');
+[$code] = $post($report);
+ok($code === 204 && $count() === $base0 + 1, 'the same violation again the same day is not recorded again (a broken page cannot flood the log)');
+[$code] = $post(json_encode(['csp-report' => ['document-uri' => "$app/x.php", 'effective-directive' => 'img-src<script>', 'blocked-uri' => 'inline']]));
+$last = Db::val('SELECT summary FROM audit_log WHERE action = "security.csp_violation" ORDER BY id DESC LIMIT 1');
+ok($code === 204 && !str_contains((string) $last, '<') && !str_contains((string) $last, '>'), 'markup in a report field is stripped before it is recorded');
+$n = $count();
+[$code] = $post('{not json');
+[$code2] = $post(json_encode(['csp-report' => 'x']));
+[$code3] = $post(json_encode(['csp-report' => ['effective-directive' => str_repeat('a', 9000)]]));
+[$code4] = http(jar(), "$app/csp_report.php");
+ok($code === 204 && $code2 === 204 && $code3 === 204 && $code4 === 204 && $count() === $n, 'bad JSON, a wrong shape, an oversized body and a plain GET are all answered 204 and record nothing (a sender learns nothing)');
+Db::exec('DELETE FROM rate_limits WHERE bucket LIKE "csp%"');
+for ($i = 0; $i < 25; $i++) {
+    $post(json_encode(['csp-report' => ['document-uri' => "$app/p$i.php", 'effective-directive' => 'img-src', 'blocked-uri' => "https://h$i.example/x"]]));
+}
+ok($count() - $n <= 20, 'one network address can add at most 20 reports an hour (' . ($count() - $n) . ' recorded of 25 sent)');
+$omar = as_user($app, 'it.admin', 'index.php');
+[, $html] = http($omar, "$app/admin.php?tab=center");
+ok(str_contains($html, 'Browser policy violation reports') && str_contains($html, 'distinct case(s) in the last 7 days'), 'the Security center reports the cases seen in the last 7 days');
+
 finish();

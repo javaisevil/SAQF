@@ -4,10 +4,10 @@ For university IT. SAQF reads from four systems and writes to none of them. Each
 chosen with settings (environment variables, or `config.local.php` on shared hosting), tested from
 *Administration → University systems → Test connections*, and then run automatically by the scheduler.
 
-> **Status (SAQF 2.5).** No connector has been run against Al Yamamah University's systems. The
+> **Status (SAQF 2.6).** No connector has been run against Al Yamamah University's systems. The
 > connectors below are implemented and tested against **local stand-in servers** (`tests/mock/`: a
-> Moodle, a Blackboard Learn, a generic SIS REST API, an OpenID Connect provider, SMTP, ClamAV and a
-> webhook) and against export files in the documented layouts. There is **no Edugate adapter**:
+> Moodle, a Blackboard Learn, a generic SIS REST API, a deliberately differently shaped "university API",
+> an OpenID Connect provider, SMTP, ClamAV and a webhook) and against export files in the documented layouts. There is **no Edugate adapter**:
 > Edugate's API, export formats, scopes and version are not known to the project, and nothing has been
 > guessed. Connecting Edugate and the university's LMS needs the agreement described in
 > [the integration contract](#edugate-and-lms-integration-contract-awaiting-university-it) and IT sign-off.
@@ -18,6 +18,7 @@ chosen with settings (environment variables, or `config.local.php` on shared hos
 | Registrar catalogue files (JSON layout of `data/yu`) | bundled YU public snapshot (captured 1 Oct 2026, see `data/yu/SOURCES.md`); `bin/pack.php validate` |
 | SIS export folder (`terms.csv`, `assignments.csv`) | `tests/production_test.php`, `tests/readiness_test.php`, `bin/dry_run.php sis` |
 | Generic SIS REST API (`GET /terms`, `GET /terms/{code}/assignments`, bearer token) | stand-in server `tests/mock/sis.php` — a contract SAQF defines, not an Edugate API |
+| **Mapped JSON API** for the SIS and for LMS grades (`mapped`): any HTTPS+JSON API described by a mapping file | stand-in `tests/mock/uni_api.php` (SIMULATED, shaped nothing like SAQF's contract), `tests/mapping_test.php`, `bin/mapping_check.php` |
 | Moodle web services (REST) | stand-in server `tests/mock/moodle.php` |
 | Blackboard Learn REST (OAuth client credentials) | stand-in server `tests/mock/blackboard.php` |
 | LMS gradebook export folder and manual gradebook upload (CSV) | `tests/production_test.php`, `tests/hardening_test.php`, `bin/dry_run.php lms` |
@@ -27,8 +28,8 @@ chosen with settings (environment variables, or `config.local.php` on shared hos
 | System | What SAQF reads | Connectors | Setting |
 |---|---|---|---|
 | Registrar / academic catalogue | colleges, departments, programs, study plans, courses, prerequisites, PLOs | catalogue files (JSON) | `SAQF_INSTITUTION_DIR` |
-| SIS (Banner, PeopleSoft, in-house) | academic calendar, teaching assignments, enrolment | export folder (CSV) · REST API | `SAQF_SIS_SOURCE=file \| rest` |
-| LMS | published grades per assessment | Moodle · Blackboard Learn · export folder (CSV) | `SAQF_LMS_SOURCE=moodle \| blackboard \| file` |
+| SIS (Banner, PeopleSoft, in-house) | academic calendar, teaching assignments, enrolment | export folder (CSV) · REST API · **mapped API** | `SAQF_SIS_SOURCE=file \| rest \| mapped` |
+| LMS | published grades per assessment | Moodle · Blackboard Learn · **mapped API** · export folder (CSV) | `SAQF_LMS_SOURCE=moodle \| blackboard \| mapped \| file` |
 | Identity provider | who is signing in, optionally their role | OpenID Connect (Entra ID / Microsoft 365, Google, Keycloak, ADFS, Okta) | `SAQF_OIDC_*` |
 | Mail server | — (sends two-step sign-in codes, notifications, invitations, password resets) | SMTP (Microsoft 365, Google, on-premise relay) | `SAQF_MAIL_*` |
 
@@ -148,6 +149,79 @@ Authorization: Bearer {SAQF_SIS_TOKEN}
 Fields are the same as the CSV columns above. Either response may wrap the list as
 `{"terms": […]}` / `{"assignments": […]}`.
 
+### Option C: any other JSON API, by configuration (`SAQF_SIS_SOURCE=mapped`, `SAQF_LMS_SOURCE=mapped`)
+
+When the university's own API (Edugate's or the LMS's, once IT documents it) does not look like SAQF's
+contract, nobody writes code: a **mapping file** says where the lists are in the answers and which JSON
+path feeds which SAQF field. A mapping is *data*: it is validated, never executed, and the same strict checks
+as every other source (dates, course codes, section codes, pseudonymisation) run after it.
+
+| Setting | Meaning |
+|---|---|
+| `SAQF_SIS_MAPPING` / `SAQF_LMS_MAPPING` | path of the mapping file (relative to the SAQF folder or absolute) |
+| `SAQF_SIS_URL` / `SAQF_LMS_URL` | base address of the API (`https://` in production; plain `http://` is refused there) |
+| `SAQF_SIS_TOKEN` / `SAQF_LMS_TOKEN` | bearer token or API key (`auth.type` `bearer` or `header`) |
+| `SAQF_SIS_CLIENT_ID` + `SAQF_SIS_CLIENT_SECRET` (same for `LMS`) | OAuth2 client-credentials (`auth.type` `oauth2`, with `auth.token_url`) |
+
+Every secret may be given as a file instead (`…_FILE`, the Docker secrets pattern; see `docs/OPERATIONS.md`).
+
+**What a mapping can say** (see `docs/mappings/university-sis.simulated.json` and `university-lms.simulated.json`):
+
+```jsonc
+{
+  "version": 1,
+  "name": "University registry API",
+  "simulated": false,                       // true on any file that describes a stand-in, so the screens say SIMULATED
+  "auth": { "type": "bearer" },             // bearer | header (+ "name") | oauth2 (+ "token_url", "scope") | none
+  "check": { "path": "/health" },           // optional harmless endpoint for "Test connections"
+  "terms": {
+    "path": "/registry/v2/semesters",       // placeholders: none here; {term} for assignments;
+    "list": "payload.rows",                 //   {term} {code} {code_nospace} {course_key} {section} for grades
+    "pagination": { "type": "page", "param": "page", "size_param": "per_page", "size": 100 },
+    "fields": {
+      "code": "semester_code",
+      "starts_on": { "path": "begin", "transform": ["date:d/m/Y"] },
+      "sequence": { "path": "ordinal", "transform": ["int"] }
+      // … every SAQF field of the section (see bin/mapping_check.php for the list it expects)
+    }
+  }
+}
+```
+
+* **Field forms:** `"path"`; or an object with `path`, `join` (several paths, e.g. first + last name), `const`,
+  `default`, `map` (a table such as `{"MT": "Midterm exam"}` for coded columns) and `transform`.
+* **Whitelisted conversions** (nothing else exists): `trim`, `upper`, `lower`, `int`, `float`, `bool` (Y/N/true → yes/no),
+  `digits`, `course` (puts `swe401` into catalogue format `SWE 401`) and `date:<format>` (strict: `31/02/2026`
+  is refused, not rolled over). Grades become percentages from `score` ÷ `max`, or are taken from `percent`.
+* **Paging:** `none`, `page`, `offset`, `cursor` and `next_link`. A link to another host is never followed
+  (credentials would leave the system SAQF was configured for); a server that repeats a page is stopped;
+  reaching `max_pages` with more to read is an error (data is never silently dropped); at most 200,000 rows.
+* **LMS grades** arrive as rows of *student × assessment × mark*. Student identifiers are replaced by keyed
+  pseudonyms while the rows are read, with the same key as the manual upload and the export folder, so every route
+  agrees and none can store a student number. `skip_assessments` leaves out columns such as the LMS's own total.
+  Assessment names must equal the approved specification's names (use `map` for coded columns).
+* **Read-only:** only `GET` requests go to the university API (the single `POST` is the OAuth2 token request).
+  Answers over 32 MB are refused. Tokens and secrets are never shown in messages.
+
+**Check a mapping before anything is connected** (no network, no database):
+
+```
+php bin/mapping_check.php config/sis.mapping.json --system=sis \
+    --sample=terms=samples/terms.json --sample=assignments=samples/assignments.json --term=2026-1
+php bin/mapping_check.php config/lms.mapping.json --system=lms --sample=grades=samples/marks.json
+```
+
+Save an (anonymised) response from the university's API, run the command, and read what SAQF would take from it.
+Student numbers are never printed (they become pseudonyms first) and instructors' e-mail addresses are masked.
+Then set the settings, press *Test connections* in Administration → Go-live, and follow the sign-off steps of the
+[integration contract](#edugate-and-lms-integration-contract-awaiting-university-it).
+
+**What is and is not proven.** The two example mappings and `tests/mapping_test.php` prove, against a *simulated*
+API with nested objects, `d/m/Y` dates, split names, coded assessment columns and three paging styles, that a
+mapping with no code carries terms, assignments (sections, coordinators, new instructors) and graded marks all the
+way through the same pipeline as every other connector. They do **not** prove anything about Edugate or the
+university's LMS: their API documentation was not available to the project, and nothing was guessed.
+
 ---
 
 ## LMS
@@ -236,7 +310,7 @@ anything is connected.
 | Transport | HTTPS only (TLS certificate verified; refused otherwise in production) | SFTP or a university file share mounted read-only into `storage/inbox/sis` and `storage/inbox/lms` |
 | Authentication | a service account or OAuth2 client-credentials client created for SAQF, never a person's account | the export job's own account writes; SAQF only reads |
 | Least privilege | read-only scopes limited to the fields above, the relevant terms and the colleges in the pilot | the export contains only the fields above |
-| What SAQF has today | `SAQF_SIS_SOURCE=rest` expects SAQF's own simple contract (`GET /terms`, `GET /terms/{code}/assignments`, bearer token). If Edugate's API differs, a small adapter class implementing `SisSource` (`src/Integration/Sources.php`) is written **after** the API documentation is provided — nothing else in SAQF changes | `SAQF_SIS_SOURCE=file`, `SAQF_LMS_SOURCE=file` read the layouts in this guide; Moodle and Blackboard connectors exist for those LMS products |
+| What SAQF has today | `SAQF_SIS_SOURCE=rest` expects SAQF's own simple contract (`GET /terms`, `GET /terms/{code}/assignments`, bearer token; machine-readable in [`docs/openapi/saqf-sis.openapi.yaml`](openapi/saqf-sis.openapi.yaml)). If the API differs, `SAQF_SIS_SOURCE=mapped` / `SAQF_LMS_SOURCE=mapped` connect it with a **mapping file** ([Option C](#option-c-any-other-json-api-by-configuration-saqf_sis_sourcemapped-saqf_lms_sourcemapped)): IT's API documentation and a service account are all that is needed, no code. Only an API that is not JSON over HTTPS would need a small adapter class implementing `SisSource` / `LmsSource` (`src/Integration/Sources.php`) | `SAQF_SIS_SOURCE=file`, `SAQF_LMS_SOURCE=file` read the layouts in this guide; Moodle and Blackboard connectors exist for those LMS products |
 | To be provided by IT | base URL, API version and vendor documentation, scopes, credentials (into the secret store, never e-mail or git), rate limits | export schedule, file naming, folder, encoding (UTF-8), who monitors the job |
 
 ### 3. Field mapping (to be completed with the Registrar and the LMS owner)

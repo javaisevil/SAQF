@@ -441,15 +441,15 @@ if ($tab === 'health'):
         $h .= '<input type="email" name="email" placeholder="E-mail" value="' . V::h($u['email'] ?? '') . '">';
         $h .= '<input type="text" name="title" placeholder="Title (e.g. Assistant Professor)" value="' . V::h($u['title'] ?? '') . '">';
         $h .= '<input type="text" name="external_id" placeholder="SIS / HR identifier" value="' . V::h($u['external_id'] ?? '') . '">';
-        $h .= '<select name="role" required>';
+        $h .= '<select name="role" required aria-label="Role">';
         foreach (Auth::ROLES as $k => $l) {
             $h .= '<option value="' . $k . '"' . (($u['role'] ?? 'faculty') === $k ? ' selected' : '') . '>' . V::h($l) . '</option>';
         }
-        $h .= '</select><select name="department"><option value="">Department (faculty, HoD)</option>';
+        $h .= '</select><select name="department" aria-label="Department"><option value="">Department (faculty, HoD)</option>';
         foreach ($depts as $d) {
             $h .= '<option value="' . V::h($d['code']) . '"' . ($dept === $d['code'] ? ' selected' : '') . '>' . V::h($d['name']) . '</option>';
         }
-        $h .= '</select><select name="college"><option value="">College (dean)</option>';
+        $h .= '</select><select name="college" aria-label="College"><option value="">College (dean)</option>';
         foreach ($colleges as $c) {
             $h .= '<option value="' . V::h($c['code']) . '"' . ($col === $c['code'] ? ' selected' : '') . '>' . V::h($c['name']) . '</option>';
         }
@@ -487,7 +487,7 @@ if ($tab === 'health'):
         <button class="btn btn-sm" name="op" value="end_sessions">Sign out everywhere</button>
         <?php if (Mfa::enabled($u)): ?><button class="btn btn-sm" name="op" value="mfa_reset">Reset two-step</button><?php endif; ?>
         <button class="btn btn-sm <?= $u['status'] === 'disabled' ? '' : 'btn-red' ?>" name="op" value="<?= $u['status'] === 'disabled' ? 'enable' : 'disable' ?>"><?= $u['status'] === 'disabled' ? 'Enable' : 'Disable' ?></button>
-        <select name="role" style="width:auto"><?php foreach (Auth::ROLES as $k => $l): ?><option value="<?= $k ?>" <?= $u['role'] === $k ? 'selected' : '' ?>><?= V::h($l) ?></option><?php endforeach; ?></select><button class="btn btn-sm" name="op" value="role">Change role</button></form>
+        <select name="role" style="width:auto" aria-label="New role"><?php foreach (Auth::ROLES as $k => $l): ?><option value="<?= $k ?>" <?= $u['role'] === $k ? 'selected' : '' ?>><?= V::h($l) ?></option><?php endforeach; ?></select><button class="btn btn-sm" name="op" value="role">Change role</button></form>
       <details style="margin-top:8px"><summary class="small">Edit details</summary><form method="post" style="margin-top:6px"><?= Csrf::field() ?><input type="hidden" name="op" value="edit_user"><input type="hidden" name="user" value="<?= (int) $u['id'] ?>"><?= $fieldsFor($u) ?><button class="btn btn-sm" style="margin-top:6px">Save details</button></form></details></div></details><?php else: ?><span class="tiny muted">your account</span><?php endif; ?></td></tr>
 <?php endforeach; ?></tbody></table></div></div></section>
 
@@ -523,8 +523,8 @@ if ($tab === 'health'):
 ?>
 <section class="card"><div class="card-h"><form class="row" method="get" style="width:100%"><input type="hidden" name="tab" value="audit">
   <input type="text" name="action" value="<?= V::h($f['action']) ?>" placeholder="Action prefix (e.g. spec.)" style="width:170px"><input type="text" name="actor" value="<?= V::h($f['actor']) ?>" placeholder="Actor" style="width:150px">
-  <select name="object" style="width:auto"><option value="">Any object</option><?php foreach ($objects as $o): ?><option translate="no" <?= $f['object'] === $o ? 'selected' : '' ?>><?= V::h($o) ?></option><?php endforeach; ?></select>
-  <input type="date" name="from" value="<?= V::h($f['from']) ?>" style="width:150px"><input type="date" name="to" value="<?= V::h($f['to']) ?>" style="width:150px"><button class="btn btn-sm">Filter</button>
+  <select name="object" style="width:auto" aria-label="Object"><option value="">Any object</option><?php foreach ($objects as $o): ?><option translate="no" <?= $f['object'] === $o ? 'selected' : '' ?>><?= V::h($o) ?></option><?php endforeach; ?></select>
+  <input type="date" name="from" value="<?= V::h($f['from']) ?>" style="width:150px" aria-label="From date"><input type="date" name="to" value="<?= V::h($f['to']) ?>" style="width:150px" aria-label="To date"><button class="btn btn-sm">Filter</button>
   <a class="btn btn-sm right" href="admin.php?tab=audit&export=csv">Export CSV</a></form></div>
   <div class="card-b tight"><div class="table-wrap"><table><thead><tr><th>#</th><th>When</th><th>Actor</th><th>Action</th><th>Summary</th><th>Change</th></tr></thead><tbody>
   <?php foreach ($rows as $r): ?><tr><td class="mono tiny"><?= (int) $r['id'] ?></td><td class="small nowrap"><?= V::h($r['occurred_at']) ?></td><td class="small"><?= V::h($r['actor_name']) ?><div class="tiny muted" translate="no"><?= V::h($r['actor_type']) ?><?= $r['actor_role'] ? ' · ' . V::h($r['actor_role']) : '' ?></div></td><td class="mono tiny" translate="no"><?= V::h($r['action']) ?><div class="muted"><?= V::h($r['object_type']) ?> <?= V::h($r['object_id']) ?></div></td>
@@ -642,7 +642,7 @@ if ($tab === 'health'):
 <aside class="stack">
   <section class="card"><div class="card-h"><h2>Why this exists</h2></div><div class="card-b small">People change jobs; access should not outlive the job. Every <?= (int) $prog['days'] ?> days an administrator other than the person concerned confirms who still needs access and whether the role is right. A role change makes the next review due at once. Nobody can review their own access, and every decision is kept in the activity log.</div></section>
   <section class="card"><div class="card-h"><h2>Remove someone's access</h2></div><div class="card-b small"><form method="post" data-confirm="Disable this account and sign it out everywhere?"><?= Csrf::field() ?><input type="hidden" name="op" value="review_remove">
-    <select name="user" required><option value="">Choose a person…</option><?php foreach ($rows as $r): if ((int) $r['id'] === $user['id']) { continue; } ?><option value="<?= (int) $r['id'] ?>"><?= V::h($r['full_name']) ?> (<?= V::h($r['username']) ?>)</option><?php endforeach; ?></select>
+    <select name="user" required aria-label="Person"><option value="">Choose a person…</option><?php foreach ($rows as $r): if ((int) $r['id'] === $user['id']) { continue; } ?><option value="<?= (int) $r['id'] ?>"><?= V::h($r['full_name']) ?> (<?= V::h($r['username']) ?>)</option><?php endforeach; ?></select>
     <input type="text" name="reason" placeholder="Reason (audited)" required style="margin-top:6px"><button class="btn btn-sm" style="margin-top:6px">Remove access</button></form></div></section>
   <section class="card"><div class="card-h"><h2>Recent decisions</h2></div><div class="card-b tight"><table><tbody><?php foreach ($recent as $d): ?><tr><td class="small"><?= V::h($d['username']) ?><div class="tiny muted"><?= V::h(V::ago($d['reviewed_at'])) ?> · <?= V::h($d['reviewer'] ?? '—') ?></div></td><td><?= V::pill($d['decision'] === 'confirmed' ? 'Confirmed' : 'Removed', $d['decision'] === 'confirmed' ? 'green' : 'red') ?></td></tr><?php endforeach; ?><?= $recent ? '' : '<tr><td class="muted small">No decisions yet.</td></tr>' ?></tbody></table></div></section>
 </aside></div>

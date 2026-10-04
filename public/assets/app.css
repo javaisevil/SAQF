@@ -1,10 +1,10 @@
 /* SAQF — institutional UI. No external fonts or CDNs (works on an isolated campus network). */
 :root{
-  --accent:#E87722; --accent-ink:#B4560F; --accent-soft:#FDF1E7;
-  --ink:#16181D; --ink-2:#3B4250; --muted:#6B7280; --faint:#9AA1AD;
+  --accent:#E87722; --accent-ink:#A34D0B; --accent-soft:#FDF1E7;
+  --ink:#16181D; --ink-2:#3B4250; --muted:#6B7280; --faint:#6B7280;
   --line:#E6E8EC; --line-2:#F0F2F5; --bg:#F6F7F9; --card:#FFFFFF;
   --side:#15171C; --side-ink:#C9CDD5; --side-on:#FFFFFF;
-  --green:#15803D; --green-bg:#E7F6EC; --red:#C0262D; --red-bg:#FDECEC; --amber:#B45309; --amber-bg:#FEF3E2;
+  --green:#126A33; --green-bg:#E7F6EC; --red:#C0262D; --red-bg:#FDECEC; --amber:#9A4708; --amber-bg:#FEF3E2;
   --blue:#1D4ED8; --blue-bg:#E8EEFD; --violet:#6D28D9; --violet-bg:#F1EAFE; --grey-bg:#EEF0F3;
   --radius:12px; --shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06);
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans Arabic",sans-serif;
@@ -26,7 +26,7 @@ h1,h2,h3,h4{margin:0;line-height:1.25;color:var(--ink)} h2{font-size:16px} h3{fo
 .nav a{display:flex;align-items:center;gap:10px;color:var(--side-ink);padding:9px 12px;border-radius:8px;font-size:13.5px}
 .nav a:hover{background:#1F2228;text-decoration:none;color:#fff} .nav a.on{background:#262A31;color:var(--side-on);box-shadow:inset 3px 0 0 var(--accent)}
 .side-foot{border-top:1px solid #23262D;padding:14px}
-.me{display:flex;gap:10px;align-items:center}.avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700}
+.me{display:flex;gap:10px;align-items:center}.avatar{width:32px;height:32px;border-radius:50%;background:var(--accent-ink);color:#fff;display:grid;place-items:center;font-weight:700}
 .me-name{color:#fff;font-size:13px;font-weight:600}.me-role{font-size:11.5px;color:#8B919C}
 .side-links{display:flex;justify-content:space-between;margin-top:10px;font-size:12px}.side-links a,.linkbtn{color:#AEB3BD;background:none;border:0;font:inherit;cursor:pointer;padding:0}
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
@@ -96,7 +96,7 @@ table.compact th,table.compact td{padding:8px 10px}table.compact th{letter-spaci
 /* buttons & forms */
 .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-weight:600;font-size:13px;cursor:pointer;text-decoration:none;line-height:1.2}
 .btn:hover{background:var(--bg);text-decoration:none}.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent-ink)}
+.btn-primary{background:var(--accent-ink);border-color:var(--accent-ink);color:#fff}.btn-primary:hover{background:#85400A;border-color:#85400A}
 .btn-dark{background:var(--ink);border-color:var(--ink);color:#fff}.btn-dark:hover{background:#000}
 .btn-green{background:var(--green);border-color:var(--green);color:#fff}.btn-red{background:#fff;border-color:#F1B9BC;color:var(--red)}
 .btn-sm{padding:5px 10px;font-size:12px;border-radius:7px}.btn-ghost{border-color:transparent;background:transparent}
@@ -208,6 +208,8 @@ details.more summary{cursor:pointer;color:var(--muted);font-size:12.5px;padding:
   .card-b,.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .card-b>table,.table-wrap>table{min-width:520px}
   .card-h{flex-wrap:wrap}
+  .grid>*{grid-column:auto!important}
+  .top{gap:8px;padding:10px 12px;flex-wrap:wrap}.top-title{min-width:0;flex:1}.top-title h1{font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.top-title .sub{display:none}.top .search{order:9;flex:1 0 100%;margin-left:0}
 }
 
 /* Guided tour (demo mode) */
@@ -313,7 +315,7 @@ kbd{display:inline-block;min-width:22px;text-align:center;padding:2px 6px;border
 .checkup-item{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--ink)}.checkup-item:hover{text-decoration:none;border-color:var(--faint)}
 .checkup-item strong{display:block;font-size:13px}.checkup-item .tiny{display:block;color:var(--muted)}
 .checkup-mark{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:700;flex:none;font-size:13px}
-.checkup-item.ok .checkup-mark{background:var(--green-bg);color:var(--green)}.checkup-item.warn{border-color:#F6DDB8;background:#FFFBF5}.checkup-item.warn .checkup-mark{background:var(--amber-bg);color:var(--amber)}.checkup-item.info .checkup-mark{background:var(--grey-bg);color:var(--muted)}
+.checkup-item.ok .checkup-mark{background:var(--green-bg);color:var(--green)}.checkup-item.warn{border-color:#F6DDB8;background:#FFFBF5}.checkup-item.warn .checkup-mark{background:var(--amber-bg);color:var(--amber)}.checkup-item.info .checkup-mark{background:var(--grey-bg);color:var(--ink-2)}
 .faq{border-bottom:1px solid var(--line-2);padding:10px 0}.faq summary{cursor:pointer;font-weight:600}.faq p{margin:8px 0}
 .plain-list{margin:0;padding-left:18px}.plain-list li{margin:6px 0}
 :focus-visible{outline:3px solid rgba(232,119,34,.45);outline-offset:2px}
@@ -346,3 +348,13 @@ kbd{display:inline-block;min-width:22px;text-align:center;padding:2px 6px;border
 .ev-row.ev-unsure { border-color: var(--amber); background: var(--amber-bg); }
 .ev-name { font-weight: 600; overflow-wrap: anywhere; }
 .ev-row select, .ev-row input[type="text"] { width: 100%; }
+
+/* Accessibility (WCAG 2.2 AA): links inside sentences are underlined (colour alone is not enough), touch targets are at
+   least 24px, the "no grades yet" bar text reads on its grey, and keyboard focus is always visible. */
+.alert a,.muted a,.tiny a,.small a,.foot a,p a,li a.inline{text-decoration:underline}
+a.btn,.nav a,.tabs a,.side-links a{text-decoration:none}
+td a{display:inline-block;min-height:24px;line-height:24px}
+.chip{min-height:24px;min-width:24px}
+.bar-empty span{color:var(--ink-2)}
+@media (max-width:800px){select,input:not([type=checkbox]):not([type=radio]),textarea{min-height:36px}.field select,.field input:not([type=checkbox]):not([type=radio]),.field textarea{width:100%;min-width:120px}}
+:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}

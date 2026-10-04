@@ -22,9 +22,9 @@ V::header('Quality policies', $user, ['subtitle' => $canEdit ? 'Configurable ins
   <?php foreach ($list as $p): ?>
   <tr><td style="width:40%"><strong><?= V::h($p['label']) ?></strong><div class="tiny muted"><?= V::h($p['help']) ?></div><div class="tiny mono muted" translate="no"><?= V::h($p['policy_key']) ?></div></td>
     <td><?php if ($canEdit): ?><form data-api="policy_set" class="row"><input type="hidden" name="key" value="<?= V::h($p['policy_key']) ?>">
-      <?php if ($p['value_type'] === 'bool'): ?><select name="v" style="width:auto"><option value="1" <?= $p['value'] === '1' ? 'selected' : '' ?>>On</option><option value="0" <?= $p['value'] === '0' ? 'selected' : '' ?>>Off</option></select>
-      <?php elseif ($p['value_type'] === 'enum'): ?><select name="v" style="width:auto"><?php foreach (explode(',', (string) $p['options']) as $opt): ?><option <?= $p['value'] === $opt ? 'selected' : '' ?>><?= V::h($opt) ?></option><?php endforeach; ?></select>
-      <?php else: ?><input type="text" name="v" value="<?= V::h($p['value']) ?>" style="width:110px"><?php endif; ?>
+      <?php if ($p['value_type'] === 'bool'): ?><select name="v" style="width:auto" aria-label="<?= V::h($p['label']) ?>"><option value="1" <?= $p['value'] === '1' ? 'selected' : '' ?>>On</option><option value="0" <?= $p['value'] === '0' ? 'selected' : '' ?>>Off</option></select>
+      <?php elseif ($p['value_type'] === 'enum'): ?><select name="v" style="width:auto" aria-label="<?= V::h($p['label']) ?>"><?php foreach (explode(',', (string) $p['options']) as $opt): ?><option <?= $p['value'] === $opt ? 'selected' : '' ?>><?= V::h($opt) ?></option><?php endforeach; ?></select>
+      <?php else: ?><input type="text" name="v" value="<?= V::h($p['value']) ?>" style="width:110px" aria-label="<?= V::h($p['label']) ?>"><?php endif; ?>
       <input type="text" name="reason" placeholder="Reason (audited)" style="width:220px"><button class="btn btn-sm" type="submit">Save</button></form>
     <?php else: ?><strong><?= V::h($p['value']) ?></strong><?php endif; ?></td>
     <td class="small muted" style="width:200px"><?= $p['updated_at'] ? 'Changed ' . V::h(V::date($p['updated_at'])) . ' by ' . V::h($p['full_name']) : 'Default' ?></td></tr>

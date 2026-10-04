@@ -60,7 +60,7 @@ if ($tab === 'overview'): ?>
     <a class="btn btn-sm" href="report.php?type=program&id=<?= (int) $p['id'] ?>">Program report</a></div></section>
   <?php foreach (['mission' => 'Program mission', 'goals' => 'Program goals'] as $k => $label): ?>
   <section class="card"><div class="card-h"><h2><?= $label ?></h2></div><div class="card-b small">
-    <?php if ($canManage): ?><form data-api="program_narrative"><input type="hidden" name="program" value="<?= (int) $p['id'] ?>"><input type="hidden" name="section" value="<?= $k ?>"><textarea name="content"><?= V::h($narr[$k] ?? '') ?></textarea><button class="btn btn-sm" type="submit" style="margin-top:6px">Save</button></form>
+    <?php if ($canManage): ?><form data-api="program_narrative"><input type="hidden" name="program" value="<?= (int) $p['id'] ?>"><input type="hidden" name="section" value="<?= $k ?>"><textarea name="content" aria-label="<?= V::h($label) ?>"><?= V::h($narr[$k] ?? '') ?></textarea><button class="btn btn-sm" type="submit" style="margin-top:6px">Save</button></form>
     <?php else: ?><p><?= isset($narr[$k]) ? nl2br(V::h($narr[$k])) : '<span class="muted">Not recorded.</span>' ?></p><?php endif; ?></div></section>
   <?php endforeach; ?>
 </aside></div>
