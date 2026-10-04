@@ -1,5 +1,5 @@
 # SAQF — PHP 8.3 + Apache. The web server serves ONLY public/; src/, data/, bin/ and database/ are never web-accessible.
-FROM php:8.3-apache
+FROM php:8.5-apache
 
 RUN docker-php-ext-install pdo_mysql \
     && a2enmod headers rewrite \
