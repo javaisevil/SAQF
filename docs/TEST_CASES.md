@@ -4,9 +4,9 @@ Each row is one thing SAQF does, how to see it yourself in the demo, and what yo
 
 **Start:** `docker compose up -d --build`, open http://localhost:8080. To start again from a clean story at any time: `docker compose exec app php bin/install.php --demo --fresh`.
 **Signing in:** use the one-click buttons on the sign-in page, or **Switch role** in the yellow demo bar. Every demo password is `Yamamah@2026`.
-**Run every automated test:** `docker compose exec app sh bin/test_all.sh` → *Total: 539 checks passed, 0 failed.*
+**Run every automated test:** `docker compose exec app sh bin/test_all.sh` → *Total: 650 checks passed, 0 failed.* (10 suites; it reinstalls the demo database named by `SAQF_DB_NAME` — never point it at real data.)
 
-Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.php`, **H** = `tests/http_smoke.php`, **S** = `tests/sso_test.php`, **F** = `tests/features_test.php`, **W** = `tests/wording_test.php`, **R** = `tests/readiness_test.php`, **G** = `tests/signin_test.php`.
+Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.php`, **H** = `tests/http_smoke.php`, **S** = `tests/sso_test.php`, **F** = `tests/features_test.php`, **W** = `tests/wording_test.php`, **R** = `tests/readiness_test.php`, **G** = `tests/signin_test.php`, **X** = `tests/hardening_test.php`, **C** = `tests/closeout_test.php`.
 
 ---
 
@@ -95,8 +95,8 @@ Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.
 | 7.10 | Virus scanning | (automated, with a stand-in ClamAV) | The EICAR test virus is refused and IT is alerted; if the scanner is down, uploads pause | F §3 |
 | 7.11 | Demo shortcuts do not exist in production | (automated, production mode) | One-click sign-in answers *Not found*; no demo hints | F §8 |
 | 7.12 | Single sign-on attacks refused | (automated) | Forged, expired, replayed and wrong-audience tokens refused | P §11, S |
-| 7.13 | Live security self-test | **Security center → Run security self-test** | "8 of 8 passed": weak passwords refused, forged request refused, audit log edit refused by the database, encryption tamper-proof, student identities one-way | R |
-| 7.14 | Security evidence report | **Security center → Security evidence report** | Printable page: controls, self-test, audit chain, how the system stays secure, fingerprint; generating it is entered in the activity log | R |
+| 7.13 | Security self-test | **Security center → Run security self-test** | "9 of 9 passed" (8 from the command line, which has no session): weak passwords refused, forged request refused, audit log edit refused by the database, encryption detects modification, student identities one-way, the gradebook reader keeps no student numbers. Labelled as a self-test, not a penetration test | R, X |
+| 7.14 | Security evidence report | **Security center → Security evidence report** | Printable self-assessment: what needs attention, every control with its recorded status (optional/not configured shown as such), the self-test, how this installation is set up (read from its configuration), what the report does not cover, fingerprint; generating it is entered in the activity log | R, X |
 | 7.15 | Access review | **System administration → Access review** | Three accounts due; tick and confirm; own row says another administrator reviews you; a role change makes the review due again; removing access disables and signs the person out | R |
 | 7.16 | Nightly proof and alerts | (automated) | The self-test runs nightly; a failure or an overdue review raises an IT alert (visible under IT alerts) | — |
 | 7.17 | Security checkup | **Account & security** | "Security checkup": two-step verification, recovery codes, e-mail, password age, failed attempts, each with a ✓ or ! | G §5 |
@@ -116,7 +116,7 @@ Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.
 | 8.5 | Encrypted backup and restore | `docker compose exec backup sh /usr/local/bin/saqf-backup` then `docker/restore.sh` | Encrypted files in `./backups`, restored database with an intact audit chain | CI (Docker job) |
 | 8.6 | HTTPS | `docker compose --profile https up -d`, open https://localhost | Secure cookie, HSTS, HTTP redirected to HTTPS | CI (Docker job) |
 | 8.7 | Maintenance mode | **System health → Maintenance mode → Turn on** | Everyone except IT sees a maintenance page | H |
-| 8.8 | Go-live status | **System administration → Go-live** | Each system shows Demo data or Live, what is missing and the next step; no secret values shown | R |
+| 8.8 | Go-live status | **System administration → Go-live** | Each system shows Demo data, Configured or Incomplete (never "Live" just because it is selected), what is missing and the next step; no secret values shown | R, X |
 | 8.9 | Catalogue check | **Go-live → Check the catalogue in use** | "Passed · 14 programs · 366 courses"; a note that four programs have no published outcomes | R |
 | 8.10 | A faulty export is refused | (automated) Registrar export with an unknown department and text credit hours | Listed in plain words; the sync refuses it as a whole, nothing changes, the run is recorded as failed | R |
 | 8.11 | Templates for IT | **Go-live → Templates for IT** | Catalogue ZIP, `terms.csv`, `assignments.csv`, gradebook example and a settings file download; the CSVs read back through the real connectors as the same terms and assignments | R |
@@ -133,12 +133,28 @@ Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.
 | 9.6 | Arabic search | Type ضمان جودة in the search box | SWE 401 is found | W §4 |
 | 9.7 | Names from the Registrar | (automated) | 366 course titles, programs, departments, program outcomes and plan groups arrive in Arabic with the catalogue; a person's correction is never overwritten | W §3 |
 
+## 10. Course file closeout and privacy (SAQF 2.5)
+
+| # | Feature | How to see it | What you should see | Test |
+|---|---|---|---|---|
+| 10.1 | Course file closeout | **SWE 401 → Course file closeout** (Dr. Omar) | "2 complete · 4 missing": each line with owner, what the records show and the next step; DEMO label; "Checklist: SAQF's default settings, not yet confirmed by Quality" | C |
+| 10.2 | The instructor's own words | **Course report → What the results mean**, write and save; back to Closeout | That line turns Complete and names who wrote it; SAQF never writes it | C |
+| 10.3 | Evidence reviewed by a person | As **Head of Department** on the same tab: *Return with note*, then *Accept the evidence*; add a file afterwards | Returned → missing with the note; accepted → complete with the reviewer's name; a new file makes the review due again. The instructor and section instructors cannot review (403) | C |
+| 10.4 | Quality sets the checklist | **Quality policies → Course file checklist** (Quality) | Switching an item off removes it; requiring rubrics makes missing rubrics appear; the Closeout tab then says Quality set the checklist; a Head of Department cannot change it | C |
+| 10.5 | Course file package | **Closeout → Download the course file package** | ZIP with Word report and specification, evidence index, grade provenance, checklist, README (DEMO, sealed or not, not an approval) and SHA256SUMS that verify; no evidence files, no student identities; download audited; another department's faculty get 403 | C |
+| 10.6 | Student numbers never stored | **SWE 401 → Results → Upload grades from a file** with a column of synthetic student numbers | Results imported; the numbers appear nowhere in the database or logs, only keyed pseudonyms | X |
+| 10.7 | Application key in production | `APP_ENV=production php bin/app_key.php status`; `/health.php` | "NOT READY" while the key is in the database or missing (503 when missing); never prints the key; the production installer refuses to start without `SAQF_APP_KEY` | X |
+| 10.8 | Plain http refused in production | (automated) | An http:// SIS, LMS, identity provider or webhook address is refused before connecting and named in the Security center | X |
+| 10.9 | Backups as recorded | **System health → Backups** | Healthy only for a recent, verified run that included the evidence (and, in production, encryption and a second copy); "a restore has not been tested from SAQF" | X |
+| 10.10 | Integration dry run | `php bin/dry_run.php sis <folder>` / `lms <folder>` on synthetic exports | Row counts, rejected and warned rows, matching and ignored gradebook columns; nothing written, no student number printed | X |
+
 ---
 
 ## Last full run
 
 ```
-SAQF test suites (PHP 8.3, MySQL 8.0)
+SAQF test suites (PHP 8.3.6, MySQL 8.0)
+
   ok   Syntax check of every PHP file
   ok   Automation scenarios (the quality loop end to end)           58 passed  0 failed
   ok   Connectors, semester cycle, accounts, e-mail, SSO tokens     96 passed  0 failed
@@ -148,8 +164,11 @@ SAQF test suites (PHP 8.3, MySQL 8.0)
   ok   Plain wording, whole numbers, Arabic course content          31 passed  0 failed
   ok   Go-live readiness, data pack, access review, security proof   58 passed  0 failed
   ok   Robot check, two-step codes, trusted browsers, session, help   50 passed  0 failed
+  ok   Privacy and security hardening (pseudonyms, key, https, backups)   72 passed  0 failed
+  ok   Course file closeout, evidence review, course file package   39 passed  0 failed
   ok   Database migrations are idempotent (upgrade path)
-Total: 539 checks passed, 0 failed.
+
+Total: 650 checks passed, 0 failed.
 ```
 
-The same suites pass inside the Docker image (Apache, PHP 8.3, MySQL 8.0), and GitHub runs them on every push, together with HTTPS, encrypted-backup and restore checks of the Docker stack.
+GitHub runs every suite on every push (PHP 8.3, MySQL 8.0), then starts the Docker stack and runs the HTTP suite inside it (Apache), with HTTPS, encrypted-backup and restore checks.

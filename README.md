@@ -4,12 +4,13 @@
 
 SAQF connects university academic data, learning outcomes, assessments, achievement, validation, improvement and reporting into one continuous system. It runs routine quality-assurance work in the background, so faculty, Heads of Department, Quality staff and deans spend their time on the decisions that need academic judgement.
 
-> **Status:** SAQF 2.4, ready to deploy. It began in the FARQ hackathon (Track 2: university administration and faculty operations) and now includes connectors for the university's SIS, LMS (Moodle, Blackboard), single sign-on and e-mail, courses with several sections, bulk import of existing specifications, course-file evidence with virus scanning, NCAAA-layout Word documents, a complete Arabic interface (course and program names, learning outcomes and assessments in Arabic too), two-step verification, built-in HTTPS, encrypted off-site backups and IT alerts, and, new in 2.3, a **Go-live** page (the demo data and file layouts are the templates IT replaces with the university's own; a faulty export is refused as a whole), a periodic **access review**, a **live security self-test** with a printable **security evidence report**, and a calendar file of each instructor's deadlines. 2.4 makes the sign-in that of a public system: a self-hosted **robot check**, a **two-step code for everyone** (by e-mail, or an authenticator app, required for administrators), **trusted browsers**, a last-sign-in notice, a **security checkup** and *This wasn't me* on the account page, a session-expiry warning, password show/strength/Caps Lock help, a help page and keyboard shortcuts. Every screen is written in plain language: results are whole numbers next to their goal, and each page starts with what needs the person. Eight automated test suites (539 checks) run on MySQL 8 and inside the Docker image on every change.
-> Out of the box it starts in **demo mode**: fictional people, teaching assignments and student results delivered through simulated SIS/LMS feeds. In **production mode** it runs on the university's own systems once IT provides access (see [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md)). It has not yet been piloted against YU's live systems.
-> Institutional data ships as a structured snapshot of Al Yamamah University's **public** study plans; the Registrar can replace it with its own export.
+> **Status: SAQF 2.5 — a Docker-deployable demo with an integration-ready handoff. Not yet a production system.** It began in the FARQ hackathon (Track 2: university administration and faculty operations). It runs end to end on **fictional people, simulated SIS/LMS feeds and synthetic pseudonymous results** over a snapshot of Al Yamamah University's *public* study plans, in English and Arabic. Connectors for SIS export files, a generic SIS REST API, Moodle, Blackboard, LMS export files, OpenID Connect sign-in and SMTP are implemented and **tested against local stand-in servers only**; nothing has been connected to YU's systems, and there is **no Edugate adapter** (the [integration contract](docs/INTEGRATIONS.md#edugate-and-lms-integration-contract-awaiting-university-it) is awaiting university IT). What separates this demo from a controlled pilot and from a live service is listed in [`docs/READINESS.md`](docs/READINESS.md).
+>
+> New in 2.5: student numbers are pseudonymised on **every** grade path (the manual gradebook upload used to store them), the application key must come from the environment in production, production refuses plain-http connectors, the backup and Security center pages report only what was recorded (no fixed claims about encryption, off-site copies or virus scanning), the self-test is labelled as a self-test, and a **Course file closeout** tab shows what is complete, missing or waiting for a person's review, with a Quality-configured checklist, human evidence review and an audited course file package with checksums. Ten automated test suites run on MySQL 8 on every change, and CI also checks the Docker stack, HTTPS, an encrypted backup and a restore.
 > SAQF *supports NCAAA-oriented academic quality workflows*. It is not a compliance certification.
 
-- **Presenting SAQF?** The 5-minute judges' script is [`docs/JUDGES_DEMO.md`](docs/JUDGES_DEMO.md); in the app, open **Guided tour** (`/tour.php`).
+- **Presenting SAQF?** The 5-minute judges' script, with the reset procedure and a fallback, is [`docs/JUDGES_DEMO.md`](docs/JUDGES_DEMO.md); in the app, open **Guided tour** (`/tour.php`).
+- **Is it ready?** [`docs/READINESS.md`](docs/READINESS.md): demo vs controlled pilot vs live system, and the open prerequisites.
 - **Connecting it to YU's systems?** *Administration → Go-live* shows each connection as demo or live, what is missing and the exact next step, and downloads the templates ([`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md#replacing-the-demo-data-with-the-universitys-own)).
 - **Checking every feature yourself?** [`docs/TEST_CASES.md`](docs/TEST_CASES.md) lists each one with the clicks and the expected result.
 - **New to the project?** The plain-language guide for the whole team is [`docs/TEAM_REPORT.md`](docs/TEAM_REPORT.md).
@@ -27,11 +28,12 @@ SAQF connects university academic data, learning outcomes, assessments, achievem
 | QA catching missing fields, wrong weight totals and unmapped CLOs | runs **35 deterministic rules** continuously while the record is built; obvious errors never reach a person |
 | One coordinator chasing every section's instructor | handles **multi-section courses**: the coordinator owns the shared specification, section instructors add results and evidence, and achievement is compared per section (a large gap is flagged) |
 | Re-typing the university's existing specifications | **imports** approved specifications from one CSV file; each course is checked completely before anything is written |
-| Collecting exam papers for accreditation at the last minute | **asks for the evidence** when results arrive, scans and stores it outside the web server, and lists it in the course report |
+| Collecting exam papers for accreditation at the last minute | **asks for the evidence** when results arrive, checks it by type and content (and virus-scans it when a scanner is configured), stores it outside the web server, and lists it in the course report |
 | Calculating CLO/PLO achievement by hand | imports grades as the LMS publishes them (Moodle, Blackboard or gradebook exports), then works out how many students met each course and program outcome with a configurable method, shown as "72% · goal 70%" |
 | Chasing people by e-mail | e-mails each person a digest of only the items that need them (they can opt out) |
 | Noticing missed targets at report time | flags the gap on import (first, recurring or worsening), drafts an improvement action with an owner and due date, and checks next term whether results went up |
-| Writing reports | generates them from the structured data, as pages and as **NCAAA-layout Word documents** (English or Arabic); each closed term is frozen into a hash-sealed snapshot |
+| Writing reports | generates them from the structured data, as pages and as **NCAAA-layout Word documents** (English or Arabic); each closed term is frozen into a hash-sealed snapshot (sealing records the content; it is not an approval) |
+| Chasing the course file at the end of term | shows a **Course file closeout** per course: complete, missing or waiting for a person's review, with owner and next step, against a checklist Quality sets; the Head of Department or Quality accepts the evidence, never SAQF; one audited ZIP with report, specification, evidence index and checksums |
 | QA inspecting every record | gives Quality a **Problems to sort out** list: only data conflicts, exceptions to policy, risks and sampled automatic approvals reach a person |
 | Translating course names and outcomes for the Arabic version | shows the **Arabic interface with Arabic data**: names arrive in Arabic from the Registrar catalogue, instructors can type the Arabic of an outcome as they write it, and Quality fills any gap on the *Arabic wording* page (one by one or as a spreadsheet); the Arabic Word documents use the same wording |
 
@@ -55,7 +57,7 @@ SAQF connects university academic data, learning outcomes, assessments, achievem
                                     policies, e-mail, migrations, Arabic UI   src/Web/I18n.php
 ```
 
-There is no framework and no third-party library: plain **PHP 8.1+** with PDO, **MySQL 8**, server-rendered pages and about 200 lines of vanilla JavaScript (no inline scripts, so a strict Content-Security-Policy applies). Word files, QR codes, ZIP packaging and authenticator codes are generated in plain PHP. The goal is that any university web team can host and maintain it. More detail: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+There is no framework and no third-party library: plain **PHP 8.1+** with PDO, **MySQL 8**, server-rendered pages and about 390 lines of vanilla JavaScript (no inline scripts, so a strict Content-Security-Policy applies). The one-page summary of what is used, what is optional and what is planned is [`TECH_STACK.md`](TECH_STACK.md). Word files, QR codes, ZIP packaging and authenticator codes are generated in plain PHP. The goal is that any university web team can host and maintain it. More detail: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Requirements
 
@@ -77,7 +79,8 @@ docker compose up --build     # first start installs the schema and the demo sce
 
 ```bash
 cp .env.example .env
-# set APP_ENV=production, SAQF_DEMO=false, SAQF_AUTO_INSTALL=production, strong passwords,
+php bin/app_key.php generate  # → SAQF_APP_KEY; keep it in the password vault (the installer refuses to start without it)
+# set APP_ENV=production, SAQF_DEMO=false, SAQF_AUTO_INSTALL=production, SAQF_APP_KEY, strong passwords,
 # SAQF_DOMAIN and SAQF_BASE_URL=https://…, SAQF_PORT=127.0.0.1:8080, SAQF_BACKUP_PASSPHRASE,
 # SAQF_BACKUP_OFFSITE_PATH, and the SIS / LMS / SSO / e-mail settings (docs/INTEGRATIONS.md)
 docker compose --profile https up -d --build                 # add --profile antivirus for ClamAV
@@ -87,8 +90,10 @@ docker compose logs app | grep -A2 "Administrator account"   # one-time admin pa
 The `https` profile adds a Caddy proxy that obtains and renews the certificate for `SAQF_DOMAIN`
 (or use the university's certificate or load balancer). The stack runs the scheduler, applies
 database migrations on every start, answers `/health.php`, and the `backup` service writes a
-verified, encrypted backup of the database and the evidence files every night, copies it off the
-server and reports its status to SAQF. Sign in as `admin` (you will set up two-step verification
+verified backup of the database and the evidence files every night (encrypted when
+`SAQF_BACKUP_PASSPHRASE` is set, copied to `SAQF_BACKUP_OFFSITE_PATH` when set) and reports to SAQF
+exactly what it did. These are the *production steps*; they are not yet a production deployment
+([`docs/READINESS.md`](docs/READINESS.md)). Sign in as `admin` (you will set up two-step verification
 first), change the password, open *Administration → Security center* and *University systems → Test
 connections*, then add or import people under *Users & access* (or let SSO and the SIS feed
 provision them). The full go-live checklist is in [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
@@ -143,30 +148,39 @@ sh bin/test_all.sh                          # every suite on a fresh demo databa
 docker compose exec app sh bin/test_all.sh  # the same inside the Docker image
 ```
 
-| Suite | Checks | What it proves |
+| Suite | Checks | What it shows |
 |---|---|---|
 | `tests/automation_test.php` | 58 | the quality loop end to end: event pipeline, rollover, gaps, effectiveness, impact analysis, overrides, audit tamper detection |
 | `tests/production_test.php` | 96 | SIS/LMS connectors against stand-in Moodle, Blackboard and SIS API, export folders, automatic term start, accounts, SMTP, password reset, SSO token validation |
-| `tests/http_smoke.php` | 118 | every page as every role, cross-role and cross-scope denials, section-instructor limits, CSRF, lockout, error log, maintenance mode |
-| `tests/sso_test.php` | 29 | university sign-in end to end, including replayed, forged and wrong-audience tokens, and the administrator's two-step sign-in |
-| `tests/features_test.php` | 91 | sections, specification import, evidence (content checks, stand-in ClamAV, fail-closed), Word exports, TOTP/QR/recovery codes, password policy, sessions, step-up re-authentication, IP rules, trusted proxies, CSP, rate limits, IT alerts with a stand-in webhook, backup monitoring, Arabic interface, demo shortcuts refused in production |
-| `tests/wording_test.php` | 31 | plain wording (whole-number results, course facts in sentences, no jargon in "What needs you"), Arabic names from the Registrar catalogue, a person's correction surviving a sync, Arabic course content, the instructor's Arabic wording of an outcome, Arabic search, the *Arabic wording* page and spreadsheet (and who may use it), the Arabic Word report |
+| `tests/http_smoke.php` | 126 | every page as every role, cross-role and cross-scope denials, section-instructor limits, CSRF, lockout, error log, maintenance mode |
+| `tests/sso_test.php` | 29 | university sign-in end to end against a stand-in provider, including replayed, forged and wrong-audience tokens, and the administrator's two-step sign-in |
+| `tests/features_test.php` | 91 | sections, specification import, evidence (content checks, stand-in ClamAV, fail-closed), Word exports, TOTP/QR/recovery codes, password policy, sessions, step-up re-authentication, IP rules, trusted proxies, CSP, rate limits, IT alerts, backup monitoring, Arabic interface, demo shortcuts refused in production |
+| `tests/wording_test.php` | 31 | plain wording, Arabic names from the catalogue, Arabic course content and search, the *Arabic wording* page, the Arabic Word report |
+| `tests/readiness_test.php` | 58 | Go-live status, the data pack and templates, access review, the security self-test and evidence report, the faculty calendar file |
+| `tests/signin_test.php` | 50 | robot check, two-step codes by e-mail and app, trusted browsers, session warning, help and keyboard shortcuts |
+| `tests/hardening_test.php` | 72 | student numbers never stored or logged on any gradebook path, production application-key rules, https-only connectors in production, backup status from recorded runs (real `docker/backup.sh` runs when mysqldump is present), the SSO MFA claim, factual Security center and report, read-only integration dry run |
+| `tests/closeout_test.php` | 39 | the course file closeout from records, human-only items, evidence review by a reviewer, Quality-only checklist settings, the course file package (checksums, audit, authorisation), Arabic and narrow screens |
+
+The counts are from the last full run (`sh bin/test_all.sh` on PHP 8.3 / MySQL 8.0, 4 Oct 2026: 650 checks, 0 failed); the script prints the current numbers.
 
 Each suite reinstalls the demo first; run `php bin/install.php --demo --fresh` afterwards to reset the story. The stand-in systems live in `tests/mock/`; nothing leaves the machine. CI (`.github/workflows/ci.yml`) runs every suite on MySQL 8.0, then starts the Docker stack with the HTTPS proxy, runs the HTTP suite against Apache, checks HTTPS, writes an encrypted backup and restores it. Plain-language test cases: [`docs/TEST_CASES.md`](docs/TEST_CASES.md).
 
 ## Production notes (summary)
 
 - `APP_ENV=production`, `APP_DEBUG=false`, HTTPS (the `https` compose profile, or the university's proxy listed in `SAQF_TRUSTED_PROXIES`), `SAQF_BASE_URL` set. Demo mode, its one-click sign-in and `--fresh` are disabled in production.
-- Security: two-step verification is required for administrators (policy `auth.mfa_required`), administrators can be limited to campus networks (`SAQF_ADMIN_ALLOWED_IPS`), uploads can be virus-scanned (`SAQF_CLAMAV_HOST`), the Security center shows every control's live status, an administrator other than the person concerned confirms everyone's access every 90 days (*Access review*), and **Run security self-test** tries each protection for real (weak passwords, forged requests, editing the audit log, encryption, pseudonymised student identities). *Security evidence report* prints all of it with a fingerprint that is also entered in the audit log.
+- Security: two-step verification for password sign-in (policy `auth.mfa_required`; for university SSO sign-in MFA is the identity provider's policy, which IT must confirm — SAQF can additionally refuse ID tokens that do not report it, `SAQF_OIDC_REQUIRE_MFA`), administrators can be limited to campus networks (`SAQF_ADMIN_ALLOWED_IPS`), uploads are virus-scanned only if a scanner is configured (`SAQF_CLAMAV_HOST`), production refuses plain-http connectors and a missing application key, the Security center shows each control's recorded status (in place, needs attention, or optional/not configured), an administrator other than the person concerned confirms everyone's access every 90 days (*Access review*), and **Run security self-test** exercises some protections on the installation. The self-test is a self-check, **not a penetration test**; the *Security evidence report* is a self-assessment, not a certification, and lists what it does not cover.
 - `php bin/install.php` (without `--demo`) creates the schema, syncs the catalogue and the SIS calendar, and prints a one-time administrator password. `php bin/migrate.php` applies upgrades (automatic in Docker).
 - Scheduler: `*/5 * * * * php bin/tick.php` (built into the Docker image). Nightly: `php bin/verify_audit.php` (exit code 2 = tampering).
-- Backups: the compose `backup` service (database + evidence files, verified, encrypted with `SAQF_BACKUP_PASSPHRASE`, copied to `SAQF_BACKUP_OFFSITE_PATH`), or `docker/backup.sh` from cron. Restore with `docker/restore.sh`; the audit chain is verified afterwards.
+- Application key: `SAQF_APP_KEY` from the environment in production, backed up separately from the database; rotation is not supported in place (`bin/app_key.php`, [`docs/OPERATIONS.md`](docs/OPERATIONS.md#application-key-saqf_app_key)).
+- Backups: the compose `backup` service (database + evidence files, each read back to verify; encrypted only with `SAQF_BACKUP_PASSPHRASE`; a second copy only with `SAQF_BACKUP_OFFSITE_PATH`), or `docker/backup.sh` from cron. A failed evidence archive fails the run. Restore with `docker/restore.sh`; the audit chain is verified afterwards. A restore drill on the university's infrastructure is still to be done and recorded.
 - Monitoring: `GET /health.php` (200 / 503), plus **IT alerts** (failing connectors, stalled scheduler, missing backups, broken audit chain, mail failures, blocked malware, password guessing) in SAQF, by e-mail and to a Teams/Slack webhook (`SAQF_ALERT_WEBHOOK`).
 - University connections, SSO and e-mail: [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md). Operations runbook (lockouts, error references, maintenance mode, upgrades, incidents, go-live checklist): [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
 ## Before go-live and known limits
 
-- **University access is needed.** The connectors are built and tested against stand-ins; YU IT must provide the SIS export or API, an LMS token, an identity-provider app registration and a mail account (all configuration, no code).
+- **University access is needed.** The connectors are built and tested against stand-ins only. YU IT must provide the approved Edugate export or API (an Edugate-specific adapter may be needed once its API is documented), an LMS service token, an identity-provider app registration with its MFA policy confirmed, and a mail account. Run `php bin/dry_run.php` on an anonymised staging sample first ([integration contract](docs/INTEGRATIONS.md#edugate-and-lms-integration-contract-awaiting-university-it)).
+- **Demo data is fictional.** Demo people, teaching assignments and student results are fictional or synthetic and shown with a DEMO label; the YU catalogue snapshot is public information transcribed by the project, not validated by the Registrar (`data/yu/SOURCES.md`).
+- **Human judgement stays human.** SAQF never writes the reading of results, recommendations or improvement plans, never accepts evidence, and never approves anything by itself; the course file checklist is SAQF's default until Quality confirms it.
 - **Policies need approval.** The achievement method (threshold 70%, default target 70%) and other thresholds are **configurable defaults, not YU-approved methodology**. The Deanship of Quality must confirm them under *Quality policies*.
 - **Program outcomes.** SWE PLOs are the ABET CAC student outcomes YU publishes. CNE and IE use ABET EAC general outcomes as placeholders. Business programs, MBA and MCS use the PLOs on their YU pages. Architecture, EMBA, LLB and LLM have no published PLOs, so SAQF flags them until Heads of Department enter them (they can, in SAQF).
 - **Sign-in** uses OpenID Connect (Microsoft Entra ID / 365, Google, Keycloak, ADFS 2019+, Okta). A SAML-only identity provider needs an OIDC bridge.
@@ -195,9 +209,9 @@ database/    schema.sql, migrations/, audit_guard.sql
 data/yu/     YU institutional snapshot (from public study-plan PDFs) + SOURCES.md
 data/demo/   simulated SIS/LMS feeds for the demo scenario
 storage/     inbox/ for SIS and LMS export files, evidence/ (uploaded course-file evidence; runtime, not committed)
-bin/         install, migrate, tick (scheduler), verify_audit, pack (check/export the data pack), wait_for_db, build_demo_data, test_all.sh, i18n_coverage
-tests/       automation_test, production_test, http_smoke, sso_test, features_test, wording_test, readiness_test, signin_test, mock/ (stand-in systems)
-docs/        JUDGES_DEMO.md, TEST_CASES.md, TEAM_REPORT.md, ARCHITECTURE.md, INTEGRATIONS.md, OPERATIONS.md, AUDIT_BEFORE.md, demo/
+bin/         install, migrate, tick (scheduler), verify_audit, pack (check/export the data pack), dry_run (read-only preview of SIS/LMS exports), app_key (application key status/migration), wait_for_db, build_demo_data, test_all.sh, i18n_coverage
+tests/       automation_test, production_test, http_smoke, sso_test, features_test, wording_test, readiness_test, signin_test, hardening_test, closeout_test, mock/ (stand-in systems)
+docs/        READINESS.md, JUDGES_DEMO.md, TEST_CASES.md, TEAM_REPORT.md, ARCHITECTURE.md, INTEGRATIONS.md, OPERATIONS.md, AUDIT_BEFORE.md, demo/
 docker/      Apache/PHP hardening, entrypoint, backup and restore scripts, Caddyfile (HTTPS)
 ```
 

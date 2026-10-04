@@ -56,4 +56,8 @@ return [
     'Self-test: SAQF exercising its own protections' => 'الاختبار الذاتي: صقف يجرّب وسائل حمايته',
     'Configured' => 'مُعدّ',
     'Incomplete' => 'غير مكتمل',
+
+    // Guided tour (2.5 wording)
+    'Review the SWE 401 course file' => 'مراجعة ملف مقرر SWE 401',
+    'University systems → Publish now: the LMS releases SWE 302 midterm grades and SAQF raises an early warning by itself. Publish assignment: the SIS gives a course to a brand-new instructor; SAQF creates the account and the course record. The Security center lists every control with its recorded status, including what is not configured in this demo; Run security self-test exercises some protections (a self-check, not a penetration test), and the printable security evidence report is a self-assessment. Access review shows who still needs which access. Go-live shows each connection as demo data, with the templates IT replaces with the university’s own data.' => 'أنظمة الجامعة ← انشر الآن: يُصدر نظام إدارة التعلم درجات منتصف الفصل لمقرر SWE 302 فيرفع صقف إنذاراً مبكراً من تلقاء نفسه. انشر التكليف: يُسند نظام معلومات الطلاب مقرراً إلى عضو هيئة تدريس جديد، فينشئ صقف الحساب وسجل المقرر. يعرض مركز الأمان كل ضابط بحالته المسجّلة، بما في ذلك ما لم يُعدّ في هذا العرض؛ ويجرّب الاختبار الذاتي للأمان بعض وسائل الحماية (فحص ذاتي وليس اختبار اختراق)، وتقرير شواهد الأمان القابل للطباعة تقييم ذاتي. تُظهر مراجعة الصلاحيات من ما زال يحتاج إلى أي صلاحية. وتُظهر صفحة الانتقال للتشغيل كل اتصال على أنه بيانات عرض، مع القوالب التي يستبدلها قسم تقنية المعلومات ببيانات الجامعة.',
 ];

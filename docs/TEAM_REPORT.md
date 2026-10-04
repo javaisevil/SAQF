@@ -19,7 +19,8 @@
 7. Everything is **recorded** in a tamper-evident audit log, and reports are **generated** from the data rather than written — also as Word documents in the NCAAA layout, in English or Arabic.
 8. It works the way a university really works: **courses with several sections**, **existing specifications imported** in one file, **exam papers and samples collected** when results arrive, and a **complete Arabic interface** — course names, learning outcomes and assessments appear in Arabic too.
 9. Every screen speaks **plain language**: results are whole numbers next to their goal ("72% · goal 70%"), each page starts with *What needs you*, course facts are sentences ("3 credit hours (about 45 hours of class time)"), and codes such as rule names or file fingerprints are replaced by words or a "✓ Verified" mark.
-10. It is **ready to run for real**: university sign-in, two-step verification, HTTPS, encrypted off-site backups that are tested by restoring them, and alerts to IT when something breaks.
+10. It is **built to be deployed** (a Docker-deployable demo today, not yet a live service): university sign-in, two-step verification, HTTPS, verified backups that can be encrypted and copied to a second location, and alerts to IT when something breaks. What is still needed before a pilot is in [`READINESS.md`](READINESS.md).
+11. **2.5 hardening:** student numbers are pseudonymised on every grade path, the application key comes from the university's vault in production, production refuses plain-http connections, and the security pages report only what was recorded. A **Course file closeout** tab shows each course's complete, missing and needs-review items, with human evidence review and an audited course file package.
 
 Our rule for every screen was: *if the university already knows it, nobody types it; if software can check it, nobody checks it by hand; if it can be calculated, nobody calculates it.*
 
@@ -46,7 +47,7 @@ Our rule for every screen was: *if the university already knows it, nobody types
 | IT / maintenance | None | Admin console: Security center (22 controls with live status), health, IT alerts, users, sessions and lockouts, security events, audit search and verification, error log with reference codes, maintenance mode, integration monitor |
 | Several sections of a course | Not supported | One coordinator owns the specification; each section's instructor adds results and evidence; sections are compared and a large gap is flagged |
 | Existing specifications | Typed in again | Imported from one CSV file, each course checked before anything is written |
-| Exam papers and samples (evidence) | Collected by hand before accreditation visits | Requested automatically when results arrive, virus-scanned, stored securely, listed in the course report |
+| Exam papers and samples (evidence) | Collected by hand before accreditation visits | Requested automatically when results arrive, checked by type and content (virus-scanned when a scanner is configured), stored securely, listed in the course report, accepted by the Head of Department or Quality |
 | Word documents for NCAAA | None | Course specification and course report generated as Word files in the NCAAA layout, English or Arabic |
 | Language | English only | English and Arabic (right to left), remembered per person; in Arabic, course names, learning outcomes and assessments are Arabic too |
 | Wording | Codes and decimals ("SO2 69.3", "0.11 return rounds", "sha256 …") | Plain sentences and whole numbers next to their goal ("SO2 69%", "72% · goal 70%", "✓ Verified") |
@@ -131,9 +132,9 @@ The cast is small on purpose: one person per role plus two colleagues, eight in 
 | **JSON** | `data/yu/` (YU study plans), `data/demo/` (simulated SIS/LMS feeds) | A simple, readable format for the data that would come from university systems |
 | **Python** | `tools/build_yu_snapshot.py` (development only) | Used to turn the YU study-plan PDFs into structured JSON. Not needed to run SAQF |
 | **Docker + Apache** | `Dockerfile`, `docker-compose.yml`, `docker/` | One command starts the app and database, set up the way a server would run it |
-| **Shell script** | `docker/entrypoint.sh`, `docker/backup.sh`, `docker/restore.sh`, `bin/test_all.sh` | Container start-up; encrypted, verified, off-site backups and the restore; running every test with one command |
+| **Shell script** | `docker/entrypoint.sh`, `docker/backup.sh`, `docker/restore.sh`, `bin/test_all.sh` | Container start-up; verified backups (encrypted and copied to a second location when configured) and the restore; running every test with one command |
 | **Caddy** (web server) | `docker/Caddyfile`, compose profile `https` | Gives SAQF HTTPS with automatic certificates in one setting |
-| **ClamAV** (antivirus, optional) | compose profile `antivirus` | Scans every uploaded evidence file |
+| **ClamAV** (antivirus, optional) | compose profile `antivirus` | Scans every uploaded evidence file when configured (`SAQF_CLAMAV_HOST`); not configured in the demo |
 | **OpenSSL** | backups | AES-256 encryption of backup files |
 
 **APIs**
@@ -190,7 +191,7 @@ We went through the public study-plan PDFs on yu.edu.sa (sources listed in `data
 - **Backups** are encrypted, copied to a second location, read back to prove they work, and IT is alerted if one is missing. CI restores one on every change.
 - Other protections: CSRF tokens, prepared SQL statements, a strict Content-Security-Policy (no scripts inside pages at all), and demo features automatically switched off in production.
 - **Access review:** every 90 days a second administrator confirms (or removes) each person's access; nobody reviews their own, a role change makes the review due at once, and IT is alerted when it is overdue.
-- **Proof, not promises:** *Run security self-test* tries each protection for real on the running system (weak passwords, forged requests, an attempt to edit the audit log, encryption, student identities) and runs again every night; *Security evidence report* prints the controls, the test results and the audit-chain check with a fingerprint that is also entered in the audit log.
+- **Status, not promises:** the Security center shows each control's recorded status, including what is not configured. *Run security self-test* exercises some protections on the running system (weak passwords, forged requests, an attempt to edit the audit log, encryption, student identities) and runs again every night; it is a self-check, not a penetration test. *Security evidence report* is a self-assessment with a fingerprint that is also entered in the audit log, and it lists what it does not cover.
 - The **Security center** shows every one of these controls with its live status.
 - Step-by-step guide for IT: `docs/OPERATIONS.md`.
 
@@ -224,7 +225,7 @@ Our current 2-minute video script compared with what exists now:
 |---|---|
 | Idea & evolution (41%) | Clear evolution from a digital form (AQMS) to automating the quality cycle (SAQF). Before/after documented in `docs/AUDIT_BEFORE.md`. Differentiation: exception-based QA and the change-based workflow, not a file repository |
 | Solution & prototype (27%) | A complete, deployable solution across 6 roles, in English and Arabic, shown in 5 minutes through a guided tour (`docs/JUDGES_DEMO.md`). Event-driven automation is shown live through the simulator |
-| Feasibility & execution (17%) | Standard PHP/MySQL that any university can host. Working connectors for the SIS, Moodle/Blackboard, university SSO and e-mail. Docker stack with HTTPS, encrypted off-site backups with a tested restore, health checks and IT alerts; two-step verification and a Security center; eight automated test suites (539 checks) in CI; database upgrades; an operations runbook and an IT integration guide. Next step: pilot with one department |
+| Feasibility & execution (17%) | Standard PHP/MySQL that any university can host. Connectors for SIS files, a generic SIS API, Moodle/Blackboard, university SSO and e-mail, tested against stand-in servers (no Edugate adapter; not connected to YU's systems). Docker stack with HTTPS, verified backups (encryption and second copy when configured; the scripts' restore is exercised in CI on a demo stack), health checks and IT alerts; two-step verification and a Security center that reports recorded status; ten automated test suites (650 checks) in CI; database upgrades; an operations runbook, an IT integration guide and an integration contract awaiting university IT. Not yet connected to YU's systems. Next step: a controlled pilot with one department ([`READINESS.md`](READINESS.md)) |
 | Impact & sustainability (10%) | Factual automation counts: in the demo scenario SAQF populated 5,991 fields, ran 7,948 checks, inherited 308 records, made 152 calculations and auto-cleared 139 issues, while only 12 issues ever needed a person above faculty level. Policies are configurable, so other universities could adopt it |
 | Presentation (5%) | The 5-minute script and Q&A sheet (`docs/JUDGES_DEMO.md`), the guided tour in the app, a plain test-case list (`docs/TEST_CASES.md`), screenshots in `docs/screenshots/` and an updated video plan (section 8) |
 
@@ -242,13 +243,13 @@ The full script with timings, what to say, what to highlight and a Q&A sheet is 
 4. **Head of Department** (2:15): only what needs a decision.
 5. **Quality** (2:45): allow the CIS 491 exception with a reason; *Import specifications*; *Arabic wording*.
 6. **IT** (3:30): *Publish now* (grades → early warning), *Publish assignment* (new instructor → account + workspace), *Security center*.
-7. **Vice President** (4:30): the whole university. Close with "not a prototype: 539 automated checks, HTTPS, encrypted backups, SSO, two-step verification, Arabic throughout".
+7. **Vice President** (4:30): the whole university. Close with the honest status: a tested, Docker-deployable demo on fictional data, ready to be connected once IT provides access (the 2.5 script in [`JUDGES_DEMO.md`](JUDGES_DEMO.md) is the current one).
 
 ---
 
 ## 11. What was tested
 
-Everything runs with one command: `sh bin/test_all.sh` (or `docker compose exec app sh bin/test_all.sh`) — **539 checks, 0 failures**. The plain-language list of what each feature does and how to see it is [`TEST_CASES.md`](TEST_CASES.md).
+Everything runs with one command: `sh bin/test_all.sh` (or `docker compose exec app sh bin/test_all.sh`) — **650 checks in 10 suites, 0 failures** on the last run (4 Oct 2026, MySQL 8.0, PHP 8.3). The plain-language list of what each feature does and how to see it is [`TEST_CASES.md`](TEST_CASES.md).
 
 - **58 automation scenario checks** (`tests/automation_test.php`), including: assignment creates a workspace, editing an outcome re-validates everything, grades trigger achievement, a missed target triggers a finding and a draft action, recurring gaps escalate, the semester rollover inherits structure, improvement effectiveness is evaluated, a PLO change shows its impact, the override lifecycle works, data conflicts are resolved, and a forged audit entry is detected.
 - **118 page and security checks** (`tests/http_smoke.php`), including: every page for every role, plus over 20 deliberate break-in attempts (professor opening another professor's course, a section instructor editing the coordinator's specification, a HoD from another department, faculty calling QA actions, missing CSRF token, anonymous access). Also account lockout, error-log lookup, audit verification from the console, and maintenance mode.

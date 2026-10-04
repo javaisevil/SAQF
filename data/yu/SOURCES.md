@@ -2,7 +2,9 @@
 
 SAQF's institutional data (`data/yu/`) is a **structured snapshot transcribed from public study-plan PDFs and program pages on [yu.edu.sa](https://yu.edu.sa/)**. It was captured on 1 Oct 2026 and contains no private university data.
 
-In SAQF it plays the role of the Registrar / academic-catalogue feed. It is read by `SeededInstitutionSource` (`src/Integration/SeededSources.php`). In production that class is replaced by a live adapter, and everything else stays the same.
+In SAQF it plays the role of the Registrar / academic-catalogue feed. It is read by `CatalogFileSource` (`src/Integration/SeededSources.php`), the same class that reads a Registrar export placed in `storage/inbox/catalog/` or `SAQF_INSTITUTION_DIR`. For go-live the Registrar replaces this snapshot with its own export in the same layout (checked first with `php bin/pack.php validate`); no live Registrar connection exists today.
+
+**Status of this data:** public information only, transcribed by the project team; **not validated by the Registrar or the Deanship of Quality**. Program outcomes marked as placeholders below are provisional and must be replaced by the program-approved PLOs. Demo people, teaching assignments and student results (`data/demo/`) are fictional or synthetic and are not part of this snapshot.
 
 | Code | Program | Level | Published credits | Plan version | Source PDF | PLOs in snapshot (source) |
 |---|---|---|---|---|---|---|

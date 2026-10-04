@@ -4,6 +4,26 @@ For university IT. SAQF reads from four systems and writes to none of them. Each
 chosen with settings (environment variables, or `config.local.php` on shared hosting), tested from
 *Administration → University systems → Test connections*, and then run automatically by the scheduler.
 
+> **Status (SAQF 2.5).** No connector has been run against Al Yamamah University's systems. The
+> connectors below are implemented and tested against **local stand-in servers** (`tests/mock/`: a
+> Moodle, a Blackboard Learn, a generic SIS REST API, an OpenID Connect provider, SMTP, ClamAV and a
+> webhook) and against export files in the documented layouts. There is **no Edugate adapter**:
+> Edugate's API, export formats, scopes and version are not known to the project, and nothing has been
+> guessed. Connecting Edugate and the university's LMS needs the agreement described in
+> [the integration contract](#edugate-and-lms-integration-contract-awaiting-university-it) and IT sign-off.
+> In the demo every feed is simulated and every record is fictional or synthetic.
+
+| Supported today | How it was verified |
+|---|---|
+| Registrar catalogue files (JSON layout of `data/yu`) | bundled YU public snapshot (captured 1 Oct 2026, see `data/yu/SOURCES.md`); `bin/pack.php validate` |
+| SIS export folder (`terms.csv`, `assignments.csv`) | `tests/production_test.php`, `tests/readiness_test.php`, `bin/dry_run.php sis` |
+| Generic SIS REST API (`GET /terms`, `GET /terms/{code}/assignments`, bearer token) | stand-in server `tests/mock/sis.php` — a contract SAQF defines, not an Edugate API |
+| Moodle web services (REST) | stand-in server `tests/mock/moodle.php` |
+| Blackboard Learn REST (OAuth client credentials) | stand-in server `tests/mock/blackboard.php` |
+| LMS gradebook export folder and manual gradebook upload (CSV) | `tests/production_test.php`, `tests/hardening_test.php`, `bin/dry_run.php lms` |
+| OpenID Connect sign-in | stand-in provider `tests/mock/idp.php` |
+| SMTP e-mail, ClamAV, Teams/Slack webhook | stand-ins in `tests/mock/` |
+
 | System | What SAQF reads | Connectors | Setting |
 |---|---|---|---|
 | Registrar / academic catalogue | colleges, departments, programs, study plans, courses, prerequisites, PLOs | catalogue files (JSON) | `SAQF_INSTITUTION_DIR` |
@@ -20,8 +40,10 @@ upload gradebook CSVs in their course workspace.
 
 Everything shown in the demo is data in a fixed layout, not code. To go live, replace each demo input with the
 university's own in the **same layout**; no program change is needed. *Administration → Go-live* is the
-control panel for this: it shows each connection as **Demo data** or **Live**, lists the settings still
-missing (never their values) and the exact next step, and downloads the templates below.
+control panel for this: it shows each connection as **Demo data**, **Configured** (settings present) or
+**Incomplete** (settings missing), lists the settings still missing (never their values) and the exact
+next step, and downloads the templates below. "Configured" is not "working": only a successful
+*Test connections* shows that SAQF can reach the system.
 
 | Demo input | Template (Go-live → Templates for IT) | Replace with | Where it goes |
 |---|---|---|---|
@@ -133,8 +155,16 @@ Fields are the same as the CSV columns above. Either response may wrap the list 
 SAQF imports a gradebook column only when its name matches an assessment in the course's approved
 specification (case-insensitive) — for example *Midterm exam*. Other columns (attendance, bonus,
 totals) are ignored and noted in the audit log. Scores are converted to percentages. Student
-identities are replaced by keyed pseudonyms before anything is stored (`SAQF_APP_KEY` or a key
-generated at installation), so SAQF never holds student numbers or names.
+identities from **every** grade source (Moodle, Blackboard, the export folder and the instructor's
+manual upload) are replaced by keyed pseudonyms while the data is read, before anything is stored or
+logged, so SAQF never holds student numbers or names; a batch keyed by digit-only identifiers is
+refused. The key is `SAQF_APP_KEY` (required in production; a development key is generated in demo
+mode — see [OPERATIONS.md](OPERATIONS.md#application-key-saqf_app_key)). There is no setting to keep
+raw identifiers.
+
+In production every connector address (SIS API, Moodle, Blackboard, identity provider, webhook) must
+be `https://`; SAQF refuses plain `http://` before connecting. Local and demo mode accept `http://`
+only so the stand-in servers can be used.
 
 Courses are matched with `SAQF_LMS_COURSE_KEY`, default `{term}-{code_nospace}` (e.g. `2026-1-SWE401`).
 Tokens: `{term}`, `{code}` (`SWE 401`), `{code_nospace}` (`SWE401`), `{section}` (`02`). Use the pattern
@@ -180,6 +210,69 @@ student,Midterm exam,Quiz
 An optional second column `section` tags each student with their course section
 (`student,section,Midterm exam,…`). Scores are percentages (0–100). A changed file is re-imported; a file is read only once it has not
 changed for 30 seconds. Invalid files are skipped and reported in the error log.
+
+---
+
+## Edugate and LMS integration contract (awaiting university IT)
+
+**Status: not connected. Awaiting the university's approved endpoint or export, scopes, vendor/version
+details and IT sign-off.** SAQF does not scrape Edugate or the LMS, does not use personal credentials,
+and has no Edugate-specific code. What follows is the narrow, read-only contract SAQF needs; the
+university chooses how to meet it. Fill in the blanks with IT, then run the dry run below before
+anything is connected.
+
+### 1. Scope (read-only, minimum data)
+
+| Feed | Fields SAQF needs | Fields SAQF must NOT receive |
+|---|---|---|
+| Academic calendar | term code, name, academic year, sequence, start, end, grades-due dates | — |
+| Teaching assignments | term, course code, section, staff number, staff name and university e-mail, owning department, enrolment count per section, coordinator flag | student lists, student names, national IDs, grades of individual students outside the gradebook feed |
+| Gradebook (per course or section) | a student key (student number or LMS user id: pseudonymised on arrival), section, one percentage per assessment named as in the approved specification | names, e-mails, national IDs, contact details, demographic data, free-text feedback |
+
+### 2. Delivery: one of two options
+
+| | **A. Approved API** | **B. Secure scheduled export** |
+|---|---|---|
+| Transport | HTTPS only (TLS certificate verified; refused otherwise in production) | SFTP or a university file share mounted read-only into `storage/inbox/sis` and `storage/inbox/lms` |
+| Authentication | a service account or OAuth2 client-credentials client created for SAQF, never a person's account | the export job's own account writes; SAQF only reads |
+| Least privilege | read-only scopes limited to the fields above, the relevant terms and the colleges in the pilot | the export contains only the fields above |
+| What SAQF has today | `SAQF_SIS_SOURCE=rest` expects SAQF's own simple contract (`GET /terms`, `GET /terms/{code}/assignments`, bearer token). If Edugate's API differs, a small adapter class implementing `SisSource` (`src/Integration/Sources.php`) is written **after** the API documentation is provided — nothing else in SAQF changes | `SAQF_SIS_SOURCE=file`, `SAQF_LMS_SOURCE=file` read the layouts in this guide; Moodle and Blackboard connectors exist for those LMS products |
+| To be provided by IT | base URL, API version and vendor documentation, scopes, credentials (into the secret store, never e-mail or git), rate limits | export schedule, file naming, folder, encoding (UTF-8), who monitors the job |
+
+### 3. Field mapping (to be completed with the Registrar and the LMS owner)
+
+| SAQF field | Edugate / LMS field | Transformation | Confirmed by |
+|---|---|---|---|
+| term `code` | _(to be provided)_ | e.g. `2026-1` | |
+| course `code` | _(to be provided)_ | `SWE401` / `swe 401` accepted, compared with the catalogue | |
+| `section` | _(to be provided)_ | two digits | |
+| `instructor_id` | _(staff number field)_ | matched to the SAQF account's *SIS / HR identifier* | |
+| `enrolled` | _(to be provided)_ | integer per section | |
+| gradebook `student` | _(student number or LMS user id)_ | keyed pseudonym on arrival (never stored) | |
+| assessment columns | _(gradebook item names)_ | percentage 0–100; names must match the approved specification | |
+
+### 4. Steps before going live with a feed
+
+1. **Anonymised staging sample.** IT provides one term's export (or API responses) for the pilot
+   department with student identifiers replaced by random values. No real personal data in staging.
+2. **Dry run.** On a staging copy of SAQF: `php bin/dry_run.php sis <folder>` and
+   `php bin/dry_run.php lms <folder> [term]` read the files exactly as the connectors do and print row
+   counts, the rows the import would skip (unknown course) or warn about (no instructor, duplicates),
+   the gradebook columns that match the specification and those ignored, and every file that would be
+   refused with its line. Nothing is written and no student identifier is printed. (For the catalogue:
+   `php bin/pack.php validate <folder>`.) For an API, save its responses into the export layout and dry-run those.
+3. **Idempotent import.** The SIS sync acts only on differences (re-reading the same export changes
+   nothing); each gradebook file or Moodle/Blackboard batch is imported once, keyed by a checksum of its
+   content, and a corrected file replaces the scores it covers. Running an import twice is safe. (A
+   manual upload repeated by hand is listed as another batch, but each student's score is updated,
+   never duplicated.)
+4. **Reconciliation report.** After each import, compare SAQF's counts with the source:
+   *University systems → Recent updates* (`sync_runs`: assignments, workspaces created, unknown courses,
+   unknown instructors) and, per course, *Results & achievement → Grades received* (batch, rows, checksum)
+   or the course file package's `grade-batches.csv`. The Registrar and the LMS owner confirm the numbers
+   for the pilot term before the feed is relied on.
+5. **Sign-off.** University IT (security and integration), the Registrar and the Deanship of Quality
+   sign the completed contract. Until then the Go-live page keeps showing *Demo data*.
 
 ---
 

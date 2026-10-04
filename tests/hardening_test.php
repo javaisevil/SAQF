@@ -346,4 +346,20 @@ ok(!str_contains($text, 'Uploaded evidence is virus-scanned') && !str_contains($
 [$code, $html] = http($it, "$app/admin.php?tab=golive");
 ok($code === 200 && !str_contains($html, '>Live<') && str_contains($html, 'counts as working only after'), 'Go-live never labels a connection "Live" just because it is selected');
 
+// ---------------------------------------------------------------------------------------------
+section('7. Integration dry run: counts and rejected rows, nothing written, no identities printed');
+$dry = tempdir('saqf-dry');
+write_csv("$dry/sis/terms.csv", [['code', 'name', 'academic_year', 'sequence', 'starts_on', 'ends_on', 'grades_due_on'], ['2026-1', 'Fall 2026', '2026-2027', '7', '2026-08-23', '2026-12-20', '2026-12-30']]);
+write_csv("$dry/sis/assignments.csv", [['term', 'course', 'instructor_id', 'instructor_name', 'section'], ['2026-1', 'SWE 401', 'YU-T1', 'Dr. Synthetic', '01'], ['2026-1', 'ZZZ 100', 'YU-T2', 'Dr. Synthetic Two', '01'], ['2026-1', 'SWE 302', '', '', '']]);
+write_csv("$dry/lms/2026-1/SWE401/mid.csv", [['student', $names[0], 'Attendance'], ['209955501', '77', '100'], ['209955502', '64', '90']]);
+write_csv("$dry/lms/2026-1/SWE401/bad.csv", [['student', $names[0]], ['209955503', '150']]);
+$counts = static fn() => [Db::val('SELECT COUNT(*) FROM terms'), Db::val('SELECT COUNT(*) FROM course_offerings'), Db::val('SELECT COUNT(*) FROM result_batches'), Db::val('SELECT COUNT(*) FROM assessment_results'), Db::val('SELECT COUNT(*) FROM audit_log')];
+$before = $counts();
+[$exit, $out] = run_cmd([PHP_BINARY, 'bin/dry_run.php', 'sis', "$dry/sis"]);
+ok($exit === 1 && str_contains($out, '3 assignment row(s): 1 clean, 1 with a warning, 1 rejected') && str_contains($out, 'ZZZ 100 is not in the Registrar catalogue'), 'SIS dry run: row counts, the unknown course rejected, the row without an instructor warned about');
+[$exit, $out] = run_cmd([PHP_BINARY, 'bin/dry_run.php', 'lms', "$dry/lms"]);
+ok($exit === 1 && str_contains($out, '2 student(s), 1 column(s) match the specification') && str_contains($out, 'ignored: Attendance') && str_contains($out, 'REJECTED 2026-1/SWE401/bad.csv'), 'LMS dry run: students counted, matching and ignored columns, the faulty file rejected with its line');
+ok(!str_contains($out, '2099555'), 'no student number is printed');
+ok($counts() === $before, 'nothing was written to the database (terms, courses, grade batches, results, audit log unchanged)');
+
 finish();
