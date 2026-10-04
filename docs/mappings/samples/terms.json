@@ -1,0 +1,35 @@
+{
+    "status": "ok",
+    "payload": {
+        "rows": [
+            {
+                "semester_code": "2026-1",
+                "title_en": "Fall 2026",
+                "acad_year": "2026-2027",
+                "ordinal": 3,
+                "begin": "23/08/2026",
+                "finish": "20/12/2026",
+                "grade_deadline": "30/12/2026"
+            },
+            {
+                "semester_code": "2026-2",
+                "title_en": "Spring 2027",
+                "acad_year": "2026-2027",
+                "ordinal": 4,
+                "begin": "10/01/2027",
+                "finish": "20/05/2027",
+                "grade_deadline": "30/05/2027"
+            },
+            {
+                "semester_code": "2026-3",
+                "title_en": "Summer 2027",
+                "acad_year": "2026-2027",
+                "ordinal": 5,
+                "begin": "06/06/2027",
+                "finish": "30/07/2027",
+                "grade_deadline": "05/08/2027"
+            }
+        ],
+        "pages": 1
+    }
+}

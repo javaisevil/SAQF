@@ -38,6 +38,12 @@ if ($file === '' || $opts['system'] === '') {
     exit(2);
 }
 $say = static fn(string $s = '') => print($s . "\n");
+// Student numbers in a sample are turned into pseudonyms before anything is counted, and pseudonyms are never printed.
+// When no application key is configured, a throwaway one is used, so the check needs no database at all.
+if ((string) \Saqf\Core\Config::get('SAQF_APP_KEY', '') === '') {
+    putenv('SAQF_APP_KEY=' . bin2hex(random_bytes(32)));
+    \Saqf\Core\Secrets::reset();
+}
 $bad = 0;
 
 $say("Mapping check: $file (" . strtoupper($opts['system']) . ' mapping; no network, nothing is written)');

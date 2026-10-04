@@ -82,9 +82,9 @@ function db_contains(string $needle): array
     return $hits;
 }
 
-function run_cli(array $args): array
+function run_cli(array $args, ?array $env = null): array
 {
-    $p = proc_open(array_merge([PHP_BINARY, dirname(__DIR__) . '/bin/mapping_check.php'], $args), [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, dirname(__DIR__));
+    $p = proc_open(array_merge([PHP_BINARY, dirname(__DIR__) . '/bin/mapping_check.php'], $args), [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, dirname(__DIR__), $env === null ? null : $env + getenv());
     $out = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
     fclose($pipes[1]);
     fclose($pipes[2]);
@@ -276,6 +276,8 @@ ok($code === 0 && str_contains($out, 'terms: 3 row(s) read, 3 accepted') && str_
 ok(str_contains($out, 'o***@yu.example') && !str_contains($out, 'omar.sim@'), 'instructor e-mail addresses are masked in the output');
 [$code, $out] = run_cli([$lmsFile, '--system=lms', "--sample=grades=$sampleGrades"]);
 ok($code === 0 && str_contains($out, '12 student(s)') && str_contains($out, 'Midterm exam') && !str_contains($out, '209900001') && str_contains($out, 'shown nowhere'), 'a saved gradebook response is summarised without any student identifier');
+[$code, $out] = run_cli([$lmsFile, '--system=lms', "--sample=grades=$sampleGrades"], ['SAQF_DB_HOST' => '127.0.0.1', 'SAQF_DB_PORT' => '1', 'SAQF_APP_KEY' => '']);
+ok($code === 0 && str_contains($out, '12 student(s)'), 'the checker needs no database: with the database unreachable and no key set, a gradebook sample is still checked');
 [$code, $out] = run_cli([mapping_file(with($sisMap, 'version', 3)), '--system=sis']);
 ok($code === 1 && str_contains($out, 'problem'), 'an invalid mapping exits 1 and lists what is wrong');
 $broken = (string) tempnam(sys_get_temp_dir(), 's') . '.json';

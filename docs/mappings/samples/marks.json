@@ -1,0 +1,261 @@
+{
+    "data": {
+        "marks": [
+            {
+                "learner_no": "209900001",
+                "column": "MT",
+                "points": 22,
+                "points_possible": 50,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900001",
+                "column": "FN",
+                "points": 41,
+                "points_possible": 100,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900001",
+                "column": "TOTAL",
+                "points": 70,
+                "points_possible": 100,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900002",
+                "column": "MT",
+                "points": 24,
+                "points_possible": 50,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900002",
+                "column": "FN",
+                "points": 42,
+                "points_possible": 100,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900002",
+                "column": "TOTAL",
+                "points": 70,
+                "points_possible": 100,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900003",
+                "column": "MT",
+                "points": 26,
+                "points_possible": 50,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900003",
+                "column": "FN",
+                "points": 43,
+                "points_possible": 100,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900003",
+                "column": "TOTAL",
+                "points": 70,
+                "points_possible": 100,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900004",
+                "column": "MT",
+                "points": 28,
+                "points_possible": 50,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900004",
+                "column": "FN",
+                "points": 44,
+                "points_possible": 100,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900004",
+                "column": "TOTAL",
+                "points": 70,
+                "points_possible": 100,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900005",
+                "column": "MT",
+                "points": 30,
+                "points_possible": 50,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900005",
+                "column": "FN",
+                "points": 45,
+                "points_possible": 100,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900005",
+                "column": "TOTAL",
+                "points": 70,
+                "points_possible": 100,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900006",
+                "column": "MT",
+                "points": 32,
+                "points_possible": 50,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900006",
+                "column": "FN",
+                "points": 46,
+                "points_possible": 100,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900006",
+                "column": "TOTAL",
+                "points": 70,
+                "points_possible": 100,
+                "group": "1"
+            },
+            {
+                "learner_no": "209900007",
+                "column": "MT",
+                "points": 34,
+                "points_possible": 50,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900007",
+                "column": "FN",
+                "points": 47,
+                "points_possible": 100,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900007",
+                "column": "TOTAL",
+                "points": 70,
+                "points_possible": 100,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900008",
+                "column": "MT",
+                "points": 36,
+                "points_possible": 50,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900008",
+                "column": "FN",
+                "points": 48,
+                "points_possible": 100,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900008",
+                "column": "TOTAL",
+                "points": 70,
+                "points_possible": 100,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900009",
+                "column": "MT",
+                "points": 38,
+                "points_possible": 50,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900009",
+                "column": "FN",
+                "points": 49,
+                "points_possible": 100,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900009",
+                "column": "TOTAL",
+                "points": 70,
+                "points_possible": 100,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900010",
+                "column": "MT",
+                "points": 40,
+                "points_possible": 50,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900010",
+                "column": "FN",
+                "points": 50,
+                "points_possible": 100,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900010",
+                "column": "TOTAL",
+                "points": 70,
+                "points_possible": 100,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900011",
+                "column": "MT",
+                "points": 42,
+                "points_possible": 50,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900011",
+                "column": "FN",
+                "points": 51,
+                "points_possible": 100,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900011",
+                "column": "TOTAL",
+                "points": 70,
+                "points_possible": 100,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900012",
+                "column": "MT",
+                "points": 44,
+                "points_possible": 50,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900012",
+                "column": "FN",
+                "points": null,
+                "points_possible": 100,
+                "group": "2"
+            },
+            {
+                "learner_no": "209900012",
+                "column": "TOTAL",
+                "points": 70,
+                "points_possible": 100,
+                "group": "2"
+            }
+        ]
+    },
+    "links": {
+        "next": null
+    }
+}

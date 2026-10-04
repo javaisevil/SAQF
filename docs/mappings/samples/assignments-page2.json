@@ -1,0 +1,23 @@
+{
+    "status": "ok",
+    "payload": {
+        "rows": [
+            {
+                "offering": {
+                    "course_no": "CIS 491",
+                    "section_no": "1"
+                },
+                "staff": {
+                    "id": "YU-F9001",
+                    "first": "Hala",
+                    "last": "Al-Mutairi",
+                    "mail": "hala.sim@yu.example"
+                },
+                "dept_code": "CIS",
+                "enrolled_count": "19",
+                "is_coordinator": "Y"
+            }
+        ],
+        "next_cursor": null
+    }
+}

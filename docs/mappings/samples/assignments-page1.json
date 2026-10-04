@@ -1,0 +1,38 @@
+{
+    "status": "ok",
+    "payload": {
+        "rows": [
+            {
+                "offering": {
+                    "course_no": "swe401",
+                    "section_no": "1"
+                },
+                "staff": {
+                    "id": "YU-F1034",
+                    "first": "Omar",
+                    "last": "Al-Harbi",
+                    "mail": "omar.sim@yu.example"
+                },
+                "dept_code": "SWE",
+                "enrolled_count": "21",
+                "is_coordinator": "Y"
+            },
+            {
+                "offering": {
+                    "course_no": "swe401",
+                    "section_no": "2"
+                },
+                "staff": {
+                    "id": "YU-F2210",
+                    "first": "Hessa",
+                    "last": "Al-Qahtani",
+                    "mail": "hessa.sim@yu.example"
+                },
+                "dept_code": "SWE",
+                "enrolled_count": "20",
+                "is_coordinator": "N"
+            }
+        ],
+        "next_cursor": "2"
+    }
+}

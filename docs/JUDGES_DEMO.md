@@ -1,12 +1,12 @@
-# SAQF in 5 minutes: the judges' demo
+# SAQF in 7 minutes: the judges' demo
 
-*One page to rehearse with. One happy path (a course file, from instructor to reviewer) and one
-security/quality check. Every step is one click from the **Guided tour** (`/tour.php`).*
+*One page to rehearse with. One faculty happy path (grades → facts → evidence → course file), one reviewer view,
+one integration proof and one security check. Every number below is what a fresh demo shows; the whole path was
+walked in a real browser before this page was written.*
 
-**Say this first, and keep to it:** "Everything you will see runs on fictional people, simulated
-university feeds and synthetic results, on top of Al Yamamah's public study plans. It is a
-Docker-deployable demo with an integration-ready handoff. It is not connected to Edugate or the LMS
-yet, and it is not certified by anyone."
+**Say this first, and keep to it:** "Everything you will see runs on fictional people, simulated university
+feeds and synthetic results, on top of Al Yamamah's public study plans. It is a hardened, Docker-deployable demo
+with an integration-ready handoff. It is not connected to Edugate or the LMS yet, and it is not certified by anyone."
 
 ---
 
@@ -17,31 +17,33 @@ yet, and it is not certified by anyone."
    ```bash
    docker compose exec app php bin/install.php --demo --fresh
    ```
-3. Open two browser tabs: **http://localhost:8080/tour.php** and **http://localhost:8080/login.php**.
-4. Have the sample paper ready for the live upload: [`docs/demo/SWE401-midterm-exam-paper.pdf`](demo/SWE401-midterm-exam-paper.pdf) (a synthetic paper, no student data).
-5. Browser zoom at 90% on a laptop screen.
-
-No internet connection is needed: SAQF and the simulated university systems run on the laptop.
+3. Open **http://localhost:8080/tour.php** and **http://localhost:8080/login.php** in two tabs, and a terminal in the repository folder.
+4. Have these synthetic files ready (no real student data in any of them):
+   - `docs/demo/SWE401-final-exam-marks.csv` (29 fictional students, sections 01 and 02, student numbers `2099…`)
+   - `docs/demo/SWE401 Final exam paper.pdf`, `SWE401 Final exam rubric.pdf`, `SWE401 Final exam marked samples.pdf`
+5. Browser zoom at 90% on a laptop screen. No internet connection is needed.
 
 ---
 
-## The script (5:00)
+## The script (7:00)
 
 | Time | Click | Show | Say |
 |---|---|---|---|
-| **0:00** | Tour → *Open SWE 401 as Dr. Omar* (*SWE 401 results by section*) | Whole-number results with their goal; **section 02 is 16 points behind section 01**, flagged automatically | "The course record came from the (simulated) timetable; the grades came from the (simulated) LMS. SAQF works out, per outcome and per section, how many students met each outcome. Student numbers never reach the database: they are replaced by keyed pseudonyms on every path, including a manual upload." |
-| **0:45** | *Course file closeout* tab | **2 complete, 4 missing**: each line names the owner and the next step; the checklist is marked as *SAQF's default, not yet confirmed by Quality*; DEMO label | "This is the end-of-term question every instructor gets: what is still missing from my course file? Everything here is read from records. Nothing is marked done until the records show it, and Quality decides what the checklist requires." |
-| **1:30** | *Evidence* tab → upload `SWE401-midterm-exam-paper.pdf` as *Assessment paper* for *Midterm exam* | The "Please add the papers" banner clears; back on *Course file closeout*, the Midterm exam now lacks only the marked samples | "The upload is checked by type and content and stored outside the web server. In this demo there is no virus scanner configured, and the Security center says so rather than pretending." |
-| **2:00** | *Course report* tab → type two sentences in *What the results mean* → Save; back to *Course file closeout* | The reflection line turns **Complete** and names Dr. Omar | "SAQF never writes this. The instructor's reading of the results, the suggestions and every improvement plan are human input; SAQF fills in the facts around them." |
-| **2:30** | Tour → *Review the SWE 401 course file* (Head of Department) | *Review the evidence*: open the file, **Return with note** or **Accept the evidence** | "Evidence is accepted by a person, the Head of Department or Quality, never by SAQF, and never by the instructor who uploaded it. The decision is in the audit log; if a file changes, the review is due again." |
-| **3:00** | *Download the course file package* | ZIP: Word report and specification, evidence index, grade provenance, checklist, README (DEMO, report not sealed, not an NCAAA approval) and SHA-256 checksums | "One package for reviewers, with checksums. It holds no student identities and not the evidence files themselves. The download is audited." |
-| **3:30** | **Security/quality check:** Tour → *Security center and self-test* (IT) | Controls with ✓ / ! / i. In the demo some are honestly *not configured* or *development* (development application key, no virus scanner, no SSO, backups unencrypted or not yet reported). Press **Run security self-test**; open **Security evidence report** → *Not covered by this report* | "IT sees the recorded status of each control, including what is missing. The self-test exercises some protections on this installation; it is a self-check, not a penetration test. The report is a self-assessment and says what it does not cover: the identity provider's MFA, a restore test on university servers, an independent security review." |
-| **4:15** | Tour → *Go-live: ready to connect* | Every connection **Demo data**, with the exact next step and templates | "Connecting YU means an approved Edugate export or API, LMS read-only access and IT sign-off. We do not have an Edugate adapter and did not guess one: there is a written contract, and a dry-run tool that previews an export's row counts and rejected rows without writing anything." |
-| **4:40** | — | (stay on the page) | **Closing:** "A working, tested course-file workflow in English and Arabic: 10 automated test suites plus a Docker, HTTPS and backup-restore check run on every change. The next step is a controlled pilot with one department once IT provides access; the open prerequisites are listed in `docs/READINESS.md`." |
+| **0:00** | Login → *Use this account* → **Faculty Member** (Dr. Omar) | *My courses*: each course card has a **course-file progress bar** ("Course file: 3 of 7 done · next: …") and *What needs you* lists only real tasks | "The course records came from the (simulated) timetable. An instructor opens SAQF and sees only what needs them." |
+| **0:40** | SWE 401 → *Results & achievement* → upload `SWE401-final-exam-marks.csv` | **Check before importing**: 29 students (29 enrolled), Final exam average 66.5%, range 20–89.4%, sections 01 and 02, **"Nothing imported yet"** | "Before anything is written, SAQF shows what it understood: students, averages, replacements, warnings for a 0–1 scale or a column of zeros. Student numbers were already replaced by keyed codes: not this page, not the session, not the database ever holds one." |
+| **1:20** | **Import these marks** | "29 results imported; achievement recalculated automatically" | "A person confirms; SAQF does the arithmetic." |
+| **1:40** | *Course report* tab | **Facts for your reading**: "3 of 4 assessments have grades…", "CLO1: 72% of students met it (goal 70%) · 8 points down from Spring 2026", "CLO1: section 02 is 16 points behind section 01", "CLO2 … 8 points short" | "Plain facts next to the box where the instructor writes. Numbers, never meaning: why the results look like this and what to do is the instructor's academic judgement. SAQF never writes it." |
+| **2:20** | *Evidence* tab → choose the **three PDFs at once** | Each file is pre-filled: *Assessment paper / brief*, *Marking rubric*, *Sample of marked student work*, all for **Final exam** | "SAQF suggests what each file is from its name, in English or Arabic, and the instructor corrects anything wrong. Titles are built from the assessment, never from the file name, because file names of marked work often carry a student's name." |
+| **2:50** | **Upload** → *Course file closeout* tab | "3 files added"; the evidence item now **needs a person's review**; a new missed goal (CLO2) has an improvement record waiting for the instructor's own plan | "Grades arriving revealed a missed goal, so SAQF prepared the improvement record with the facts. The plan itself, and accepting the evidence, stay with people." |
+| **3:30** | Tour → *Review the SWE 401 course file* (Head of Department) → then sidebar **Course file closeout** | The HoD can **Accept** or **Return with note**; the **closeout board** shows every department course with progress bars and an audited CSV export | "Evidence is accepted by the Head of Department or Quality, never by SAQF and never by the instructor. Reminders go out 14, 7 and 2 days before grades are due, then weekly; the HoD hears weekly about overdue files." |
+| **4:15** | Terminal: `php bin/mapping_check.php docs/mappings/university-lms.simulated.json --system=lms --sample=grades=docs/mappings/samples/marks.json` | "36 rows read → 2 assessments, 12 students… Student identifiers are shown nowhere" | "Connecting a university system is configuration, not code. This is a *simulated* university API shaped nothing like ours: nested objects, coded columns, three paging styles. A mapping file describes it, and the checker shows what SAQF would read, offline. We did not see Edugate's API documentation and did not guess it; when IT provides it, they write the mapping and a service account, and test it here first." |
+| **5:00** | Tour → *Go-live: ready to connect* (IT) | Every connection **Demo data**, the exact next step, templates, and the **Production preflight** with its blockers | "The preflight is honest: in this demo it blocks go-live because demo accounts still use a published password." |
+| **5:30** | *Security center and self-test* → **Run security self-test**; then *Security incidents* | Controls with their recorded status (some deliberately *not configured* in the demo); passkeys; audit-chain witnesses; the incident register with a 72-hour notification clock | "IT sees what is and is not configured. The audit log is hash-chained and checkpoints are sent outside the server, so a rewrite by a database administrator becomes detectable: tamper-evident, not tamper-proof. The incident register keeps the 72-hour clock; whether to notify is the data protection officer's decision; SAQF never contacts anyone. The self-test is a self-check, not a penetration test." |
+| **6:30** | **العربية** at the top (on the *Course report* tab) | The same facts in Arabic, right to left | "The whole interface is in Arabic; course names come from the catalogue." |
+| **6:45** | — | — | **Closing:** "A working course-file workflow, automated everywhere except where a person must decide, with the security controls and the integration path a university needs. The automated suites in `bin/test_all.sh` and a Docker, HTTPS, backup-restore and hardened-production check run on every change. Next step: a controlled pilot with one department once IT provides access (`docs/READINESS.md`)." |
 
-**If time is short:** skip 2:00 (reflection) and 4:15 (Go-live). **If there is extra time:** the
-*Sign in the real way* tour step (robot check and e-mailed two-step code) and the Arabic interface
-(**العربية**, right to left, also on a phone-sized window).
+**If time is short:** skip 2:50 and 5:00. **If there is extra time:** the *Sign in the real way* tour step
+(robot check, e-mailed code, passkeys under *Account & security*) and the phone-sized window.
 
 ---
 
@@ -49,27 +51,17 @@ No internet connection is needed: SAQF and the simulated university systems run 
 
 | Do not say | Say instead |
 |---|---|
-| "Connected to / works with YU's systems" | "Connectors are tested against stand-in servers; connecting YU needs IT's approved access." |
-| "Production-ready" / "Not a prototype" | "Docker-deployable demo; candidate for a controlled pilot once the prerequisites are met." |
-| "Virus-scanned", "encrypted off-site backups" | "Scanning and encrypted second copies are available when configured; the Security center shows whether they are." |
-| "SAQF attacks itself" / "proves it is secure" | "A self-test of some protections; not a penetration test." |
-| "Tamper-proof audit log" | "Tamper-evident: edits and deletions are detected when the chain is verified." |
-| "Two-step verification for everyone" (with SSO) | "For password sign-in. With university SSO, MFA is the identity provider's policy, which IT confirms." |
-| "NCAAA-compliant" / "approved report" | "Supports NCAAA-oriented workflows; nothing in SAQF approves a report." |
-
----
+| "Connected to / works with YU's systems" | "Connectors are tested against stand-in servers, including a simulated university API; connecting YU needs IT's approved access and API documentation." |
+| "Production-ready" / "certified" | "A hardened, Docker-deployable demo; a candidate for a controlled pilot once the prerequisites are met." |
+| "Penetration tested" / "proves it is secure" | "Automated probes and a self-test of some protections; no penetration test or independent review yet." |
+| "Tamper-proof audit log" | "Tamper-evident, with checkpoints kept outside the server." |
+| "Passkeys are fully secure" | "Passkeys add a phishing-resistant second step; our implementation is small, tested with hostile inputs and a real browser, and has not been independently reviewed." |
+| "PDPL-compliant" / "NCAAA-compliant" | "Designed with data minimisation and pseudonymisation; compliance is for the university's DPO and Quality to decide." |
+| "AI" | "35 explainable rules and simple statistics; no AI service is called." |
 
 ## Likely questions and short answers
 
-| Question | Answer |
-|---|---|
-| *Is this AI?* | No. The checks are 35 plain, explainable rules. Mapping suggestions are classic text similarity and are applied only when a professor accepts them. No AI service is called. |
-| *How does it connect to YU's systems?* | Through an approved Edugate export or API and LMS read-only access, under the contract in `docs/INTEGRATIONS.md`. Moodle and Blackboard connectors exist; an Edugate adapter would be written once its API is documented. Nothing is connected today. |
-| *Student privacy?* | Student identifiers are replaced by keyed pseudonyms while grades are read, on every path; digit-only identifiers are refused at import; no student names are kept. The key must come from the university's vault in production. |
-| *What if someone edits the database directly?* | Triggers refuse edits through SAQF's account, and the hash chain shows any edit or deletion when verified (nightly). A database administrator could still change rows, which is why the log is called tamper-evident, not tamper-proof. |
-| *Is it NCAAA-compliant?* | It supports NCAAA-oriented workflows and exports NCAAA-layout documents. It is not a certification, and SAQF approves nothing. YU's Deanship of Quality confirms the methodology and the course file checklist. |
-| *Is the Arabic machine-translated?* | No online service is used. The interface wording is a fixed dictionary written for SAQF (the new 2.5 screens should still be reviewed by the Deanship); course names come from the catalogue; course content is typed in Arabic by people. Some detailed status sentences are still English. |
-| *What is left before a pilot?* | Identity provider registration with its MFA policy confirmed, the approved integration contract, key storage, HTTPS, a recorded backup/restore test, a malware-scanning decision, retention/accessibility policy, an independent security review, and a department pilot (`docs/READINESS.md`). |
+See [PRESENTATION.md](PRESENTATION.md#questions-and-honest-answers).
 
 ---
 
@@ -77,10 +69,9 @@ No internet connection is needed: SAQF and the simulated university systems run 
 
 - **Numbers look different from the script** → `docker compose exec app php bin/install.php --demo --fresh` (demo database only; refused in production), then reopen the tour.
 - **Wrong person signed in** → **Switch role** in the yellow demo bar.
-- **Lost** → the **Guided tour** link is in the yellow demo bar.
-- **The app container will not start** → `docker compose logs app | tail -30`; then `docker compose down` and `docker compose up -d --build`. As a last resort for the **demo only**: `docker compose down -v` (deletes the demo database and volumes) and start again.
+- **The app container will not start** → `docker compose logs app | tail -30`; then `docker compose down` and `docker compose up -d --build`. Last resort, **demo only**: `docker compose down -v`.
 
 ## Fallback if the live demo cannot run
 
-1. **No Docker on the presenting laptop:** local PHP 8.3 and MySQL 8: `php bin/install.php --demo` with `SAQF_DB_*` set, then `php -S 127.0.0.1:8080 -t public` (README, *Quick start: local PHP*).
-2. **Nothing runs:** present from the screenshots in [`docs/screenshots/`](screenshots/) (26–27 show the course file closeout in English and in Arabic on a phone-sized screen) and the CI run on GitHub (test suites and the Docker/HTTPS/backup-restore job), and say plainly that the live demo did not start.
+1. **No Docker:** local PHP 8.3 and MySQL 8: `php bin/install.php --demo` with `SAQF_DB_*` set, then `php -S 127.0.0.1:8080 -t public` (README, *Quick start: local PHP*).
+2. **Nothing runs:** present from [`docs/screenshots/`](screenshots/) (30–35: home progress, gradebook preview, facts in English and Arabic, evidence suggestions, closeout board; 26–27: course file closeout) and the CI run on GitHub. `php bin/mapping_check.php` needs no database and no network, so step 4:15 still works. Say plainly that the live demo did not start.
