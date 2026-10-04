@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/_init.php';
 
+use Saqf\Core\Config;
 use Saqf\Core\Csrf;
 use Saqf\Core\Db;
 use Saqf\Core\Policy;
@@ -11,6 +12,7 @@ use Saqf\Integration\Gradebook;
 use Saqf\Integration\Integrations;
 use Saqf\Quality\Achievement;
 use Saqf\Quality\Catalog;
+use Saqf\Quality\Closeout;
 use Saqf\Quality\Evidence;
 use Saqf\Quality\Findings;
 use Saqf\Quality\Improvements;
@@ -29,7 +31,7 @@ $canEdit = Authz::canEditOffering($user, $o);
 $canContribute = Authz::canContribute($user, $o);
 $sections = Sections::forOffering($oid);
 $mySections = $user['role'] === 'faculty' ? Sections::taughtBy($oid, $user['id']) : [];
-$tab = in_array($_GET['tab'] ?? '', ['overview', 'structure', 'results', 'evidence', 'improve', 'report', 'history'], true) ? $_GET['tab'] : 'overview';
+$tab = in_array($_GET['tab'] ?? '', ['overview', 'structure', 'results', 'evidence', 'improve', 'report', 'closeout', 'history'], true) ? $_GET['tab'] : 'overview';
 
 // Assessment evidence: upload (coordinator or section instructor) and removal (with a reason).
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (isset($_FILES['evidence']) || ($_POST['op'] ?? '') === 'remove_evidence')) {
@@ -82,6 +84,22 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_FILES['results']
     saqf_redirect('workspace.php?id=' . $oid . '&tab=results');
 }
 
+// Course file closeout: a Head of Department or Quality reviewer accepts the evidence set or returns it
+// with a note. SAQF never accepts evidence by itself; the instructor cannot accept their own.
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['op'] ?? '') === 'closeout_review') {
+    saqf_require_post();
+    if (!Closeout::canReview($user, $o)) {
+        Authz::deny('reviewing the course file');
+    }
+    try {
+        Closeout::reviewEvidence($user, $o, (string) ($_POST['decision'] ?? ''), (string) ($_POST['note'] ?? ''));
+        Session::flash('success', ($_POST['decision'] ?? '') === 'accepted' ? 'Evidence accepted. If a file changes later, the review is due again.' : 'Evidence returned to the instructor with your note.');
+    } catch (InvalidArgumentException $e) {
+        Session::flash('error', $e->getMessage());
+    }
+    saqf_redirect('workspace.php?id=' . $oid . '&tab=closeout');
+}
+
 $status = Status::forOffering($o);
 $programs = Catalog::programsFor($courseId);
 $requisites = Catalog::requisitesFor($courseId);
@@ -132,6 +150,7 @@ foreach ($openFindings as $f) {
     }
 }
 
+$closeout = Closeout::forOffering($o);
 $teachingLine = count($sections) > 1 ? 'Coordinator ' . V::h($o['instructor_name'] ?? '—') . ' · ' . count($sections) . ' sections' : V::h($o['instructor_name'] ?? 'No instructor');
 V::header($o['course_code'] . ' · ' . $o['course_title'], $user, ['subtitle' => V::h($o['term_name']) . ' · ' . $teachingLine . ' · ' . (int) $o['enrolled'] . ' students' . ($mySections && !$canEdit ? ' · you teach section ' . V::h(implode(', ', $mySections)) : '') . ($o['term_status'] === 'closed' ? ' · <strong>closed (read-only record)</strong>' : '')]);
 echo V::tabs([
@@ -141,6 +160,7 @@ echo V::tabs([
     'evidence' => 'Evidence' . $countBadge(count($evidenceRequested)),
     'improve' => 'Improvement' . $countBadge($improveCount),
     'report' => 'Course report',
+    'closeout' => 'Course file closeout' . $countBadge($closeout['counts']['missing'] + $closeout['counts']['review']),
     'history' => 'History',
 ], $tab, $base);
 
@@ -523,6 +543,50 @@ if ($tab === 'overview'):
       </div></section>
     <?php endforeach; ?>
   </div>
+</div>
+
+<?php elseif ($tab === 'closeout'):
+    $set = Closeout::checklistSetBy();
+    $stateTone = ['complete' => 'green', 'missing' => 'red', 'review' => 'amber', 'scheduled' => 'grey'];
+    $review = Closeout::evidenceReview($oid);
+    $canReview = Closeout::canReview($user, $o);
+?>
+<div class="split">
+  <div class="stack">
+    <section class="card"><div class="card-h"><h2>Course file closeout</h2><?= Config::demoMode() ? V::pill('DEMO data', 'amber') : '' ?><span class="right muted small"><?= V::h($o['term_name']) ?></span></div>
+      <div class="card-b small">
+        <div class="row" style="flex-wrap:wrap;gap:8px"><?= V::pill($closeout['counts']['complete'] . ' complete', 'green') ?> <?= V::pill($closeout['counts']['missing'] . ' missing', $closeout['counts']['missing'] ? 'red' : 'grey') ?> <?= V::pill($closeout['counts']['review'] . ' need a person\'s review', $closeout['counts']['review'] ? 'amber' : 'grey') ?></div>
+        <p style="margin:10px 0 0"><?= $closeout['ready'] ? V::h('Everything the checklist asks for is in place and reviewed by a person.') : V::h('Each line says who owns it and the next step. Everything here is read from SAQF\'s records; nothing is marked done until the records show it.') ?></p>
+        <p class="tiny muted" style="margin:6px 0 0"><?= $set ? V::h('Checklist set by Quality (last change ' . V::date($set['at']) . ($set['by'] ? ' by ' . $set['by'] : '') . ').') : V::h('Checklist: SAQF\'s default settings, not yet confirmed by Quality. They are not a university requirement until Quality sets them.') ?><?= $user['role'] === 'qa' ? ' <a href="policies.php">' . V::h('Change the checklist') . '</a>' : '' ?></p>
+      </div>
+      <div class="card-b tight"><div class="table-wrap"><table class="closeout-list">
+        <thead><tr><th>Item</th><th style="width:150px">Status</th><th>Owner</th><th>What the records show · next step</th></tr></thead><tbody>
+        <?php foreach ($closeout['items'] as $it): ?>
+          <tr><td><strong><?= V::h($it['label']) ?></strong></td>
+            <td><?= V::pill(Closeout::STATES[$it['state']], $stateTone[$it['state']]) ?></td>
+            <td class="small"><?= V::h($it['owner']) ?></td>
+            <td class="small"><?= V::h($it['detail']) ?><?php if ($it['next'] !== '' && $it['state'] !== 'complete'): ?><div class="check-fix"><strong>Next:</strong> <?= $it['tab'] && $it['tab'] !== 'closeout' ? '<a href="' . $base . '&amp;tab=' . V::h($it['tab']) . '">' . V::h($it['next']) . '</a>' : V::h($it['next']) ?></div><?php endif; ?></td></tr>
+        <?php endforeach; ?>
+        </tbody></table></div></div>
+    </section>
+  </div>
+  <aside class="stack">
+    <?php if ($canReview && $evidenceFiles): ?>
+    <section class="card"><div class="card-h"><h2>Review the evidence</h2></div><div class="card-b small">
+      <p class="muted">Open the files, then accept the set or return it with a note. Your decision is recorded in the audit log; any later change to the files makes the review due again.</p>
+      <ul style="padding-inline-start:18px;margin:0 0 10px"><?php foreach ($evidenceFiles as $ev): ?><li><a href="evidence.php?id=<?= (int) $ev['id'] ?>"><?= V::h($ev['title']) ?></a> <span class="tiny muted">· <?= V::h($ev['assessment_name'] ?? 'General') ?> · <?= V::h(Evidence::KINDS[$ev['kind']] ?? $ev['kind']) ?></span></li><?php endforeach; ?></ul>
+      <?php if ($review): ?><p class="tiny muted"><?= V::h('Last review: ' . ($review['decision'] === 'accepted' ? 'accepted' : 'returned') . ' by ' . $review['reviewer'] . ' on ' . V::date($review['reviewed_at']) . ($review['current'] ? '' : ' (files changed since)')) ?></p><?php endif; ?>
+      <form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="closeout_review">
+        <div class="field"><label for="closeout-note">Note (required when returning)</label><textarea id="closeout-note" name="note" rows="2" maxlength="500" placeholder="e.g. Add marked samples for the final exam"></textarea></div>
+        <div class="row"><button class="btn btn-sm btn-primary" name="decision" value="accepted" type="submit">Accept the evidence</button><button class="btn btn-sm" name="decision" value="returned" type="submit">Return with note</button></div></form>
+    </div></section>
+    <?php endif; ?>
+    <section class="card"><div class="card-h"><h2>Course file package</h2></div><div class="card-b small">
+      <p>One ZIP for reviewers: the course report and approved specification (Word), the evidence index, where the grades came from, this checklist, and SHA-256 checksums of every file.</p>
+      <p class="tiny muted"><span>No student identities are included. Evidence files are listed, not included: each is downloaded on its own and recorded. The download itself is recorded too.</span><?= $o['term_status'] !== 'closed' ? ' <span>' . V::h('The term is still open, so the report in the package is not sealed yet.') . '</span>' : '' ?></p>
+      <a class="btn btn-sm btn-primary" href="export.php?doc=package&amp;id=<?= $oid ?>">Download the course file package</a></div></section>
+    <section class="card"><div class="card-h"><h2>What stays with people</h2></div><div class="card-b small muted">SAQF fills in the facts and checks. The instructor writes the reading of the results, the suggestions and each improvement plan; the Head of Department or Quality accepts the evidence and decides on approvals and exceptions. SAQF never does those for them.</div></section>
+  </aside>
 </div>
 
 <?php else: // history

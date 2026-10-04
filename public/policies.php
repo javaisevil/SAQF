@@ -13,7 +13,7 @@ $groups = [];
 foreach ($rows as $r) {
     $groups[strtok($r['policy_key'], '.')][] = $r;
 }
-$titles = ['achievement' => 'Achievement calculation', 'clo' => 'Outcome targets', 'plo' => 'Program outcomes', 'results' => 'Evidence', 'assessment' => 'Assessment rules', 'mapping' => 'Mapping rules', 'program' => 'Curriculum coverage', 'gap' => 'Gap detection', 'improvement' => 'Improvement loop', 'effect' => 'Effectiveness', 'spec' => 'Approval routing', 'qa' => 'QA sampling', 'contact' => 'Derived values', 'integration' => 'Integrations', 'auth' => 'Sign-in security', 'session' => 'Sessions'];
+$titles = ['achievement' => 'Achievement calculation', 'clo' => 'Outcome targets', 'plo' => 'Program outcomes', 'results' => 'Evidence', 'assessment' => 'Assessment rules', 'mapping' => 'Mapping rules', 'program' => 'Curriculum coverage', 'gap' => 'Gap detection', 'improvement' => 'Improvement loop', 'effect' => 'Effectiveness', 'spec' => 'Approval routing', 'qa' => 'QA sampling', 'contact' => 'Derived values', 'closeout' => 'Course file checklist (closeout)', 'integration' => 'Integrations', 'auth' => 'Sign-in security', 'session' => 'Sessions'];
 V::header('Quality policies', $user, ['subtitle' => $canEdit ? 'Configurable institutional policy — changes take effect immediately and are audited' : 'Read-only view — Quality Assurance owns these settings']);
 ?>
 <div class="alert alert-info">Defaults are a starting configuration, not YU's approved methodology. Confirm the achievement method and thresholds with the Deanship of Quality before relying on them.</div>

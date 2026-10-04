@@ -38,4 +38,11 @@ return [
     '/^Your sign-in is protected by two-step verification with an authenticator app\\.$/u' => 'دخولك محمي بالتحقق بخطوتين عبر تطبيق المصادقة.',
     '/^Your sign-in is protected by two-step verification with a code e-mailed to you\\.$/u' => 'دخولك محمي بالتحقق بخطوتين برمز يُرسل إلى بريدك.',
     '/^You are signed out after (\\d+) minutes without activity; a warning appears two minutes before, with a button to stay signed in\\.$/u' => 'يُسجَّل خروجك بعد {1} دقيقة دون نشاط؛ ويظهر تنبيه قبلها بدقيقتين مع زر للبقاء مسجّلاً.',
+    // SAQF 2.5: course file closeout counts
+    '/^(\\d+) complete$/u' => '{1} مكتمل',
+    '/^(\\d+) missing$/u' => '{1} ناقص',
+    "/^(\\d+) need a person's review$/u" => '{1} بحاجة إلى مراجعة شخص',
+    '/^(.+) \\(instructor\\)$/u' => '{1} (عضو هيئة التدريس)',
+    '/^(.+) \\(instructor\\) or the LMS$/u' => '{1} (عضو هيئة التدريس) أو نظام إدارة التعلم',
+    '/^The course instructor or the LMS$/u' => 'عضو هيئة التدريس أو نظام إدارة التعلم',
 ];

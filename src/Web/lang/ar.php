@@ -17,6 +17,7 @@ return [
         require __DIR__ . '/ar/strings-6.php',
         require __DIR__ . '/ar/strings-7.php',
         require __DIR__ . '/ar/strings-8.php',
+        require __DIR__ . '/ar/strings-9.php',
     ),
     // patterns-2 (the plain-language wording) is tried first; on the same pattern it wins.
     'patterns' => (require __DIR__ . '/ar/patterns-3.php') + (require __DIR__ . '/ar/patterns-2.php') + (require __DIR__ . '/ar/patterns.php'),
