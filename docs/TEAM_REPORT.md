@@ -251,7 +251,7 @@ The full script with timings, what to say, what to highlight and a Q&A sheet is 
 
 ## 11. What was tested
 
-Everything runs with one command: `sh bin/test_all.sh` (or `docker compose exec app sh bin/test_all.sh`) — **1006 checks in 14 suites, 0 failures** on the latest run (2.6, 4 Oct 2026, MySQL 8.0, PHP 8.3; the per-suite numbers below are from 2.4). The plain-language list of what each feature does and how to see it is [`TEST_CASES.md`](TEST_CASES.md).
+Everything runs with one command: `sh bin/test_all.sh` (or `docker compose exec app sh bin/test_all.sh`) — **1012 checks in 14 suites, 0 failures** on the latest run (2.6, 4 Oct 2026, MySQL 8.0, PHP 8.3; the per-suite numbers below are from 2.4). The plain-language list of what each feature does and how to see it is [`TEST_CASES.md`](TEST_CASES.md).
 
 - **58 automation scenario checks** (`tests/automation_test.php`), including: assignment creates a workspace, editing an outcome re-validates everything, grades trigger achievement, a missed target triggers a finding and a draft action, recurring gaps escalate, the semester rollover inherits structure, improvement effectiveness is evaluated, a PLO change shows its impact, the override lifecycle works, data conflicts are resolved, and a forged audit entry is detected.
 - **118 page and security checks** (`tests/http_smoke.php`), including: every page for every role, plus over 20 deliberate break-in attempts (professor opening another professor's course, a section instructor editing the coordinator's specification, a HoD from another department, faculty calling QA actions, missing CSRF token, anonymous access). Also account lockout, error-log lookup, audit verification from the console, and maintenance mode.

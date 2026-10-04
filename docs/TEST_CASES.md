@@ -4,7 +4,7 @@ Each row is one thing SAQF does, how to see it yourself in the demo, and what yo
 
 **Start:** `docker compose up -d --build`, open http://localhost:8080. To start again from a clean story at any time: `docker compose exec app php bin/install.php --demo --fresh`.
 **Signing in:** use the one-click buttons on the sign-in page, or **Switch role** in the yellow demo bar. Every demo password is `Yamamah@2026`.
-**Run every automated test:** `docker compose exec app sh bin/test_all.sh` → *Total: 1006 checks passed, 0 failed* on the last run (14 suites and the upgrade check; it reinstalls the demo database named by `SAQF_DB_NAME` — never point it at real data.)
+**Run every automated test:** `docker compose exec app sh bin/test_all.sh` → *Total: 1012 checks passed, 0 failed* on the last run (14 suites and the upgrade check; it reinstalls the demo database named by `SAQF_DB_NAME` — never point it at real data.)
 
 Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.php`, **H** = `tests/http_smoke.php`, **S** = `tests/sso_test.php`, **F** = `tests/features_test.php`, **W** = `tests/wording_test.php`, **R** = `tests/readiness_test.php`, **G** = `tests/signin_test.php`, **X** = `tests/hardening_test.php`, **C** = `tests/closeout_test.php`, **K** = `tests/passkey_test.php`, **I** = `tests/injection_test.php`, **U** = `tests/usability_test.php`, **M** = `tests/mapping_test.php`.
 
@@ -182,8 +182,8 @@ SAQF test suites (PHP 8.3.6, MySQL 8.0)
   ok   University sign-in (OpenID Connect) end to end               29 passed  0 failed
   ok   Sections, import, evidence, Word, 2-step, alerts, Arabic     91 passed  0 failed
   ok   Plain wording, whole numbers, Arabic course content          31 passed  0 failed
-  ok   Go-live readiness, data pack, access review, security proof   58 passed  0 failed
-  ok   Robot check, two-step codes, trusted browsers, session, help   50 passed  0 failed
+  ok   Go-live readiness, data pack, access review, security proof   59 passed  0 failed
+  ok   Robot check, two-step codes, trusted browsers, session, help   55 passed  0 failed
   ok   Privacy and security hardening (pseudonyms, key, https, backups)  128 passed  0 failed
   ok   Course file closeout, evidence review, course file package   39 passed  0 failed
   ok   Passkeys (WebAuthn): hostile vectors and the sign-in flow    74 passed  0 failed
@@ -192,7 +192,7 @@ SAQF test suites (PHP 8.3.6, MySQL 8.0)
   ok   Mapped API connectors (SIS and LMS grades from a mapping file)  107 passed  0 failed
   ok   Database migrations are idempotent (upgrade path)
 
-Total: 1006 checks passed, 0 failed.
+Total: 1012 checks passed, 0 failed.
 ```
 
 GitHub runs every suite on every push (PHP 8.3, MySQL 8.0), then starts the Docker stack and runs the HTTP suite inside it (Apache), with HTTPS, encrypted-backup and restore checks, and finally the hardened production stack (secret files, read-only root, dropped capabilities, preflight).
