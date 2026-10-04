@@ -329,3 +329,20 @@ kbd{display:inline-block;min-width:22px;text-align:center;padding:2px 6px;border
 }
 /* Text for screen readers only (labels of controls that show no visible label) */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* Facts for the instructor's reading */
+.facts-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.fact{display:flex;gap:8px;align-items:flex-start}
+.fact-mark{flex:none;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px;background:#e7eaf0;color:#33405a}
+.fact-ok .fact-mark{background:#dff3e5;color:#116a2b}.fact-warn .fact-mark{background:#fdecc8;color:#8a5200}
+/* Course file progress on the faculty home and the closeout board */
+.cfile{margin-top:8px}
+.cfile-bar{height:6px;border-radius:3px;background:#e7eaf0;overflow:hidden;display:flex}
+.cfile-bar span{display:block;height:100%}.cfile-done{background:#2e9e55}.cfile-review{background:#e0a21b}.cfile-miss{background:#d8645f}
+.cfile-label{font-size:12px;color:var(--muted,#5b6577);margin-top:3px}
+
+/* Several evidence files at once: one row per file, with SAQF's suggestion pre-selected */
+.ev-rows { display: grid; gap: 10px; margin-bottom: 12px; }
+.ev-row { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.ev-row.ev-unsure { border-color: var(--amber); background: var(--amber-bg); }
+.ev-name { font-weight: 600; overflow-wrap: anywhere; }
+.ev-row select, .ev-row input[type="text"] { width: 100%; }

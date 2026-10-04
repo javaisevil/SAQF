@@ -23,6 +23,12 @@ function saqf_maintenance(): bool
 /** Every state-changing form must carry a valid CSRF token. */
 function saqf_require_post(): void
 {
+    // A body bigger than post_max_size arrives empty: say so, instead of blaming an expired form.
+    if (!$_POST && !$_FILES && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        Session::flash('error', 'That upload is bigger than the server accepts (' . ini_get('post_max_size') . ' at a time). Add fewer or smaller files and try again.');
+        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? 'index.php'));
+        exit;
+    }
     if (!Csrf::valid()) {
         Session::flash('error', 'Your form expired for security reasons. Please try again.');
         header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? 'index.php'));

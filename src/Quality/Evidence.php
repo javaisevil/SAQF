@@ -153,6 +153,77 @@ final class Evidence
         Engine::evaluateOffering((int) $e['offering_id']);
     }
 
+    /**
+     * Suggests what an uploaded file is from its NAME alone (never its contents): the kind of evidence and the
+     * assessment it belongs to. A convenience for filing several files at once; the person always sees and can
+     * correct the suggestion, and "sure" is false whenever SAQF is guessing.
+     * @param list<array{id:int,name:string}> $assessments the course specification's assessments
+     * @return array{kind:string,assessment:?int,title:string,sure:bool}
+     */
+    public static function suggest(string $filename, array $assessments): array
+    {
+        $base = self::cleanName($filename);
+        $stem = (string) pathinfo($base, PATHINFO_FILENAME);
+        $words = self::words($stem);
+        $has = static function (array $needles) use ($words, $stem): bool {
+            $flat = ' ' . implode(' ', $words) . ' ';
+            foreach ($needles as $n) {
+                if (str_contains($flat, ' ' . $n . ' ') || (mb_strlen($n) > 4 && str_contains(mb_strtolower($stem), $n))) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        // Most specific first: "midterm rubric" is a rubric, "midterm marked samples" is student work.
+        if ($has(['rubric', 'rubrics', 'criteria', 'scheme', 'سلم', 'معيار', 'معايير', 'تقدير'])) {
+            $kind = 'rubric';
+        } elseif ($has(['sample', 'samples', 'marked', 'graded', 'scripts', 'script', 'submission', 'submissions', 'عينة', 'عينات', 'مصححة', 'مصحح', 'إجابات'])) {
+            $kind = 'student_work';
+        } elseif ($has(['exam', 'midterm', 'final', 'quiz', 'test', 'assignment', 'project', 'paper', 'brief', 'homework', 'lab', 'اختبار', 'امتحان', 'واجب', 'مشروع', 'ورقة', 'نصفي', 'نهائي'])) {
+            $kind = 'assessment';
+        } else {
+            $kind = 'other';
+        }
+        // The assessment whose name shares the most distinctive words with the file name; a tie is not a match.
+        $generic = ['exam', 'test', 'paper', 'the', 'of', 'and', 'for', 'a', 'an'];
+        $best = null;
+        $bestScore = 0;
+        $tie = false;
+        foreach ($assessments as $a) {
+            $score = 0;
+            foreach (array_diff(self::words((string) $a['name']), $generic) as $w) {
+                if (in_array($w, $words, true)) {
+                    $score += ctype_digit($w) ? 2 : 3; // a number ("Quiz 2") is as decisive as a name
+                }
+            }
+            if ($score > $bestScore) {
+                $best = (int) $a['id'];
+                $bestScore = $score;
+                $tie = false;
+            } elseif ($score === $bestScore && $score > 0) {
+                $tie = true;
+            }
+        }
+        $title = mb_substr(trim((string) preg_replace('/\s+/u', ' ', str_replace(['_', '-'], ' ', $stem))), 0, 200);
+        $assessment = ($best !== null && !$tie) ? $best : null;
+        return ['kind' => $kind, 'assessment' => $assessment, 'title' => $title !== '' ? $title : 'Evidence', 'sure' => $kind !== 'other' && $assessment !== null];
+    }
+
+    /** Lower-case words of a name; letters and digits are separated ("quiz2" → quiz, 2) and "mid-term" is "midterm". */
+    private static function words(string $s): array
+    {
+        $s = mb_strtolower($s);
+        $s = (string) preg_replace('/mid[\s_-]+term/u', 'midterm', $s);
+        // Arabic names are matched through their English equivalents (the specification's assessments are usually English).
+        foreach (['/(?<![\p{L}])(?:ال)?نصفي(?![\p{L}])/u' => ' midterm ', '/(?<![\p{L}])(?:ال)?نهائي(?![\p{L}])/u' => ' final ', '/(?<![\p{L}])(?:ال)?مشروع(?![\p{L}])/u' => ' project ',
+            '/(?<![\p{L}])(?:ال)?واجب(?![\p{L}])/u' => ' assignment ', '/(?<![\p{L}])(?:ال)?(?:اختبار|امتحان)(?![\p{L}])/u' => ' exam '] as $re => $en) {
+            $s = (string) preg_replace($re, $en, $s);
+        }
+        $s = (string) preg_replace('/(?<=\p{L})(?=\d)|(?<=\d)(?=\p{L})/u', ' ', $s);
+        $w = preg_split('/[^\p{L}\p{N}]+/u', $s, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        return array_values(array_map(static fn($x) => ltrim($x, '0') === '' ? '0' : (ctype_digit($x) ? ltrim($x, '0') : $x), $w));
+    }
+
     public static function size(int $bytes): string
     {
         return $bytes >= 1048576 ? round($bytes / 1048576, 1) . ' MB' : max(1, (int) round($bytes / 1024)) . ' KB';

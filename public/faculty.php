@@ -63,6 +63,9 @@ V::header('My courses', $user, ['subtitle' => V::h($user['title'] . ' · ' . ($u
             <div class="ccard-meta"><?= V::h($o['term_name']) ?> · <?= V::h(V::count((int) $o['enrolled'], 'student', 'students')) ?> · <?= (int) $o['credits'] ?> <?= V::h((int) $o['credits'] === 1 ? 'credit hour' : 'credit hours') ?></div>
             <div class="ccard-meta"><?= $o['version_no'] ? '✓ ' . V::h('Course specification carried over') : V::h('Course specification needed') ?></div>
             <?php if ($sectionCount > 1): ?><div class="ccard-meta"><?= $coordinator ? V::pill('You coordinate', 'blue') . ' ' . V::h($sectionCount . ' sections') : V::pill('Section ' . implode(', ', $mySections), 'grey') . ' <span>' . V::h('Coordinator') . ': ' . V::h($o['coordinator_name'] ?? '—') . '</span>' ?></div><?php endif; ?>
+            <?php $cp = \Saqf\Quality\Closeout::progress(\Saqf\Quality\Closeout::forOffering($o)); ?>
+            <div class="cfile"><div class="cfile-bar" role="img" aria-label="<?= V::h('Course file: ' . $cp['done'] . ' of ' . $cp['total'] . ' done') ?>"><span class="cfile-done" style="width:<?= (int) $cp['pct'] ?>%"></span></div>
+              <div class="cfile-label"><?= V::h('Course file: ' . $cp['done'] . ' of ' . $cp['total'] . ' done') ?><?= $cp['next'] ? ' · ' . V::h('next: ' . $cp['next']) : '' ?></div></div>
             <?php if ($st['reasons']): ?><div class="ccard-meta"><?= V::h($st['reasons'][0][1]) ?><?= count($st['reasons']) > 1 ? ' <span class="muted">' . V::h('+' . (count($st['reasons']) - 1) . ' more') . '</span>' : '' ?></div><?php endif; ?>
           </a>
         <?php endforeach; ?>

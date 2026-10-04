@@ -84,6 +84,19 @@ function db_contains(string $needle): array
     return $hits;
 }
 
+/** True when any PHP session file on this machine contains $needle (the preview is held in the session). */
+function session_files_contain(string $needle): bool
+{
+    $dir = ini_get('session.save_path') ?: sys_get_temp_dir();
+    $dir = preg_replace('/^\d+;(?:0?\d+;)?/', '', (string) $dir);
+    foreach (glob(rtrim($dir, '/') . '/sess_*') ?: [] as $f) {
+        if (is_file($f) && str_contains((string) @file_get_contents($f), $needle)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /** @return array{0:int,1:string} exit code and combined output */
 function run_cmd(array $cmd, array $env = []): array
 {
@@ -128,7 +141,16 @@ $omar = as_user($app, 'f.omar');
 ok(str_contains($html, 'name="results"') && str_contains($html, 'replaces it with a code before storing'), 'the course page offers the gradebook upload and says student numbers are replaced');
 [$code, , $loc] = http($omar, "$app/workspace.php?id={$o['id']}", ['_csrf' => csrf_of($html), 'results' => new CURLFile($csv, 'text/csv', 'grades.csv')]);
 [, $after] = http($omar, "$app/workspace.php?id={$o['id']}&tab=results");
-ok($code === 302 && str_contains($after, '2 results imported'), 'a manual upload with raw student numbers is accepted (2 results)');
+ok($code === 302 && str_contains($after, 'Check before importing') && str_contains($after, 'Nothing imported yet'), 'a manual upload with raw student numbers is first shown as a preview (nothing imported yet)');
+ok(!str_contains($after, $raw[0]) && !str_contains($after, $raw[1]), 'the preview never shows a student number');
+ok(!Db::val('SELECT 1 FROM assessment_results WHERE offering_id = ? AND assessment_id IN (SELECT id FROM assessments WHERE name = ?) AND score_pct = 77', [$o['id'], $names[0]]), 'nothing is written until a person confirms');
+ok(!session_files_contain($raw[0]) && !session_files_contain($raw[1]), 'the server-side session holding the preview contains no student number either');
+[$code] = http($omar, "$app/workspace.php?id={$o['id']}", ['_csrf' => csrf_of($after), 'op' => 'gb_confirm']);
+[, $after] = http($omar, "$app/workspace.php?id={$o['id']}&tab=results");
+ok($code === 302 && str_contains($after, '2 results imported'), 'confirming imports the marks (2 results)');
+[$code, , ] = http($omar, "$app/workspace.php?id={$o['id']}", ['_csrf' => csrf_of($after), 'op' => 'gb_confirm']);
+[, $after] = http($omar, "$app/workspace.php?id={$o['id']}&tab=results");
+ok(str_contains($after, 'preview expired or had nothing to import'), 'a second confirmation has nothing left to import (the preview is single-use)');
 $expected = Secrets::pseudonym(Gradebook::SYSTEM, $raw[0]);
 ok((float) Db::val('SELECT score_pct FROM assessment_results WHERE offering_id = ? AND student_ref = ?', [$o['id'], $expected]) === 77.0, "the score is stored under the keyed pseudonym $expected");
 ok(!Db::val('SELECT 1 FROM assessment_results WHERE student_ref LIKE ? OR student_ref LIKE ?', ['%' . $raw[0] . '%', '%' . $raw[1] . '%']), 'no assessment record carries the student number');

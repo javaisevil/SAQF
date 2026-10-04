@@ -68,6 +68,8 @@ jobs:
         run: php bin/install.php --demo --fresh && php tests/passkey_test.php
       - name: Injection and output-encoding probes (XSS, SQL, headers, redirects)
         run: php bin/install.php --demo --fresh && php tests/injection_test.php
+      - name: Faculty time savers (gradebook preview, facts, reminders, closeout board)
+        run: php bin/install.php --demo --fresh && php tests/usability_test.php
       - name: Upgrade path (migrations are idempotent)
         run: php bin/migrate.php && php bin/migrate.php --status
 

@@ -7,6 +7,7 @@ use InvalidArgumentException;
 use Saqf\Core\Audit;
 use Saqf\Core\Clock;
 use Saqf\Core\Db;
+use Saqf\Core\Notify;
 use Saqf\Core\Policy;
 use Saqf\Security\Authz;
 
@@ -258,7 +259,7 @@ final class Closeout
     }
 
     /** CSV text; values that a spreadsheet would treat as a formula are prefixed with an apostrophe. */
-    private static function csv(array $header, array $rows): string
+    public static function csv(array $header, array $rows): string
     {
         $out = fopen('php://temp', 'w+');
         fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM so Excel shows Arabic correctly
@@ -268,6 +269,67 @@ final class Closeout
         }
         rewind($out);
         return (string) stream_get_contents($out);
+    }
+
+    /** @return array{done:int,total:int,missing:int,review:int,pct:int,next:?string} figures for a progress bar */
+    public static function progress(array $c): array
+    {
+        $total = count($c['items']);
+        $done = $c['counts']['complete'] + $c['counts']['scheduled'];
+        $next = null;
+        foreach ($c['items'] as $i) {
+            if ($i['state'] === 'missing') {
+                $next = $i['label'];
+                break;
+            }
+        }
+        return ['done' => $done, 'total' => $total, 'missing' => $c['counts']['missing'], 'review' => $c['counts']['review'], 'pct' => $total ? (int) round($done / $total * 100) : 0, 'next' => $next];
+    }
+
+    /**
+     * Deadline-aware reminders, run daily by the scheduler. For each course in the active term whose course file
+     * still has items the instructor owns (state "missing"), the instructor and any section instructors get ONE
+     * reminder per milestone: 14, 7 and 2 days before grades are due, then once a week while overdue. The Head of
+     * Department is told once a week about overdue course files. Nothing is sent when nothing is missing, and the
+     * same reminder is never sent twice (notification dedupe keys). Reminders carry no student data.
+     * Policy "closeout.reminders" switches them off. @return int notifications created
+     */
+    public static function remindAll(): int
+    {
+        if (!Policy::get('closeout.reminders')) {
+            return 0;
+        }
+        $made = 0;
+        $today = \Saqf\Core\Clock::now()->setTime(0, 0);
+        $offerings = Db::all('SELECT o.*, c.code AS course_code, c.title AS course_title, c.owner_department_id, t.name AS term_name, t.status AS term_status, t.grades_due_on, u.full_name AS instructor_name
+            FROM course_offerings o JOIN courses c ON c.id = o.course_id JOIN terms t ON t.id = o.term_id LEFT JOIN users u ON u.id = o.instructor_id
+            WHERE t.status = "active" AND o.instructor_id IS NOT NULL');
+        foreach ($offerings as $o) {
+            $days = (int) $today->diff(new \DateTimeImmutable((string) $o['grades_due_on']))->format('%r%a');
+            $milestone = $days < 0 ? 'late' . intdiv(-$days, 7) : ($days <= 2 ? 'd2' : ($days <= 7 ? 'd7' : ($days <= 14 ? 'd14' : null)));
+            if ($milestone === null) {
+                continue;
+            }
+            $mine = array_values(array_filter(self::forOffering($o)['items'], static fn($i) => $i['state'] === 'missing'));
+            if (!$mine) {
+                continue;
+            }
+            $when = $days < 0 ? 'grades were due ' . (-$days) . ' day' . (-$days === 1 ? '' : 's') . ' ago' : ($days === 0 ? 'grades are due today' : 'grades are due in ' . $days . ' day' . ($days === 1 ? '' : 's'));
+            $title = $o['course_code'] . ': ' . count($mine) . ' course file item' . (count($mine) === 1 ? '' : 's') . ' still missing (' . $when . ')';
+            $body = implode('; ', array_column($mine, 'label'));
+            $link = 'workspace.php?id=' . (int) $o['id'] . '&tab=closeout';
+            $who = array_unique(array_merge([(int) $o['instructor_id']], array_map('intval', Db::col('SELECT instructor_id FROM offering_sections WHERE offering_id = ? AND instructor_id IS NOT NULL', [$o['id']]))));
+            foreach ($who as $uid) {
+                $before = (int) Db::val('SELECT COUNT(*) FROM notifications WHERE user_id = ? AND dedupe_key = ?', [$uid, 'closeout:' . $o['id'] . ':' . $milestone]);
+                Notify::user($uid, 'action', $title, $body, $link, 'closeout:' . $o['id'] . ':' . $milestone);
+                $made += $before ? 0 : 1;
+            }
+            if ($days < 0) {
+                // Once a week per course; the dedupe key keeps it from repeating. (Not counted in the figure returned.)
+                Notify::role('hod', (int) $o['owner_department_id'], null, 'info', $o['course_code'] . ' course file is overdue: ' . count($mine) . ' item(s) missing', $o['instructor_name'] . ' · ' . $body, 'closeout_board.php', 'closeout-hod:' . $o['id'] . ':' . $milestone);
+            }
+        }
+        return $made;
     }
 
     /** Fingerprint of the current evidence set (ids and checksums): any change makes a review stale. */

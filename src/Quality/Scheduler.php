@@ -134,6 +134,9 @@ final class Scheduler
                         $p['due'] ? Alerts::raise('security.access_review', 'warning', 'Access review overdue', $p['due'] . ' of ' . $p['total'] . ' account(s) have not been confirmed by an administrator in the last ' . $p['days'] . ' days. Open Administration → Access review.')
                             : Alerts::resolve('security.access_review');
                     });
+                    self::step($stats, static function () use (&$stats) {
+                        $stats['closeout_reminders'] = \Saqf\Quality\Closeout::remindAll();
+                    });
                     self::step($stats, static fn() => Throttle::prune());
                     self::step($stats, static fn() => \Saqf\Security\BotGuard::prune());
                 }

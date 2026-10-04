@@ -60,7 +60,63 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (isset($_FILES['evidence
     saqf_redirect('workspace.php?id=' . $oid . '&tab=evidence');
 }
 
-// CSV upload fallback (when results are not in the LMS). Validated strictly, never trusted.
+// Several evidence files at once. The form pre-fills what each file is from its name (see evidence.js and
+// Evidence::suggest); the person has corrected it by the time it arrives. Without JavaScript the same suggestion is
+// made here. Each file is checked, scanned and audited on its own: one bad file never blocks the others.
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_FILES['evidence_files'])) {
+    saqf_require_post();
+    if (!$canContribute) {
+        Authz::deny('changing evidence');
+    }
+    $batch = $_FILES['evidence_files'];
+    $added = 0;
+    $refused = [];
+    try {
+        $names = is_array($batch['name'] ?? null) ? $batch['name'] : [];
+        $present = array_keys(array_filter($names, static fn($n, $i) => (int) ($batch['error'][$i] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE, ARRAY_FILTER_USE_BOTH));
+        if (!$present) {
+            throw new InvalidArgumentException('Choose at least one file.');
+        }
+        if (count($present) > 12) {
+            throw new InvalidArgumentException('Add up to 12 files at a time.');
+        }
+        $specNow = $o['spec_version_id'] ? Specs::load((int) $o['spec_version_id']) : null;
+        $asm = array_map(static fn($a) => ['id' => (int) $a['id'], 'name' => (string) $a['name']], $specNow['assessments'] ?? []);
+        $post = static fn(string $k, int $i): ?string => is_array($_POST[$k] ?? null) && is_string($_POST[$k][$i] ?? null) ? trim($_POST[$k][$i]) : null;
+        $section = (string) ($_POST['section'] ?? '') ?: (count($mySections) === 1 ? $mySections[0] : null);
+        foreach ($present as $i) {
+            $label = mb_strimwidth((string) $names[$i], 0, 60, '…');
+            try {
+                \Saqf\Core\Throttle::check('upload:' . $user['id'], 30, 3600, 'Too many uploads in the last hour. Please try again later.');
+                $guess = Evidence::suggest((string) $names[$i], $asm);
+                $kind = $post('item_kind', $i) ?: $guess['kind'];
+                $aid = $post('item_assessment', $i);
+                $aid = $aid === null ? $guess['assessment'] : ((int) $aid ?: null);
+                $title = $post('item_title', $i);
+                Evidence::store($o, ['name' => $names[$i], 'tmp_name' => $batch['tmp_name'][$i], 'size' => $batch['size'][$i], 'error' => $batch['error'][$i]], $kind, $title === null || $title === '' ? $guess['title'] : $title, $aid, $section, $user);
+                $added++;
+            } catch (InvalidArgumentException | RuntimeException $e) {
+                $refused[] = $label . ' (' . rtrim($e->getMessage(), '.') . ')';
+                if (str_contains($e->getMessage(), 'Too many uploads')) {
+                    break;
+                }
+            }
+        }
+        if ($added) {
+            Session::flash('success', ($added === 1 ? '1 file added' : $added . ' files added') . ' to the course file. Any matching evidence request cleared automatically.');
+        }
+        if ($refused) {
+            Session::flash('error', 'Not added: ' . implode('; ', $refused) . '.');
+        }
+    } catch (InvalidArgumentException | RuntimeException $e) {
+        Session::flash('error', $e->getMessage());
+    }
+    saqf_redirect('workspace.php?id=' . $oid . '&tab=evidence');
+}
+
+// Gradebook upload (when results are not in the LMS), in two steps: SAQF first shows what it understood from the
+// file (nothing is written), and a person confirms. Student numbers become keyed pseudonyms while the file is read,
+// so neither the preview nor the session ever holds one. Validated strictly, never trusted.
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_FILES['results'])) {
     saqf_require_post();
     if (!$canContribute) {
@@ -71,13 +127,54 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_FILES['results']
         if ($f['error'] !== UPLOAD_ERR_OK || $f['size'] > 2 * 1024 * 1024) {
             throw new InvalidArgumentException('Upload a CSV file under 2 MB.');
         }
-        // Student numbers become keyed pseudonyms while the file is read (same key space as the LMS
-        // export folder, so results from both match); nothing in the file is stored as given.
         $parsed = Gradebook::parse($f['tmp_name'], Gradebook::SYSTEM);
+        $known = [];
+        foreach (Db::all('SELECT id, name FROM assessments WHERE spec_version_id = ?', [$o['spec_version_id'] ?: 0]) as $a) {
+            $known[mb_strtolower(trim((string) $a['name']))] = (int) $a['id'];
+        }
+        $matched = [];
+        $ignored = [];
+        foreach ($parsed['results'] as $name => $scores) {
+            isset($known[mb_strtolower(trim((string) $name))]) ? $matched[$name] = $scores : $ignored[] = (string) $name;
+        }
         // A section instructor's file belongs to their section unless it says otherwise.
         $tag = $parsed['sections'] ?: (!$canEdit && count($mySections) === 1 ? $mySections[0] : null);
-        $r = Achievement::import($oid, $parsed['results'], 'upload', null, $tag);
-        Session::flash('success', "{$r['rows']} results imported" . (is_string($tag) ? " for section $tag" : '') . '; achievement recalculated automatically.');
+        $stats = [];
+        $students = [];
+        foreach ($matched as $name => $scores) {
+            $aid = $known[mb_strtolower(trim((string) $name))];
+            $have = array_flip(Db::col('SELECT student_ref FROM assessment_results WHERE offering_id = ? AND assessment_id = ?', [$oid, $aid]));
+            $vals = array_values($scores);
+            $stats[$name] = ['n' => count($vals), 'mean' => $vals ? array_sum($vals) / count($vals) : 0, 'min' => $vals ? min($vals) : 0, 'max' => $vals ? max($vals) : 0,
+                'zeros' => count(array_filter($vals, static fn($v) => $v == 0)), 'updates' => count(array_intersect_key($scores, $have)), 'new' => count(array_diff_key($scores, $have))];
+            $students += $scores;
+        }
+        $_SESSION['gb_preview'] = [$oid => ['at' => time(), 'file' => mb_substr(preg_replace('/[^\p{L}\p{N} ._()-]+/u', '', basename((string) $f['name'])), 0, 80), 'results' => $matched, 'ignored' => $ignored,
+            'tag' => $tag, 'stats' => $stats, 'students' => count($students), 'sections' => array_values(array_unique(array_values($parsed['sections'])))]];
+    } catch (InvalidArgumentException $e) {
+        Session::flash('error', $e->getMessage());
+    }
+    saqf_redirect('workspace.php?id=' . $oid . '&tab=results');
+}
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && in_array($_POST['op'] ?? '', ['gb_confirm', 'gb_cancel'], true)) {
+    saqf_require_post();
+    if (!$canContribute) {
+        Authz::deny('uploading results');
+    }
+    $pv = $_SESSION['gb_preview'][$oid] ?? null;
+    unset($_SESSION['gb_preview']);
+    try {
+        if ($_POST['op'] === 'gb_cancel') {
+            Session::flash('info', 'Nothing was imported.');
+        } elseif (!$pv || time() - (int) $pv['at'] > 900 || !$pv['results']) {
+            throw new InvalidArgumentException('The preview expired or had nothing to import. Upload the file again.');
+        } else {
+            $r = Achievement::import($oid, $pv['results'], 'upload', null, $pv['tag']);
+            if ($pv['ignored']) {
+                \Saqf\Core\Audit::record('results.columns_ignored', 'offering', $oid, "{$o['course_code']}: columns in the uploaded file that are not in the course specification were not imported: " . mb_strimwidth(implode(', ', $pv['ignored']), 0, 250, '…'));
+            }
+            Session::flash('success', "{$r['rows']} results imported" . (is_string($pv['tag']) ? " for section {$pv['tag']}" : '') . '; achievement recalculated automatically.');
+        }
     } catch (InvalidArgumentException $e) {
         Session::flash('error', $e->getMessage());
     }
@@ -391,6 +488,26 @@ if ($tab === 'overview'):
 ?>
 <div class="split">
   <div class="stack">
+    <?php $pv = $_SESSION['gb_preview'][$oid] ?? null; if ($pv && time() - (int) $pv['at'] > 900) { unset($_SESSION['gb_preview']); $pv = null; } ?>
+    <?php if ($pv): $nMatched = count($pv['results']); ?>
+    <section class="card" id="gb-preview"><div class="card-h"><h2>Check before importing</h2><?= V::pill('Nothing imported yet', 'amber') ?><span class="right muted small"><?= V::h($pv['file']) ?></span></div>
+      <div class="card-b small">
+        <p><strong><?= V::h(V::count((int) $pv['students'], 'student', 'students')) ?></strong> in the file<?= $o['enrolled'] ? ' (the course has ' . (int) $o['enrolled'] . ' enrolled)' : '' ?>. Student numbers were already replaced by codes: neither this page nor the database shows them.</p>
+        <?php if ($nMatched): ?>
+        <div class="table-wrap"><table><thead><tr><th>Assessment</th><th class="num">Students</th><th class="num">New</th><th class="num">Replaces</th><th class="num">Average</th><th class="num">Lowest–highest</th></tr></thead><tbody>
+          <?php foreach ($pv['stats'] as $name => $st): ?><tr><td><strong><?= V::h($name) ?></strong></td><td class="num"><?= (int) $st['n'] ?></td><td class="num"><?= (int) $st['new'] ?></td><td class="num"><?= (int) $st['updates'] ?></td><td class="num"><?= V::h(rtrim(rtrim(number_format($st['mean'], 1), '0'), '.')) ?>%</td><td class="num"><?= V::h(rtrim(rtrim(number_format($st['min'], 1), '0'), '.') . '–' . rtrim(rtrim(number_format($st['max'], 1), '0'), '.')) ?>%</td></tr><?php endforeach; ?></tbody></table></div>
+        <?php endif; ?>
+        <?php $warn = []; foreach ($pv['stats'] as $name => $st) { if ($st['max'] <= 1 && $st['n'] > 1) { $warn[] = '"' . $name . '": every mark is between 0 and 1. Marks must be percentages from 0 to 100; check the file is not in fractions.'; } if ($st['n'] >= 5 && $st['zeros'] / $st['n'] > 0.3) { $warn[] = '"' . $name . '": ' . $st['zeros'] . ' of ' . $st['n'] . ' marks are 0. Zeros count as real marks; leave a cell empty for a student who did not take it.'; } if ($st['updates']) { $warn[] = '"' . $name . '": ' . $st['updates'] . ' student(s) already have a mark here; the new mark replaces it.'; } }
+          if ($o['enrolled'] && $pv['students'] > 1.3 * (int) $o['enrolled'] + 3) { $warn[] = 'The file has more students than are enrolled. Is it the right course?'; }
+          if ($pv['ignored']) { $warn[] = 'Not in the course specification, so left out: ' . implode(', ', $pv['ignored']) . '.'; } ?>
+        <?php foreach ($warn as $w): ?><div class="check sev-warning"><div class="check-ico">•</div><div class="check-detail"><?= V::h($w) ?></div></div><?php endforeach; ?>
+        <?php if (!$nMatched): ?><div class="alert alert-error">No column in the file matches an assessment in the specification, so there is nothing to import. The specification's assessments are: <strong><?= V::h(implode(', ', array_column($evidenceSpec['assessments'] ?? [], 'name'))) ?></strong>. Rename the columns and upload again.</div><?php endif; ?>
+        <?php if (is_string($pv['tag'])): ?><p class="muted">These marks will be filed under section <?= V::h($pv['tag']) ?>.</p><?php elseif ($pv['sections']): ?><p class="muted">Sections found in the file: <?= V::h(implode(', ', $pv['sections'])) ?>.</p><?php endif; ?>
+        <div class="row" style="margin-top:10px">
+          <?php if ($nMatched): ?><form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="gb_confirm"><button class="btn btn-primary btn-sm" type="submit">Import these marks</button></form><?php endif; ?>
+          <form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="gb_cancel"><button class="btn btn-sm btn-ghost" type="submit">Cancel</button></form></div>
+      </div></section>
+    <?php endif; ?>
     <section class="card"><div class="card-h"><h2>Learning outcomes — how students did</h2><span class="muted small right"><?= V::source('calculated') ?> updated automatically whenever grades arrive</span></div>
       <div class="card-b tight"><div class="table-wrap"><table>
         <thead><tr><th>Learning outcome</th><th>Assessed by</th><th style="width:280px">Students who met it</th><th class="num">Students</th><th class="num">Graded so far</th></tr></thead><tbody>
@@ -463,14 +580,15 @@ if ($tab === 'overview'):
     <?php if ($canContribute && $evidenceSpec): ?>
     <section class="card"><div class="card-h"><h2>Add evidence</h2></div><div class="card-b small">
       <form method="post" enctype="multipart/form-data"><?= Csrf::field() ?>
-        <div class="field"><label>File</label><input type="file" name="evidence" required accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.txt"></div>
-        <div class="field"><label>What is it?</label><select name="kind"><?php foreach (Evidence::KINDS as $k => $l): ?><option value="<?= $k ?>"><?= V::h($l) ?></option><?php endforeach; ?></select></div>
-        <div class="field"><label>Assessment</label><select name="assessment"><option value="">General (not one assessment)</option><?php foreach ($evidenceSpec['assessments'] as $a): ?><option value="<?= (int) $a['id'] ?>" <?= $evidenceRequested && (int) $a['id'] === (int) $evidenceRequested[0] ? 'selected' : '' ?>><?= V::h($a['name']) ?></option><?php endforeach; ?></select></div>
-        <?php if (count($sections) > 1): ?><div class="field"><label>Section</label><select name="section"><option value="">All sections</option><?php foreach ($sections as $s): ?><option <?= in_array($s['section_code'], $mySections, true) && !$canEdit ? 'selected' : '' ?>><?= V::h($s['section_code']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
-        <div class="field"><label>Title (optional)</label><input type="text" name="title" maxlength="200" placeholder="e.g. Midterm exam paper and model answers"></div>
+        <div class="field"><label for="ev-files">Files (choose several at once)</label><input type="file" id="ev-files" name="evidence_files[]" multiple required accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.txt"></div>
+        <div id="ev-rows" class="ev-rows" aria-live="polite" data-offering="<?= $oid ?>" data-max="12"
+          data-kinds="<?= V::h(json_encode(Evidence::KINDS, JSON_UNESCAPED_UNICODE)) ?>"
+          data-assessments="<?= V::h(json_encode(array_map(static fn($a) => ['id' => (int) $a['id'], 'name' => (string) $a['name']], $evidenceSpec['assessments']), JSON_UNESCAPED_UNICODE)) ?>"
+          data-text="<?= V::h(json_encode(['hint' => 'SAQF suggested these from the file names. Please check each one.', 'unsure' => 'Not sure about this one: please check.', 'general' => 'General (not one assessment)', 'tooMany' => 'Add up to {n} files at a time.', 'kind' => 'What is it?', 'assessment' => 'Assessment', 'title' => 'Title'], JSON_UNESCAPED_UNICODE)) ?>"></div>
+        <?php if (count($sections) > 1): ?><div class="field"><label>Section (for all these files)</label><select name="section"><option value="">All sections</option><?php foreach ($sections as $s): ?><option <?= in_array($s['section_code'], $mySections, true) && !$canEdit ? 'selected' : '' ?>><?= V::h($s['section_code']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
         <button class="btn btn-primary btn-sm" type="submit">Upload</button>
-        <p class="tiny muted" style="margin-top:8px">PDF, Word, Excel, PowerPoint, images or text, up to <?= (int) Policy::get('evidence.max_mb') ?> MB. Files are checked for safety before they are stored. Please remove student names from samples.</p>
-      </form></div></section>
+        <p class="tiny muted" style="margin-top:8px">Up to 12 files at a time (together under <?= V::h((string) ini_get('post_max_size')) ?>): PDF, Word, Excel, PowerPoint, images or text, each up to <?= (int) Policy::get('evidence.max_mb') ?> MB. SAQF suggests what each file is from its name; you decide. Files are checked for safety before they are stored. Please remove student names from samples.</p>
+      </form><script src="assets/evidence.js?v=<?= SAQF_VERSION ?>" defer></script></div></section>
     <?php endif; ?>
     <section class="card"><div class="card-h"><h2>Why this matters</h2></div><div class="card-b small muted">Accreditation reviewers ask to see the exams and assignments behind the results. SAQF reminds you when grades arrive, keeps the files with the course, and lists them in the course report for you.</div></section>
   </aside>
@@ -536,6 +654,10 @@ if ($tab === 'overview'):
         <p>SAQF writes the course report for you from what is already in the system: the course details, learning outcomes, grades, how students did, what fell short, what was done about it and who approved what. You only add your own comments below.</p>
         <?php if ($snap): ?><div class="alert alert-info">Sealed on <?= V::h(V::date($snap['created_at'])) ?> when the term closed, so it can no longer change. <?= V::verified($snap['sha256'], 'Unchanged since') ?></div><?php endif; ?>
       </div></section>
+    <?php $facts = \Saqf\Quality\Facts::forOffering($o); ?>
+    <section class="card"><div class="card-h"><h2>Facts for your reading</h2><span class="muted small right">Worked out by SAQF from your records</span></div>
+      <div class="card-b small"><ul class="facts-list"><?php foreach ($facts as $f): ?><li class="fact fact-<?= V::h($f['tone']) ?>"><span class="fact-mark" aria-hidden="true"><?= ['ok' => '✓', 'warn' => '!', 'info' => 'i'][$f['tone']] ?? 'i' ?></span><span><?= V::h($f['text']) ?></span></li><?php endforeach; ?></ul>
+        <p class="tiny muted" style="margin:10px 0 0">These are the numbers, not their meaning. Why the results look like this, and what to do about it, is for you to say below: SAQF never writes it for you.</p></div></section>
     <?php foreach (['interpretation' => 'What the results mean', 'difficulties' => 'Difficulties this term (optional)', 'recommendations' => 'Suggestions for next time (optional)'] as $key => $label): ?>
       <section class="card"><div class="card-h"><h2><?= V::h($label) ?></h2><?= V::source('faculty') ?></div><div class="card-b">
         <?php if ($canEdit): ?><form data-api="narrative"><input type="hidden" name="offering" value="<?= $oid ?>"><input type="hidden" name="section" value="<?= $key ?>"><textarea name="content" rows="4"><?= V::h($narr[$key]['content'] ?? '') ?></textarea><button class="btn btn-sm" type="submit" style="margin-top:8px">Save</button></form>

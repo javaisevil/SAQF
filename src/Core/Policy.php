@@ -44,6 +44,7 @@ final class Policy
         'evidence.request_on_results' => ['1', 'bool', 'Ask for assessment evidence when results arrive', 'When results for an assessment arrive, the instructor is asked (advisory) to upload the assessment and a sample of marked work; the request clears itself once evidence is uploaded.', null],
         'evidence.max_mb' => ['20', 'int', 'Maximum evidence file size (MB)', 'Larger files are refused at upload.', null],
         // Course file closeout checklist (Quality decides; these defaults are SAQF's starting point, not a YU requirement).
+        'closeout.reminders' => ['1', 'bool', 'Course file: remind instructors before grades are due', 'On: instructors are reminded 14, 7 and 2 days before grades are due, then weekly while overdue, about the items only they can supply; the Head of Department hears weekly about overdue course files.', null],
         'closeout.require_spec' => ['1', 'bool', 'Course file: approved specification in use', 'The course runs on a specification approved in SAQF. SAQF default; Quality decides whether the course file requires it.', null],
         'closeout.require_checks' => ['1', 'bool', 'Course file: no open problems', 'No problem marked "must fix" or "warning" is left open for the course, or Quality has decided an exception for it.', null],
         'closeout.require_results' => ['1', 'bool', 'Course file: grades for every assessment', 'Every assessment in the specification has grades, so achievement is final rather than "so far".', null],

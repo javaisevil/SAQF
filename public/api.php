@@ -401,6 +401,17 @@ try {
             break;
 
         // ------------------------------------------------ notifications
+        case 'evidence_suggest':
+            // Only the file NAMES arrive here (never contents): what each file looks like, to pre-fill the upload form.
+            $o = Authz::offering($user, $int('offering'));
+            if (!Authz::canContribute($user, $o)) {
+                Authz::deny('adding evidence');
+            }
+            $spec = $o['spec_version_id'] ? Specs::load((int) $o['spec_version_id']) : ['assessments' => []];
+            $assessments = array_map(static fn($a) => ['id' => (int) $a['id'], 'name' => (string) $a['name']], $spec['assessments'] ?? []);
+            $names = is_array($_POST['names'] ?? null) ? array_slice(array_filter($_POST['names'], 'is_string'), 0, 12) : [];
+            out(['ok' => true, 'suggestions' => array_map(static fn($n) => \Saqf\Quality\Evidence::suggest(mb_substr($n, 0, 200), $assessments), array_values($names))]);
+
         case 'notifications_read':
             Db::exec('UPDATE notifications SET read_at = ? WHERE user_id = ? AND read_at IS NULL', [Clock::stamp(), $user['id']]);
             $message = 'All caught up.';
