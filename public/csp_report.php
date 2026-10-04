@@ -32,7 +32,7 @@ $where = static function ($v): string {
         return $v === '' ? 'unknown' : $v;
     }
     $p = parse_url(mb_substr($v, 0, 300));
-    return is_array($p) && isset($p['host']) ? preg_replace('/[^A-Za-z0-9.\-:]/', '', ($p['scheme'] ?? '?') . '://' . $p['host']) : 'unknown';
+    return is_array($p) && isset($p['host']) ? preg_replace('/[^a-z0-9]/', '', strtolower((string) ($p['scheme'] ?? '?'))) . '://' . preg_replace('/[^A-Za-z0-9.\-]/', '', (string) $p['host']) : 'unknown';
 };
 $directive = preg_replace('/[^a-z\-]/', '', strtolower(mb_substr((string) ($r['effective-directive'] ?? $r['violated-directive'] ?? ''), 0, 40)));
 $blocked = $where($r['blocked-uri'] ?? '');
