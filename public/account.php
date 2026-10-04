@@ -11,6 +11,7 @@ use Saqf\Core\Policy;
 use Saqf\Core\Session;
 use Saqf\Security\Auth;
 use Saqf\Security\Mfa;
+use Saqf\Security\Passkeys;
 use Saqf\Security\Sessions;
 use Saqf\Security\Totp;
 use Saqf\Security\TrustedDevices;
@@ -114,8 +115,8 @@ $mfaApp = Mfa::enabled($user);
 $mfaEmail = !$mfaApp && Mfa::required($user) && Mfa::emailAllowed($user);
 $failedWeek = (int) Db::val('SELECT COUNT(*) FROM login_attempts WHERE username = ? AND success = 0 AND created_at >= ?', [$user['username'], \Saqf\Core\Clock::now()->modify('-7 days')->format('Y-m-d H:i:s')]);
 $why = static fn(?string $r, bool $ok): string => $ok
-    ? (['mfa' => 'Signed in · authenticator code', 'mfa_email' => 'Signed in · e-mailed code', 'trusted_browser' => 'Signed in · trusted browser', 'sso' => 'Signed in · university sign-in'][(string) $r] ?? 'Signed in')
-    : (['bad_password' => 'Wrong password', 'bad_mfa_code' => 'Wrong code', 'locked' => 'Refused: account locked', 'ip_throttled' => 'Refused: too many attempts from that network',
+    ? (['mfa' => 'Signed in · authenticator code', 'mfa_email' => 'Signed in · e-mailed code', 'mfa_passkey' => 'Signed in · passkey', 'trusted_browser' => 'Signed in · trusted browser', 'sso' => 'Signed in · university sign-in'][(string) $r] ?? 'Signed in')
+    : (['bad_password' => 'Wrong password', 'bad_mfa_code' => 'Wrong code', 'bad_passkey' => 'Passkey not accepted', 'locked' => 'Refused: account locked', 'ip_throttled' => 'Refused: too many attempts from that network',
         'disabled' => 'Refused: account disabled', 'admin_network_refused' => 'Refused: outside the university network', 'password_login_disabled' => 'Refused: password sign-in is off',
         'reauth_failed' => 'Identity check: wrong password', 'reauth_bad_code' => 'Identity check: wrong code'][(string) $r]
         ?? (str_starts_with((string) $r, 'bot_') ? 'Refused: robot check failed' : 'Refused'));
@@ -175,6 +176,18 @@ V::header('Account & security', $user, ['subtitle' => V::h($user['username']) . 
 <?php else: ?>
 <section class="card"><div class="card-h"><h2>Sign-in</h2></div><div class="card-b small">You sign in with your university account; your password and multi-factor authentication are managed by the university identity provider.</div></section>
 <?php endif; ?>
+<?php if ($passwordAllowed): $pkAvail = Passkeys::available(); $pks = Passkeys::forUser((int) $user['id']); ?>
+<section class="card" id="passkeys"><div class="card-h"><h2>Passkeys</h2><?= $pks ? V::pill(count($pks) . ' registered', 'green') : V::pill('None', 'grey') ?></div><div class="card-b small">
+  <p>A passkey lets you pass the second step with your device's fingerprint, face or PIN instead of typing a code. It works only on this site, so a fake sign-in page cannot capture it. Your password is still required<?= $user['role'] === 'admin' ? ', and administrators keep the authenticator app as well' : ', and the other ways to confirm stay as your backup' ?>.</p>
+  <?php if ($pks): ?><table><tbody><?php foreach ($pks as $pk): ?><tr><td class="small"><strong><?= V::h($pk['label']) ?></strong><div class="tiny muted">added <?= V::h(V::date($pk['created_at'])) ?> · <?= $pk['last_used_at'] ? 'last used ' . V::h(V::date($pk['last_used_at'])) : 'not used yet' ?></div></td>
+    <td class="num"><button type="button" class="btn btn-sm btn-ghost" data-passkey="remove" data-id="<?= (int) $pk['id'] ?>" data-csrf="<?= V::h(Csrf::token()) ?>" data-status="passkey-status" data-confirm="<?= V::h('Remove this passkey? You can add it again later.') ?>">Remove</button></td></tr><?php endforeach; ?></tbody></table><?php endif; ?>
+  <?php if ($pkAvail): ?>
+  <div class="row" style="margin-top:10px;flex-wrap:wrap"><label class="sr-only" for="passkey-label">Name for this passkey</label><input type="text" id="passkey-label" maxlength="80" placeholder="Name it, e.g. Office laptop" style="width:220px"><button type="button" class="btn btn-sm btn-primary" data-passkey="register" data-csrf="<?= V::h(Csrf::token()) ?>" data-status="passkey-status" data-label="passkey-label">Add a passkey</button></div>
+  <?php else: ?><p class="muted" style="margin-top:8px">Passkeys need a secure connection (HTTPS) and a host name, so they are not available on this address.</p><?php endif; ?>
+  <div id="passkey-status" hidden aria-live="polite" style="margin-top:8px"></div>
+</div></section>
+<script src="assets/passkey.js?v=<?= SAQF_VERSION ?>" defer></script>
+<?php endif; ?>
 <?php if ($passwordAllowed && TrustedDevices::allowed($user)): ?>
 <section class="card" id="trusted"><div class="card-h"><h2>Trusted browsers</h2><?php if ($trusted): ?><form method="post" class="right"><?= Csrf::field() ?><input type="hidden" name="op" value="forget_browsers"><button class="btn btn-sm">Forget all</button></form><?php endif; ?></div><div class="card-b tight"><table><tbody>
   <?php foreach ($trusted as $d): ?><tr><td class="small"><strong><?= V::h($d['description']) ?></strong><div class="tiny muted">trusted <?= V::h(V::date($d['created_at'])) ?> · until <?= V::h(V::date($d['expires_at'])) ?><?= $d['last_used_at'] ? ' · last used ' . V::h(V::ago($d['last_used_at'])) : '' ?></div></td>
@@ -191,7 +204,7 @@ V::header('Account & security', $user, ['subtitle' => V::h($user['username']) . 
 </div>
 <div class="stack">
 <section class="card"><div class="card-h"><h2>Where you're signed in</h2><?php if (count(array_filter($sessions, static fn($s) => $s['ended_at'] === null)) > 1): ?><form method="post" class="right"><?= Csrf::field() ?><input type="hidden" name="op" value="end_others"><button class="btn btn-sm">Sign out all other sessions</button></form><?php endif; ?></div><div class="card-b tight"><table><tbody>
-  <?php foreach ($sessions as $s): $isCurrent = $s['token_hash'] === $current; ?><tr><td class="small"><strong><?= V::h(Sessions::describe($s['user_agent'])) ?></strong><?= $isCurrent ? ' ' . V::pill('this session', 'blue') : '' ?><div class="tiny muted"><span class="mono"><?= V::h($s['ip']) ?></span> · <?= V::h(['password' => 'Password', 'password+mfa' => 'Password and authenticator code', 'password+email' => 'Password and e-mailed code', 'password+trusted' => 'Password on a trusted browser', 'sso' => 'University sign-in', 'demo' => 'Demo shortcut'][$s['method']] ?? $s['method']) ?></div></td>
+  <?php foreach ($sessions as $s): $isCurrent = $s['token_hash'] === $current; ?><tr><td class="small"><strong><?= V::h(Sessions::describe($s['user_agent'])) ?></strong><?= $isCurrent ? ' ' . V::pill('this session', 'blue') : '' ?><div class="tiny muted"><span class="mono"><?= V::h($s['ip']) ?></span> · <?= V::h(['password' => 'Password', 'password+mfa' => 'Password and authenticator code', 'password+email' => 'Password and e-mailed code', 'password+passkey' => 'Password and passkey', 'password+trusted' => 'Password on a trusted browser', 'sso' => 'University sign-in', 'demo' => 'Demo shortcut'][$s['method']] ?? $s['method']) ?></div></td>
     <td class="small"><?= $s['ended_at'] ? '<span class="muted">ended ' . V::h(V::ago($s['ended_at'])) . ($s['end_reason'] ? ' · ' . V::h($s['end_reason']) : '') . '</span>' : 'active · ' . V::h(V::ago($s['last_seen_at'])) ?></td>
     <td class="num"><?php if (!$s['ended_at'] && !$isCurrent): ?><form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="end_session"><input type="hidden" name="session" value="<?= V::h($s['token_hash']) ?>"><button class="btn btn-sm btn-ghost">Sign out</button></form><?php endif; ?></td></tr><?php endforeach; ?>
   </tbody></table></div></section>

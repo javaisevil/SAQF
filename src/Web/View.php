@@ -290,7 +290,7 @@ final class View
             'total' => 'Total', 'must' => 'must be', 'nomatch' => 'No matches', 'show' => 'Show', 'hide' => 'Hide', 'showpw' => 'Show password', 'hidepw' => 'Hide password',
             'caps' => 'Caps Lock is on', 'weak' => 'Weak', 'fair' => 'Fair', 'good' => 'Good', 'strong' => 'Strong', 'len' => 'At least 10 characters',
             'mix' => 'Letters and numbers', 'long' => '14 or more characters, or a passphrase', 'common' => 'Not a common password or keyboard run',
-            'working' => 'Please wait…', 'robot' => 'Please confirm you are not a robot first.', 'dismiss' => 'Dismiss', 'stayed' => 'You are still signed in.'];
+            'passkey_failed' => 'The passkey could not be used.', 'passkey_unsupported' => 'This browser cannot use passkeys.', 'working' => 'Please wait…', 'robot' => 'Please confirm you are not a robot first.', 'dismiss' => 'Dismiss', 'stayed' => 'You are still signed in.'];
         $out = '<div id="ui-text" hidden>';
         foreach ($k as $key => $text) {
             $out .= '<span data-k="' . $key . '">' . self::h($text) . '</span>';

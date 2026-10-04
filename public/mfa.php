@@ -9,6 +9,7 @@ use Saqf\Core\Policy;
 use Saqf\Core\Secrets;
 use Saqf\Security\Auth;
 use Saqf\Security\Mfa;
+use Saqf\Security\Passkeys;
 use Saqf\Security\TrustedDevices;
 use Saqf\Security\Totp;
 use Saqf\Web\View as V;
@@ -53,6 +54,7 @@ $email = $_SESSION['mfa_pending']['email'] ?? null;
 $canEmail = Mfa::emailAllowed($pending);
 $canApp = Mfa::enabled($pending);
 $canTrust = TrustedDevices::allowed($pending);
+$hasPasskey = Passkeys::available() && Passkeys::count($pending) > 0;
 // Demo mode only: show what the phone app would display, or the e-mail that would arrive, so the step can be demonstrated.
 $demoApp = Config::demoMode() && $method === 'app' && $canApp ? Totp::code((string) Secrets::decrypt((string) $pending['mfa_secret'])) : null;
 $demoMail = Config::demoMode() && $method === 'email' && $email ? ($email['demo'] ?? null) : null;
@@ -60,27 +62,31 @@ $demoMail = Config::demoMode() && $method === 'email' && $email ? ($email['demo'
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Two-step verification · SAQF</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="assets/app.css?v=<?= SAQF_VERSION ?>"></head>
 <body><div class="login"><section class="login-hero"><div><img src="assets/yu-logo.png" alt="Al Yamamah University"><h1>Two-step verification</h1>
-<p>Your password was correct. To finish signing in, prove it is really you with a second step: a one-time code <?= $method === 'email' ? 'we just e-mailed to your university address' : 'from your authenticator app (Microsoft Authenticator, Google Authenticator or similar)' ?>.</p>
-<p>A stolen password alone is not enough to open your account: the thief would also need your <?= $method === 'email' ? 'e-mail' : 'phone' ?>.</p>
-<ol class="steps-done"><li class="done">Password</li><li class="done">Robot check</li><li class="now">Code</li></ol></div></section>
-<section class="login-form"><div class="login-lang"><?= \Saqf\Web\I18n::switchLink() ?></div><h2>Enter your code</h2>
+<?php if ($method === 'passkey'): ?><p>Your password was correct. To finish signing in, use your passkey: your device will ask for your fingerprint, face or PIN.</p>
+<p>A passkey works only on this site, so a fake sign-in page cannot capture it, and a stolen password alone is not enough.</p>
+<?php else: ?><p>Your password was correct. To finish signing in, prove it is really you with a second step: a one-time code <?= $method === 'email' ? 'we just e-mailed to your university address' : 'from your authenticator app (Microsoft Authenticator, Google Authenticator or similar)' ?>.</p>
+<p>A stolen password alone is not enough to open your account: the thief would also need your <?= $method === 'email' ? 'e-mail' : 'phone' ?>.</p><?php endif; ?>
+<ol class="steps-done"><li class="done">Password</li><li class="done">Robot check</li><li class="now"><?= $method === 'passkey' ? 'Passkey' : 'Code' ?></li></ol></div></section>
+<section class="login-form"><div class="login-lang"><?= \Saqf\Web\I18n::switchLink() ?></div><h2><?= $method === 'passkey' ? 'Use your passkey' : 'Enter your code' ?></h2>
 <p class="muted">Signing in as <strong><?= V::h($pending['username']) ?></strong></p>
 <?php if ($error): ?><div class="alert alert-error" role="alert"><?= V::h($error) ?></div><?php endif; ?>
 <?php if ($notice): ?><div class="alert alert-success" role="status"><?= V::h($notice) ?></div><?php endif; ?>
-<?php if ($method === 'email' && $email): ?><p class="small">We sent a 6-digit code to <strong translate="no"><?= V::h($email['to']) ?></strong>. It is valid for 10 minutes.</p>
+<?php if ($hasPasskey): ?><div class="passkey-box" style="margin:0 0 14px"><button type="button" class="btn btn-primary" data-passkey="login" data-csrf="<?= V::h(Csrf::token()) ?>" data-status="passkey-status" style="width:100%;justify-content:center;padding:10px">Use a passkey</button><div id="passkey-status" hidden aria-live="polite" style="margin-top:8px"></div><?php if ($method !== 'passkey'): ?><p class="tiny muted" style="margin:8px 0 0">Or enter a code below.</p><?php endif; ?></div><?php endif; ?>
+<?php if ($method === 'passkey'): ?>
+<?php elseif ($method === 'email' && $email): ?><p class="small">We sent a 6-digit code to <strong translate="no"><?= V::h($email['to']) ?></strong>. It is valid for 10 minutes.</p>
 <?php elseif ($method === 'app'): ?><p class="small">Open your authenticator app and enter the 6-digit code shown for SAQF. Lost your phone? Enter one of your recovery codes instead.</p><?php endif; ?>
-<form method="post" autocomplete="off" data-protected><?= Csrf::field() ?><input type="hidden" name="op" value="verify">
+<?php if ($method !== 'passkey'): ?><form method="post" autocomplete="off" data-protected><?= Csrf::field() ?><input type="hidden" name="op" value="verify">
   <div class="field"><label for="code">Verification code</label><input type="text" id="code" name="code" required autofocus inputmode="numeric" autocomplete="one-time-code" maxlength="12" placeholder="123456" class="otp" dir="ltr"></div>
   <?php if ($canTrust): ?><label class="row small" style="gap:8px;margin:-4px 0 12px"><input type="checkbox" name="trust" value="1" style="width:auto"> Don't ask again on this browser for <?= (int) Policy::get('auth.trusted_device_days') ?> days</label><?php endif; ?>
-  <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center;padding:10px">Verify and sign in</button></form>
+  <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center;padding:10px">Verify and sign in</button></form><?php endif; ?>
 <div class="mfa-alt small">
   <?php if ($method === 'email'): ?><form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="resend"><button class="linkbtn" type="submit">Send a new code</button></form><?php endif; ?>
   <?php if ($method === 'email' && $canApp): ?><form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="use_app"><button class="linkbtn" type="submit">Use my authenticator app instead</button></form><?php endif; ?>
-  <?php if ($method === 'app' && $canEmail): ?><form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="use_email"><button class="linkbtn" type="submit">E-mail me a code instead</button></form><?php endif; ?>
+  <?php if (in_array($method, ['app', 'passkey'], true) && $canEmail): ?><form method="post"><?= Csrf::field() ?><input type="hidden" name="op" value="use_email"><button class="linkbtn" type="submit">E-mail me a code instead</button></form><?php endif; ?>
   <a href="login.php">Cancel and start again</a>
 </div>
 <?php if ($demoMail): ?><div class="demo-mail" aria-label="Demo mailbox"><div class="demo-mail-h"><strong>Demo mailbox</strong><span class="tiny">what <?= V::h($pending['full_name']) ?> receives</span></div>
   <div class="demo-mail-b"><div class="tiny muted">To: <span translate="no"><?= V::h($pending['email']) ?></span> · Subject: Your SAQF sign-in code</div><div class="demo-mail-code" translate="no" dir="ltr"><?= V::h(substr($demoMail, 0, 3) . ' ' . substr($demoMail, 3)) ?></div><div class="tiny muted">Shown only in demo mode, because no mail server is connected. In production the code arrives only in the person's university mailbox.</div></div></div><?php endif; ?>
 <?php if ($demoApp): ?><div class="demo-accounts"><strong>Demo mode</strong> — the code the authenticator app would show right now: <code style="font-size:16px" dir="ltr"><?= V::h(substr($demoApp, 0, 3) . ' ' . substr($demoApp, 3)) ?></code><div class="tiny muted">Shown only in demo mode. In production the code comes only from the person's phone.</div></div><?php endif; ?>
 <p class="tiny muted" style="margin-top:12px">SAQF staff will never ask you for this code. After 5 wrong codes the sign-in starts again.</p>
-</section></div><?= V::authFoot() ?></body></html>
+</section></div><?= V::authFoot() ?><?php if ($hasPasskey): ?><script src="assets/passkey.js?v=<?= SAQF_VERSION ?>" defer></script><?php endif; ?></body></html>

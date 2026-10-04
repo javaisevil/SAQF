@@ -64,6 +64,8 @@ jobs:
         run: php bin/install.php --demo --fresh && php tests/hardening_test.php
       - name: Course file closeout, evidence review by a person, course file package
         run: php bin/install.php --demo --fresh && php tests/closeout_test.php
+      - name: Passkeys (WebAuthn) - hostile vectors and the sign-in flow
+        run: php bin/install.php --demo --fresh && php tests/passkey_test.php
       - name: Upgrade path (migrations are idempotent)
         run: php bin/migrate.php && php bin/migrate.php --status
 

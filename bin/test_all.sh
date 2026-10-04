@@ -43,6 +43,7 @@ run "Go-live readiness, data pack, access review, security proof" readiness php 
 run "Robot check, two-step codes, trusted browsers, session, help" signin php tests/signin_test.php
 run "Privacy and security hardening (pseudonyms, key, https, backups)" hardening php tests/hardening_test.php
 run "Course file closeout, evidence review, course file package" closeout php tests/closeout_test.php
+run "Passkeys (WebAuthn): hostile vectors and the sign-in flow" passkey php tests/passkey_test.php
 php bin/migrate.php > "$log/migrate.log" 2>&1 && php bin/migrate.php --status >> "$log/migrate.log" 2>&1 \
   && echo "  ok   Database migrations are idempotent (upgrade path)" || { echo "  FAIL Migrations (see $log/migrate.log)"; total_fail=$((total_fail + 1)); failed="$failed migrate"; }
 php bin/install.php --demo --fresh > /dev/null 2>&1

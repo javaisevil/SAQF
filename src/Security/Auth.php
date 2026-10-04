@@ -112,7 +112,8 @@ final class Auth
         }
         // Second step: the authenticator app when the person set one up, otherwise an e-mailed code
         // whenever policy requires two-step verification for them.
-        $method = Mfa::enabled($user) ? 'app' : (Mfa::required($user) && Mfa::emailAllowed($user) ? 'email' : null);
+        $hasPasskey = Passkeys::available() && Passkeys::count($user) > 0;
+        $method = Mfa::enabled($user) ? 'app' : ($hasPasskey ? 'passkey' : (Mfa::required($user) && Mfa::emailAllowed($user) ? 'email' : null));
         if ($method !== null && TrustedDevices::recognises($user)) {
             self::login($user, 'password+trusted');
             self::logAttempt($username, true, 'trusted_browser');
@@ -125,7 +126,7 @@ final class Auth
             if ($method === 'email') {
                 Mfa::sendEmailCode($user);
             }
-            return ['ok' => true, 'mfa' => true, 'message' => $method === 'email' ? 'Enter the code we e-mailed you' : 'Enter the code from your authenticator app'];
+            return ['ok' => true, 'mfa' => true, 'message' => $method === 'email' ? 'Enter the code we e-mailed you' : ($method === 'passkey' ? 'Use your passkey' : 'Enter the code from your authenticator app')];
         }
         self::login($user);
         self::logAttempt($username, true, null);
@@ -138,10 +139,11 @@ final class Auth
         self::logAttempt(mb_strtolower(trim($username)) ?: '(none)', false, $reason);
     }
 
-    /** How the waiting sign-in is being confirmed: app | email. */
+    /** How the waiting sign-in is being confirmed: app | email | passkey. */
     public static function mfaMethod(): string
     {
-        return ($_SESSION['mfa_pending']['method'] ?? 'app') === 'email' ? 'email' : 'app';
+        $m = (string) ($_SESSION['mfa_pending']['method'] ?? 'app');
+        return in_array($m, ['email', 'passkey'], true) ? $m : 'app';
     }
 
     /** Lets the person switch between the authenticator app and an e-mailed code. @return string|null error */
@@ -204,6 +206,39 @@ final class Auth
         return ['ok' => true, 'message' => 'Signed in'];
     }
 
+    /**
+     * Second step with a passkey (the password was already accepted). Every failure counts like a wrong code:
+     * after five the sign-in starts again. @param array<string,mixed> $payload what navigator.credentials.get() returned
+     * @return array{ok:bool,message:string}
+     */
+    public static function completePasskey(array $payload): array
+    {
+        $user = self::mfaPending();
+        if (!$user) {
+            return ['ok' => false, 'message' => 'The sign-in expired. Enter your password again.'];
+        }
+        $right = false;
+        try {
+            $right = Passkeys::loginFinish($user, $payload);
+        } catch (\InvalidArgumentException | \RuntimeException $e) {
+            $right = false;
+        }
+        if (!$right) {
+            $_SESSION['mfa_pending']['tries'] = (int) $_SESSION['mfa_pending']['tries'] + 1;
+            self::logAttempt((string) $user['username'], false, 'bad_passkey');
+            if ($_SESSION['mfa_pending']['tries'] >= 5) {
+                unset($_SESSION['mfa_pending']);
+                Audit::asSystem(fn() => Audit::record('security.mfa_failed', 'user', $user['id'], "Five failed second-step attempts for {$user['username']}; sign-in abandoned"));
+                return ['ok' => false, 'message' => 'Too many failed attempts. Sign in again.'];
+            }
+            return ['ok' => false, 'message' => 'That passkey could not be verified. Try again, use a code instead, or start again.'];
+        }
+        unset($_SESSION['mfa_pending']);
+        self::login($user, 'password+passkey');
+        self::logAttempt((string) $user['username'], true, 'mfa_passkey');
+        return ['ok' => true, 'message' => 'Signed in'];
+    }
+
     /** Sensitive changes need a sign-in or identity confirmation within security.reauth_minutes. */
     public static function recentlyVerified(): bool
     {
@@ -248,7 +283,7 @@ final class Auth
             'last_login_at' => $now->format('Y-m-d H:i:s'), 'last_login_ip' => Request::ip(),
         ], 'id = ?', [$user['id']]);
         self::$user = null;
-        $how = ['sso' => ' (university SSO)', 'password+mfa' => ' (password and authenticator code)', 'password+email' => ' (password and e-mailed code)', 'password+trusted' => ' (password on a trusted browser)', 'demo' => ' (demo one-click sign-in)'][$method] ?? '';
+        $how = ['sso' => ' (university SSO)', 'password+mfa' => ' (password and authenticator code)', 'password+email' => ' (password and e-mailed code)', 'password+passkey' => ' (password and passkey)', 'password+trusted' => ' (password on a trusted browser)', 'demo' => ' (demo one-click sign-in)'][$method] ?? '';
         Audit::record('auth.login', 'user', $user['id'], "{$user['full_name']} signed in$how");
         // Like a bank: say when and where the account was last used, so a stranger's sign-in stands out.
         if ($method !== 'demo' && $previous) {
@@ -343,7 +378,7 @@ final class Auth
             Authz::deny('administration from an untrusted network');
         }
         $page = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
-        $passwordSession = in_array($_SESSION['auth'] ?? 'password', ['password', 'password+mfa', 'password+email', 'password+trusted'], true);
+        $passwordSession = in_array($_SESSION['auth'] ?? 'password', ['password', 'password+mfa', 'password+email', 'password+passkey', 'password+trusted'], true);
         if ($user['must_change_password'] && $passwordSession && $page !== 'account.php') {
             header('Location: ' . Request::url('account.php?required=1'));
             exit;

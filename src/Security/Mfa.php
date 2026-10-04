@@ -41,7 +41,9 @@ final class Mfa
     /** True when the person has a working second step (an authenticator app, or e-mailed codes). */
     public static function hasFactor(array $user): bool
     {
-        return self::enabled($user) || self::emailAllowed($user);
+        // A passkey (device PIN or biometric, bound to this site) counts for everyone except administrators,
+        // who must still use the authenticator app.
+        return self::enabled($user) || self::emailAllowed($user) || (($user['role'] ?? '') !== 'admin' && Passkeys::count($user) > 0);
     }
 
     /** "o•••••@yu.edu.sa" */
