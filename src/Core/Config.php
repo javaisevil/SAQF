@@ -28,7 +28,7 @@ final class Config
      * environment, `docker inspect` output and process listings. An explicit value wins over the file.
      */
     public const SECRET_KEYS = [
-        'SAQF_APP_KEY', 'SAQF_DB_PASS', 'SAQF_OIDC_CLIENT_SECRET', 'SAQF_SIS_TOKEN', 'SAQF_MOODLE_TOKEN',
+        'SAQF_APP_KEY', 'SAQF_DB_PASS', 'SAQF_OIDC_CLIENT_SECRET', 'SAQF_SIS_TOKEN', 'SAQF_SIS_CLIENT_SECRET', 'SAQF_LMS_TOKEN', 'SAQF_LMS_CLIENT_SECRET', 'SAQF_MOODLE_TOKEN',
         'SAQF_BLACKBOARD_KEY', 'SAQF_BLACKBOARD_SECRET', 'SAQF_MAIL_PASSWORD', 'SAQF_BACKUP_PASSPHRASE', 'SAQF_ALERT_WEBHOOK',
     ];
 

@@ -9,14 +9,15 @@ use Saqf\Core\Config;
 /**
  * Registry so the rest of SAQF never instantiates a concrete adapter directly.
  * The connector for each university system comes from configuration:
- *   SAQF_SIS_SOURCE = file | rest | demo | none     (default: demo in demo mode, otherwise file)
- *   SAQF_LMS_SOURCE = moodle | blackboard | file | demo | none
+ *   SAQF_SIS_SOURCE = file | rest | mapped | demo | none     (default: demo in demo mode, otherwise file)
+ *   SAQF_LMS_SOURCE = moodle | blackboard | mapped | file | demo | none
+ * "mapped" connects to any JSON API through a mapping file instead of code (see Mapping).
  * Each connector reads its own settings; see docs/INTEGRATIONS.md.
  */
 final class Integrations
 {
-    public const SIS_KINDS = ['file', 'rest', 'demo', 'none'];
-    public const LMS_KINDS = ['moodle', 'blackboard', 'file', 'demo', 'none'];
+    public const SIS_KINDS = ['file', 'rest', 'mapped', 'demo', 'none'];
+    public const LMS_KINDS = ['moodle', 'blackboard', 'mapped', 'file', 'demo', 'none'];
 
     private static ?InstitutionSource $institution = null;
     private static ?SisSource $sis = null;
@@ -36,6 +37,9 @@ final class Integrations
                     break;
                 case 'rest':
                     self::$sis = new RestSisSource();
+                    break;
+                case 'mapped':
+                    self::$sis = new MappedSisSource();
                     break;
                 case 'none':
                     self::$sis = new NullSisSource();
@@ -59,6 +63,9 @@ final class Integrations
                     break;
                 case 'blackboard':
                     self::$lms = new BlackboardLmsSource();
+                    break;
+                case 'mapped':
+                    self::$lms = new MappedLmsSource();
                     break;
                 case 'none':
                     self::$lms = new NullLmsSource();

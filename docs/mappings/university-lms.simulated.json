@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "name": "University learning-system gradebook API",
+  "simulated": true,
+  "auth": { "type": "header", "name": "X-Api-Key" },
+  "check": { "path": "/health" },
+  "grades": {
+    "path": "/lms/v1/courses/{course_key}/marks",
+    "query": { "limit": 10 },
+    "list": "data.marks",
+    "empty_statuses": [404],
+    "pagination": { "type": "next_link", "next_path": "links.next" },
+    "skip_assessments": ["TOTAL"],
+    "fields": {
+      "student": "learner_no",
+      "assessment": { "path": "column", "map": { "MT": "Midterm exam", "FN": "Final exam" } },
+      "score": "points",
+      "max": "points_possible",
+      "section": "group"
+    }
+  }
+}

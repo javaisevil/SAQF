@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "name": "University registry API",
+  "simulated": true,
+  "auth": { "type": "bearer" },
+  "check": { "path": "/health" },
+  "terms": {
+    "path": "/registry/v2/semesters",
+    "list": "payload.rows",
+    "pagination": { "type": "page", "param": "page", "size_param": "per_page", "size": 2 },
+    "fields": {
+      "code": "semester_code",
+      "name": "title_en",
+      "academic_year": "acad_year",
+      "sequence": { "path": "ordinal", "transform": ["int"] },
+      "starts_on": { "path": "begin", "transform": ["date:d/m/Y"] },
+      "ends_on": { "path": "finish", "transform": ["date:d/m/Y"] },
+      "grades_due_on": { "path": "grade_deadline", "transform": ["date:d/m/Y"] }
+    }
+  },
+  "assignments": {
+    "path": "/registry/v2/semesters/{term}/teaching",
+    "list": "payload.rows",
+    "pagination": { "type": "cursor", "param": "after", "next_path": "payload.next_cursor" },
+    "fields": {
+      "course": { "path": "offering.course_no", "transform": ["course"] },
+      "section": "offering.section_no",
+      "instructor_id": "staff.id",
+      "instructor_name": { "join": ["staff.first", "staff.last"], "sep": " " },
+      "instructor_email": "staff.mail",
+      "department": "dept_code",
+      "enrolled": { "path": "enrolled_count", "transform": ["int"] },
+      "coordinator": { "path": "is_coordinator", "transform": ["bool"] }
+    }
+  }
+}

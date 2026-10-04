@@ -17,9 +17,13 @@ use Saqf\Core\Config;
  */
 final class Http
 {
+    /** Largest answer SAQF will read from a remote system. */
+    public const MAX_BYTES = 33554432;
+
     /** Settings holding outbound addresses, checked by readiness() (labels for the administrator). */
     public const URL_SETTINGS = [
         'SAQF_SIS_URL' => 'SIS integration API',
+        'SAQF_LMS_URL' => 'LMS integration API',
         'SAQF_MOODLE_URL' => 'Moodle',
         'SAQF_BLACKBOARD_URL' => 'Blackboard Learn',
         'SAQF_OIDC_ISSUER' => 'University sign-in (identity provider)',
@@ -72,9 +76,19 @@ final class Http
         foreach ($headers as $k => $v) {
             $h[] = $k . ': ' . $v;
         }
+        // A remote system can never make SAQF hold more than MAX_BYTES of one answer in memory.
+        $resp = '';
+        $tooBig = false;
         curl_setopt_array($ch, [
             CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_WRITEFUNCTION => static function ($c, string $chunk) use (&$resp, &$tooBig): int {
+                $resp .= $chunk;
+                if (strlen($resp) > self::MAX_BYTES) {
+                    $tooBig = true;
+                    return 0;
+                }
+                return strlen($chunk);
+            },
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_TIMEOUT => $timeout,
@@ -87,8 +101,12 @@ final class Http
         if ($body !== null) {
             curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
         }
-        $resp = curl_exec($ch);
-        if ($resp === false) {
+        $done = curl_exec($ch);
+        if ($tooBig) {
+            curl_close($ch);
+            throw new RuntimeException(self::host($url) . ' answered with more than ' . (self::MAX_BYTES / 1048576) . ' MB, which SAQF refuses to read.');
+        }
+        if ($done === false) {
             $err = curl_error($ch);
             curl_close($ch);
             throw new RuntimeException('Could not reach ' . self::host($url) . ': ' . $err);

@@ -42,27 +42,27 @@ final class GoLive
 
         // SIS --------------------------------------------------------------------------------
         $kind = Integrations::sisKind();
-        $miss = $kind === 'rest' ? $missing(['SAQF_SIS_URL', 'SAQF_SIS_TOKEN']) : [];
+        $miss = $kind === 'rest' ? $missing(['SAQF_SIS_URL', 'SAQF_SIS_TOKEN']) : ($kind === 'mapped' ? self::mappedMissing('SIS', $missing) : []);
         $out[] = [
             'key' => 'sis', 'label' => 'Student information system (timetable)',
             'mode' => $kind === 'demo' ? 'demo' : ($kind === 'none' ? 'off' : 'live'),
-            'headline' => ['demo' => 'Simulated university timetable', 'file' => 'Nightly export files', 'rest' => 'SIS integration API', 'none' => 'Switched off'][$kind],
-            'detail' => $kind === 'rest' ? ($miss ? 'Missing: ' . implode(', ', $miss) : 'URL and token are set.') : ($kind === 'file' ? 'Reads terms.csv and assignments.csv from the SIS drop folder.' : ($kind === 'demo' ? 'Fictional teaching assignments drive the demonstration.' : 'Terms are added by hand and courses assigned by Heads of Department.')),
+            'headline' => ['demo' => 'Simulated university timetable', 'file' => 'Nightly export files', 'rest' => 'SIS integration API', 'mapped' => 'SIS API through a mapping file', 'none' => 'Switched off'][$kind],
+            'detail' => $kind === 'mapped' ? ($miss ? 'Missing: ' . implode(', ', $miss) : Integrations::sis()->label() . '.') : ($kind === 'rest' ? ($miss ? 'Missing: ' . implode(', ', $miss) : 'URL and token are set.') : ($kind === 'file' ? 'Reads terms.csv and assignments.csv from the SIS drop folder.' : ($kind === 'demo' ? 'Fictional teaching assignments drive the demonstration.' : 'Terms are added by hand and courses assigned by Heads of Department.'))),
             'missing' => $miss,
-            'next' => $kind === 'demo' ? 'IT: either place the SIS export (templates below) in storage/inbox/sis and set SAQF_SIS_SOURCE=file, or set SAQF_SIS_SOURCE=rest with SAQF_SIS_URL and SAQF_SIS_TOKEN.' : ($miss ? 'IT: set ' . implode(' and ', $miss) . '.' : 'Press "Test connections".'),
+            'next' => $kind === 'demo' ? 'IT: either place the SIS export (templates below) in storage/inbox/sis and set SAQF_SIS_SOURCE=file, or write a mapping for the university\'s API (docs/INTEGRATIONS.md, "Mapped API") and set SAQF_SIS_SOURCE=mapped, or use SAQF_SIS_SOURCE=rest if the API already has SAQF\'s shape.' : ($miss ? 'IT: set ' . implode(' and ', $miss) . '.' : 'Press "Test connections".'),
             'test' => $test ? self::safeCheck(static fn() => Integrations::sis()->check()) : null,
         ];
 
         // LMS --------------------------------------------------------------------------------
         $kind = Integrations::lmsKind();
-        $miss = $kind === 'moodle' ? $missing(['SAQF_MOODLE_URL', 'SAQF_MOODLE_TOKEN']) : ($kind === 'blackboard' ? $missing(['SAQF_BLACKBOARD_URL', 'SAQF_BLACKBOARD_KEY', 'SAQF_BLACKBOARD_SECRET']) : []);
+        $miss = $kind === 'moodle' ? $missing(['SAQF_MOODLE_URL', 'SAQF_MOODLE_TOKEN']) : ($kind === 'blackboard' ? $missing(['SAQF_BLACKBOARD_URL', 'SAQF_BLACKBOARD_KEY', 'SAQF_BLACKBOARD_SECRET']) : ($kind === 'mapped' ? self::mappedMissing('LMS', $missing) : []));
         $out[] = [
             'key' => 'lms', 'label' => 'Learning management system (grades)',
             'mode' => $kind === 'demo' ? 'demo' : ($kind === 'none' ? 'off' : 'live'),
-            'headline' => ['demo' => 'Simulated gradebooks', 'moodle' => 'Moodle', 'blackboard' => 'Blackboard Learn', 'file' => 'Gradebook export files', 'none' => 'Switched off'][$kind],
+            'headline' => ['demo' => 'Simulated gradebooks', 'moodle' => 'Moodle', 'blackboard' => 'Blackboard Learn', 'mapped' => 'LMS API through a mapping file', 'file' => 'Gradebook export files', 'none' => 'Switched off'][$kind],
             'detail' => $miss ? 'Missing: ' . implode(', ', $miss) : ($kind === 'demo' ? 'Fictional pseudonymous results for the demonstration courses.' : ($kind === 'none' ? 'Instructors upload gradebook CSV files in their course.' : 'Settings present; student identifiers are pseudonymised before storage.')),
             'missing' => $miss,
-            'next' => $kind === 'demo' ? 'IT: create a read-only grade token in the LMS and set SAQF_LMS_SOURCE=moodle (or blackboard) with its URL and credentials; the course-ID pattern is SAQF_LMS_COURSE_KEY.' : ($miss ? 'IT: set ' . implode(' and ', $miss) . '.' : 'Press "Test connections".'),
+            'next' => $kind === 'demo' ? 'IT: create a read-only grade token in the LMS and set SAQF_LMS_SOURCE=moodle (or blackboard) with its URL and credentials; for any other LMS with a JSON API, write a mapping (docs/INTEGRATIONS.md, "Mapped API") and set SAQF_LMS_SOURCE=mapped. The course-ID pattern is SAQF_LMS_COURSE_KEY.' : ($miss ? 'IT: set ' . implode(' and ', $miss) . '.' : 'Press "Test connections".'),
             'test' => $test ? self::safeCheck(static fn() => Integrations::lms()->check()) : null,
         ];
 
@@ -121,12 +121,13 @@ final class GoLive
             '# Registrar catalogue: drop the export into storage/inbox/catalog (no setting needed) or point here',
             '# SAQF_INSTITUTION_DIR=/data/registrar-export',
             '',
-            '# SIS: file (CSV in storage/inbox/sis) or rest',
+            '# SIS: file (CSV in storage/inbox/sis), rest (API shaped like SAQF\'s contract) or mapped (any JSON API, described in a mapping file)',
             'SAQF_SIS_SOURCE=file',
             '# SAQF_SIS_URL=https://integration.yu.edu.sa/saqf',
             '# SAQF_SIS_TOKEN=',
+            '# SAQF_SIS_MAPPING=config/sis.mapping.json',
             '',
-            '# LMS: moodle or blackboard',
+            '# LMS: moodle, blackboard, or mapped (SAQF_LMS_MAPPING, SAQF_LMS_URL, SAQF_LMS_TOKEN)',
             'SAQF_LMS_SOURCE=moodle',
             'SAQF_MOODLE_URL=https://lms.yu.edu.sa',
             'SAQF_MOODLE_TOKEN=',
@@ -145,6 +146,25 @@ final class GoLive
             'SAQF_MAIL_FROM=saqf@yu.edu.sa',
             '',
         ]);
+    }
+
+    /** Settings a mapped connector still needs (mapping file, address, and the credentials its auth type uses). */
+    private static function mappedMissing(string $sys, callable $missing): array
+    {
+        $need = ["SAQF_{$sys}_MAPPING", "SAQF_{$sys}_URL"];
+        try {
+            $mapping = Mapping::load(self::resolve((string) Config::get("SAQF_{$sys}_MAPPING", '')), $sys === 'SIS' ? 'sis' : 'lms');
+            $type = $mapping['auth']['type'] ?? 'bearer';
+            $need = array_merge($need, $type === 'oauth2' ? ["SAQF_{$sys}_CLIENT_ID", "SAQF_{$sys}_CLIENT_SECRET"] : ($type === 'none' ? [] : ["SAQF_{$sys}_TOKEN"]));
+        } catch (\Throwable $e) {
+            return array_merge($missing($need), $missing(["SAQF_{$sys}_MAPPING"]) ? [] : ['a valid mapping file (' . mb_substr($e->getMessage(), 0, 160) . ')']);
+        }
+        return $missing($need);
+    }
+
+    private static function resolve(string $path): string
+    {
+        return $path !== '' && $path[0] !== '/' ? SAQF_ROOT . '/' . $path : $path;
     }
 
     private static function safeCheck(callable $fn): array

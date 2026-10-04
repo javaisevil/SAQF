@@ -70,6 +70,8 @@ jobs:
         run: php bin/install.php --demo --fresh && php tests/injection_test.php
       - name: Faculty time savers (gradebook preview, facts, reminders, closeout board)
         run: php bin/install.php --demo --fresh && php tests/usability_test.php
+      - name: Mapped API connectors (SIS and LMS grades from a mapping file, against a simulated API)
+        run: php bin/install.php --demo --fresh && php tests/mapping_test.php
       - name: Upgrade path (migrations are idempotent)
         run: php bin/migrate.php && php bin/migrate.php --status
 

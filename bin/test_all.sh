@@ -46,6 +46,7 @@ run "Course file closeout, evidence review, course file package" closeout php te
 run "Passkeys (WebAuthn): hostile vectors and the sign-in flow" passkey php tests/passkey_test.php
 run "Injection and output-encoding probes (XSS, SQL, headers, redirects)" injection php tests/injection_test.php
 run "Faculty time savers (gradebook preview, facts, reminders, closeout board)" usability php tests/usability_test.php
+run "Mapped API connectors (SIS and LMS grades from a mapping file)" mapping php tests/mapping_test.php
 php bin/migrate.php > "$log/migrate.log" 2>&1 && php bin/migrate.php --status >> "$log/migrate.log" 2>&1 \
   && echo "  ok   Database migrations are idempotent (upgrade path)" || { echo "  FAIL Migrations (see $log/migrate.log)"; total_fail=$((total_fail + 1)); failed="$failed migrate"; }
 php bin/install.php --demo --fresh > /dev/null 2>&1
