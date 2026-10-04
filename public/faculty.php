@@ -38,7 +38,7 @@ V::header('My courses', $user, ['subtitle' => V::h($user['title'] . ' · ' . ($u
 <div class="split">
   <div class="stack">
     <section class="card">
-      <div class="card-h"><h2>What needs you</h2><span class="muted small"><?= count($actions) === 1 ? 'One thing to do' : V::h(count($actions) . ' things to do') ?> · SAQF handles the rest</span></div>
+      <div class="card-h"><h2>What needs you</h2><span class="muted small"><?= count($actions) === 1 ? 'One thing to do' : V::h(count($actions) . ' things to do') ?> · SAQF handles the rest</span><a class="btn btn-sm right" href="calendar.php" title="<?= V::h('A calendar file with your deadlines, for Outlook, Google or Apple Calendar') ?>"><?= V::h('Add my deadlines to my calendar') ?></a></div>
       <?php if (!$actions): ?>
         <div class="allclear"><strong>✓</strong><div><strong>Nothing needs you right now, <?= V::h($first) ?>.</strong><div class="muted small">SAQF keeps checking your courses and will list anything new here.</div></div></div>
       <?php else: ?>

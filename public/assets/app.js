@@ -70,6 +70,21 @@
     var f = e.target;
     if (f.dataset && f.dataset.confirm && !window.confirm(f.dataset.confirm)) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
+  // Never lose typed work: leaving a page with an edited form asks first; saving clears the warning.
+  (function () {
+    var dirty = false;
+    document.addEventListener('input', function (e) {
+      var f = e.target.form;
+      if (f && f.method === 'post' && f.closest('main') && e.target.type !== 'password' && e.target.type !== 'hidden' && !e.target.matches('[data-autosubmit],[data-nav]')) dirty = true;
+    });
+    document.addEventListener('submit', function () { dirty = false; });
+    window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+  })();
+  // Press / anywhere (outside a field) to jump to the search box.
+  document.addEventListener('keydown', function (e) {
+    var t = e.target, s = document.getElementById('globalSearch');
+    if (e.key === '/' && s && !e.ctrlKey && !e.metaKey && !e.altKey && !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) && !t.isContentEditable) { e.preventDefault(); s.focus(); }
+  });
   // Menu toggle, print, auto-submitting and navigating selects.
   document.addEventListener('click', function (e) {
     var t = e.target.closest('[data-toggle]');

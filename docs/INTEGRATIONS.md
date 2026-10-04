@@ -16,6 +16,40 @@ chosen with settings (environment variables, or `config.local.php` on shared hos
 under *University systems → Academic calendar* and courses assigned by Heads of Department, and instructors
 upload gradebook CSVs in their course workspace.
 
+## Replacing the demo data with the university's own
+
+Everything shown in the demo is data in a fixed layout, not code. To go live, replace each demo input with the
+university's own in the **same layout**; no program change is needed. *Administration → Go-live* is the
+control panel for this: it shows each connection as **Demo data** or **Live**, lists the settings still
+missing (never their values) and the exact next step, and downloads the templates below.
+
+| Demo input | Template (Go-live → Templates for IT) | Replace with | Where it goes |
+|---|---|---|---|
+| Programs, study plans, courses, prerequisites, outcomes (`data/yu`) | Registrar catalogue (ZIP) | the Registrar's export in the same layout | `storage/inbox/catalog/` (used automatically) or `SAQF_INSTITUTION_DIR` |
+| Timetable (`data/demo/sis.json`) | `terms.csv`, `assignments.csv` | the SIS scheduled report, or switch to the REST API | `storage/inbox/sis/` and `SAQF_SIS_SOURCE=file`, or `rest` |
+| Student grades (`data/demo/lms`) | gradebook example | nothing to copy: choose Moodle or Blackboard | `SAQF_LMS_SOURCE=moodle` or `blackboard`, or CSV exports in `storage/inbox/lms/<term>/<course>/` |
+| People and sign-in | | the university identity provider | `SAQF_OIDC_*` |
+| E-mail | | the university mail server | `SAQF_MAIL_*` |
+
+A settings file with every go-live setting (no secrets) downloads from the same page.
+
+**A faulty catalogue cannot do harm.** Before any catalogue is used, SAQF checks it completely (structure,
+unknown departments, credit hours, course types, owning department of every course prefix, prerequisites,
+outcomes). Anything wrong is listed in plain words and the whole export is refused: the previous data stays
+in place and the daily update fails visibly (Error log and an IT alert). Check an export yourself, without
+changing anything, with *Go-live → Check the catalogue* or
+
+```bash
+php bin/pack.php validate /path/to/export        # exit code 1 when it is not usable
+php bin/pack.php export saqf-catalogue.zip       # today's catalogue as the template
+php bin/pack.php templates /tmp/saqf-templates   # terms.csv, assignments.csv, gradebook example
+```
+
+Order of precedence for the catalogue: `SAQF_INSTITUTION_DIR`, else `storage/inbox/catalog/institution.json`
+when present, else the bundled YU snapshot.
+
+---
+
 ## What runs automatically
 
 `bin/tick.php` runs every 5 minutes (the Docker image does this itself; elsewhere use cron):

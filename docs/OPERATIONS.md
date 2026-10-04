@@ -11,6 +11,8 @@ sign-on and e-mail is covered in [INTEGRATIONS.md](INTEGRATIONS.md).
 | Audit-chain verification | `php bin/verify_audit.php` (exit 0 = intact, 2 = tampering), or *Admin → System health → Check the activity log* | nightly, and after every restore |
 | Backup | Docker: the `backup` service writes `./backups/saqf-*.sql.gz.enc` (database) and `saqf-files-*.tar.gz.enc` (evidence files), reads each one back to verify it, copies both to `SAQF_BACKUP_OFFSITE_PATH` with SHA-256 checksums, keeps 14 days, and writes `last-backup.json` for SAQF. Elsewhere: `docker/backup.sh` from cron | nightly; automatic alert if missing or failed |
 | IT alerts | *Admin → IT alerts* (also e-mailed to administrators and posted to `SAQF_ALERT_WEBHOOK`) | raised and cleared automatically; reminders every 6 h while open |
+| Go-live status | *Admin → Go-live*: demo or live for every connection, missing settings, next steps, catalogue check, templates | before go-live, then after any connection change |
+| Access review | *Admin → Access review*: confirm or remove each person's access (another administrator reviews you; a role change makes the review due at once) | every 90 days (policy `security.access_review_days`); an alert opens when overdue |
 | Security overview | *Admin → Security center*: every control with its live status and how to fix what is not yet on, people (administrators with two-step verification, active sessions, locked and dormant accounts) and the last 7 days of security events | weekly, and before go-live |
 | Health probe | `GET /health.php` → `200 {"status":"ok","database":"ok","scheduler":"ok",…}` or `503` when the database is unreachable. No session, no sensitive data | monitoring / load balancer, every minute |
 | Health overview | *Admin → System health*: DB, environment, HTTPS, demo mode, clock, scheduler heartbeat, last integration run, audit chain, backups, evidence store, IT alerts, errors (24 h), failed sign-ins, locked accounts | as needed |
@@ -114,6 +116,8 @@ Restore drill (quarterly): restore into a staging instance, run `php bin/verify_
 - Password reset links are single-use, expire after 30 minutes, are stored only as hashes and always use `SAQF_BASE_URL` (never the request's host name).
 - Student identities from the LMS are pseudonymised (keyed HMAC) before storage. Backups are written owner-readable only.
 - CSRF tokens on every change; a strict Content-Security-Policy (`script-src 'self'`, no inline scripts or event handlers anywhere), `object-src 'none'`, frame blocking, Cross-Origin-Opener/Resource-Policy; no third-party scripts or fonts.
+- Access review: every `security.access_review_days` (90) days an administrator other than the person concerned confirms or removes each account's access; decisions are kept and audited, and an overdue review raises an IT alert. The only administrator cannot review themselves, so create a second administrator.
+- Live security self-test (*Security center → Run security self-test*, also every night): weak passwords, forged requests, an edit to the audit log, authenticator codes, encryption and tamper detection, pseudonymised student identities and session settings are each tried for real; a failure raises a critical alert. *Security evidence report* (administrators) prints the controls, the self-test and the audit-chain check with a fingerprint that is also entered in the audit log.
 - Separation of duties: the administrator role cannot approve specifications, decide exceptions or edit academic content.
 - Demo mode, demo accounts, the one-click demo sign-in, the guided tour, the integration simulator and `install --fresh` are all disabled when `APP_ENV=production` (an attempt to use the demo sign-in is logged as a security event).
 
@@ -129,7 +133,8 @@ Restore drill (quarterly): restore into a staging instance, run `php bin/verify_
 ## Hardening checklist before go-live (production)
 
 - [ ] HTTPS with HSTS (`--profile https` with `SAQF_DOMAIN`, or the university's proxy listed in `SAQF_TRUSTED_PROXIES`). `SAQF_BASE_URL` set to the public https address; `SAQF_PORT=127.0.0.1:8080`.
-- [ ] *Admin → Security center* reviewed: every control green or consciously accepted.
+- [ ] *Admin → Go-live*: every connection shows Live (or is consciously off) and *Check the catalogue* passes.
+- [ ] *Admin → Security center* reviewed: every control green or consciously accepted; *Run security self-test* passes; *Access review* completed by a second administrator.
 - [ ] `APP_ENV=production`, `APP_DEBUG=false`, `SAQF_DEMO=false`, `SAQF_AUTO_INSTALL=production` (first start only).
 - [ ] A dedicated DB user with rights on the `saqf` schema only. Strong passwords and connector secrets kept in a secret store, never in git.
 - [ ] Web server document root = `public/` (never the repository root).

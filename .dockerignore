@@ -9,6 +9,7 @@ config.local.php
 backups
 storage/inbox/sis/*
 storage/inbox/lms/*
+storage/inbox/catalog/*
 !storage/inbox/*/.gitkeep
 storage/evidence
 storage/backups

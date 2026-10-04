@@ -326,6 +326,18 @@ final class Seeder
         $this->evidence($this->offering('SWE 401', '2026-1'), 'f.omar', 'Quiz', 'assessment', 'Quiz 1 paper (both sections)', ['Ten short questions on software quality models and ISO/IEC 25010 characteristics (CLO1).', 'Same paper for sections 01 and 02; marked with the shared answer key.']);
         $this->say('Course-file evidence filed (exam papers, rubric)');
 
+        // Access review: the administrator has confirmed most accounts this quarter; two instructors and a dean are
+        // left due so the demonstration can show the review being completed.
+        $admin = (int) Db::val('SELECT id FROM users WHERE username = "it.admin"');
+        $due = Db::col('SELECT id FROM users WHERE username IN ("f.sara", "f.noura", "dean.coe")');
+        foreach (Db::all('SELECT id, role FROM users WHERE id <> ? ORDER BY id', [$admin]) as $i => $u) {
+            if (in_array($u['id'], $due)) {
+                continue;
+            }
+            Db::insert('access_reviews', ['user_id' => $u['id'], 'reviewer_id' => $admin, 'decision' => 'confirmed', 'role_at_review' => $u['role'], 'note' => 'Quarterly review against the HR list', 'reviewed_at' => date('Y-m-d H:i:s', strtotime('2026-09-02 10:00:00') + $i * 3600)]);
+        }
+        $this->say('Quarterly access review recorded for most accounts');
+
         // Older notifications are treated as already read in the demo.
         Db::exec('UPDATE notifications SET read_at = created_at WHERE created_at < "2026-09-15"');
         // Everyone in the cast has been using SAQF this term (their last recorded action), so no account looks dormant.

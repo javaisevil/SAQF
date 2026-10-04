@@ -120,6 +120,18 @@ final class Scheduler
                         $v['ok'] ? Alerts::resolve('audit.chain')
                             : Alerts::raise('audit.chain', 'critical', 'Audit log integrity check failed', $v['message'] . ' Restore the audit_log table from the last good backup and investigate database access.');
                     });
+                    // The protections are tried for real every night; a failure is an IT alert.
+                    self::step($stats, static function () {
+                        $r = \Saqf\Security\SelfTest::runAndStore();
+                        $failed = array_map(static fn($t) => $t['name'], array_filter($r['tests'], static fn($t) => !$t['ok']));
+                        $failed ? Alerts::raise('security.selftest', 'critical', 'Security self-test failed', implode('; ', $failed) . '. Open Administration → Security center and press "Run security self-test" for details.')
+                            : Alerts::resolve('security.selftest');
+                    });
+                    self::step($stats, static function () {
+                        $p = \Saqf\Security\AccessReview::progress();
+                        $p['due'] ? Alerts::raise('security.access_review', 'warning', 'Access review overdue', $p['due'] . ' of ' . $p['total'] . ' account(s) have not been confirmed by an administrator in the last ' . $p['days'] . ' days. Open Administration → Access review.')
+                            : Alerts::resolve('security.access_review');
+                    });
                     self::step($stats, static fn() => Throttle::prune());
                 }
 

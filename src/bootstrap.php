@@ -7,7 +7,7 @@ declare(strict_types=1);
  */
 
 define('SAQF_ROOT', dirname(__DIR__));
-define('SAQF_VERSION', '2.2.0');
+define('SAQF_VERSION', '2.3.0');
 
 spl_autoload_register(static function (string $class): void {
     if (strncmp($class, 'Saqf\\', 5) !== 0) {

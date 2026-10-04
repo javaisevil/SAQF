@@ -86,7 +86,7 @@ $finding = (int) Db::val('SELECT id FROM findings WHERE rule_code = "COURSE_CRED
 $specPending = (int) Db::val('SELECT id FROM spec_versions WHERE status = "approved" ORDER BY id LIMIT 1');
 
 $pages = [
-    'f.omar' => ['faculty.php', "workspace.php?id=$swe412", "workspace.php?id=$swe412&tab=structure", "workspace.php?id=$swe412&tab=results", "workspace.php?id=$swe412&tab=improve", "workspace.php?id=$swe412&tab=report", "workspace.php?id=$swe412&tab=history", 'improvements.php', 'catalog.php', "catalog.php?program=$swe", 'notifications.php', 'account.php', 'search.php?q=SWE', "program.php?id=$swe",
+    'f.omar' => ['faculty.php', 'calendar.php', "workspace.php?id=$swe412", "workspace.php?id=$swe412&tab=structure", "workspace.php?id=$swe412&tab=results", "workspace.php?id=$swe412&tab=improve", "workspace.php?id=$swe412&tab=report", "workspace.php?id=$swe412&tab=history", 'improvements.php', 'catalog.php', "catalog.php?program=$swe", 'notifications.php', 'account.php', 'search.php?q=SWE', "program.php?id=$swe",
         "workspace.php?id=$swe401", "workspace.php?id=$swe401&tab=results", "workspace.php?id=$swe401&tab=evidence", "workspace.php?id=$swe401&tab=improve", "workspace.php?id=$swe401old", "report.php?type=course&id=$swe401old", "report.php?type=course&id=$swe401old&snapshot=1"],
     'f.sara' => ['faculty.php', "workspace.php?id=$swe401", "workspace.php?id=$swe401&tab=results", "workspace.php?id=$swe401&tab=evidence"],
     'f.noura' => ['faculty.php', "workspace.php?id=$acc311", "workspace.php?id=$acc311&tab=structure", 'account.php'],
@@ -94,7 +94,7 @@ $pages = [
     'qa.director' => ['quality.php', 'exceptions.php', "exceptions.php?finding=$finding", 'approvals.php', 'programs.php', 'improvements.php', 'policies.php', 'institution.php', "workspace.php?id=$acc311", 'spec_import.php'],
     'dean.coe' => ['college.php', 'programs.php', 'exceptions.php', 'improvements.php', "program.php?id=$swe"],
     'vp.academic' => ['institution.php', 'programs.php', 'exceptions.php', 'improvements.php', 'college.php?college=1'],
-    'it.admin' => ['admin.php', 'admin.php?tab=center', 'admin.php?tab=users', 'admin.php?tab=security', 'admin.php?tab=audit', 'admin.php?tab=errors', 'admin.php?tab=alerts', 'admin.php?tab=integrations', 'policies.php', 'catalog.php', 'account.php'],
+    'it.admin' => ['admin.php', 'admin.php?tab=center', 'admin.php?tab=users', 'admin.php?tab=security', 'admin.php?tab=audit', 'admin.php?tab=errors', 'admin.php?tab=alerts', 'admin.php?tab=integrations', 'admin.php?tab=golive', 'admin.php?tab=review', 'security_report.php', 'policies.php', 'catalog.php', 'account.php'],
 ];
 
 echo "== pages render cleanly for every role\n";
@@ -114,7 +114,7 @@ $deny = [
     ['f.sara', "workspace.php?id=$swe412"], ['f.noura', 'spec_import.php'],
     ['hod.ced', "workspace.php?id=$acc311"], ['hod.ced', "program.php?id=$acc"], ['hod.ced', 'admin.php'], ['hod.ced', 'quality.php'],
     ['dean.coe', "workspace.php?id=$acc311"], ['dean.coe', 'admin.php'], ['it.admin', "workspace.php?id=$swe412"], ['it.admin', 'department.php'],
-    ['it.admin', "program.php?id=$swe"], ['vp.academic', 'admin.php'], ['qa.director', 'admin.php'], ['f.omar', "report.php?type=course&id=$acc311"],
+    ['it.admin', "program.php?id=$swe"], ['f.omar', 'security_report.php'], ['hod.ced', 'security_report.php'], ['qa.director', 'admin.php?tab=golive'], ['dean.coe', 'admin.php?tab=review'], ['vp.academic', 'admin.php'], ['qa.director', 'admin.php'], ['f.omar', "report.php?type=course&id=$acc311"],
 ];
 foreach ($deny as [$user, $p]) {
     $c = login($base, $user);

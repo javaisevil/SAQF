@@ -4,9 +4,9 @@ Each row is one thing SAQF does, how to see it yourself in the demo, and what yo
 
 **Start:** `docker compose up -d --build`, open http://localhost:8080. To start again from a clean story at any time: `docker compose exec app php bin/install.php --demo --fresh`.
 **Signing in:** use the one-click buttons on the sign-in page, or **Switch role** in the yellow demo bar. Every demo password is `Yamamah@2026`.
-**Run every automated test:** `docker compose exec app sh bin/test_all.sh` → *Total: 423 checks passed, 0 failed.*
+**Run every automated test:** `docker compose exec app sh bin/test_all.sh` → *Total: 489 checks passed, 0 failed.*
 
-Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.php`, **H** = `tests/http_smoke.php`, **S** = `tests/sso_test.php`, **F** = `tests/features_test.php`, **W** = `tests/wording_test.php`.
+Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.php`, **H** = `tests/http_smoke.php`, **S** = `tests/sso_test.php`, **F** = `tests/features_test.php`, **W** = `tests/wording_test.php`, **R** = `tests/readiness_test.php`.
 
 ---
 
@@ -28,6 +28,7 @@ Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.
 | 1.10 | Evidence upload clears the request | Upload `docs/demo/SWE401-midterm-exam-paper.pdf` (For: Midterm exam) | File listed with a ✓ Unchanged mark; the banner disappears | F §3 |
 | 1.11 | Unsafe files refused | Upload a renamed `.exe`, a fake PDF or a Word file with macros | Refused with a clear message | F §3 |
 | 1.12 | NCAAA Word report | **SWE 401 → Course report → Word (English)** | A Word file with sections A–F, results by section and the evidence list | F §4 |
+| 1.13 | Deadlines in my calendar | **My courses → Add my deadlines to my calendar** | A calendar file (Outlook, Google, Apple) with due dates and the term's end and grades-due dates; only the person's own | R |
 | 1.13 | Arabic Word report | Same tab → **Word (Arabic)** | The same report right to left, with Arabic headings **and** Arabic course title, outcomes, assessments and names | F §4, W §4 |
 
 ## 2. Section instructor (Dr. Sara)
@@ -86,11 +87,15 @@ Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.
 | 7.5 | Sign out other devices | **Account & security → Sign out all other sessions** | The other browser is signed out | F §5 |
 | 7.6 | Account lockout | Enter a wrong password 5 times | The account locks for 15 minutes | H |
 | 7.7 | Re-confirm before sensitive changes | As administrator after 15 minutes, open **Users & access** | Asked for password and code before changing accounts | F §5 |
-| 7.8 | Security center | **System administration → Security center** | 19 controls with their live status and how to fix the rest | F §5 |
+| 7.8 | Security center | **System administration → Security center** | 22 controls with their live status and how to fix the rest | F §5 |
 | 7.9 | Tamper-evident activity log | **System health → Check the activity log** | "All … audit entries verified; the hash chain is intact" | A §11, H |
 | 7.10 | Virus scanning | (automated, with a stand-in ClamAV) | The EICAR test virus is refused and IT is alerted; if the scanner is down, uploads pause | F §3 |
 | 7.11 | Demo shortcuts do not exist in production | (automated, production mode) | One-click sign-in answers *Not found*; no demo hints | F §8 |
 | 7.12 | Single sign-on attacks refused | (automated) | Forged, expired, replayed and wrong-audience tokens refused | P §11, S |
+| 7.13 | Live security self-test | **Security center → Run security self-test** | "8 of 8 passed": weak passwords refused, forged request refused, audit log edit refused by the database, encryption tamper-proof, student identities one-way | R |
+| 7.14 | Security evidence report | **Security center → Security evidence report** | Printable page: controls, self-test, audit chain, how the system stays secure, fingerprint; generating it is entered in the activity log | R |
+| 7.15 | Access review | **System administration → Access review** | Three accounts due; tick and confirm; own row says another administrator reviews you; a role change makes the review due again; removing access disables and signs the person out | R |
+| 7.16 | Nightly proof and alerts | (automated) | The self-test runs nightly; a failure or an overdue review raises an IT alert (visible under IT alerts) | — |
 
 ## 8. IT operations
 
@@ -103,6 +108,10 @@ Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.
 | 8.5 | Encrypted backup and restore | `docker compose exec backup sh /usr/local/bin/saqf-backup` then `docker/restore.sh` | Encrypted files in `./backups`, restored database with an intact audit chain | CI (Docker job) |
 | 8.6 | HTTPS | `docker compose --profile https up -d`, open https://localhost | Secure cookie, HSTS, HTTP redirected to HTTPS | CI (Docker job) |
 | 8.7 | Maintenance mode | **System health → Maintenance mode → Turn on** | Everyone except IT sees a maintenance page | H |
+| 8.8 | Go-live status | **System administration → Go-live** | Each system shows Demo data or Live, what is missing and the next step; no secret values shown | R |
+| 8.9 | Catalogue check | **Go-live → Check the catalogue in use** | "Passed · 14 programs · 366 courses"; a note that four programs have no published outcomes | R |
+| 8.10 | A faulty export is refused | (automated) Registrar export with an unknown department and text credit hours | Listed in plain words; the sync refuses it as a whole, nothing changes, the run is recorded as failed | R |
+| 8.11 | Templates for IT | **Go-live → Templates for IT** | Catalogue ZIP, `terms.csv`, `assignments.csv`, gradebook example and a settings file download; the CSVs read back through the real connectors as the same terms and assignments | R |
 
 ## 9. Arabic interface
 
@@ -125,12 +134,13 @@ SAQF test suites (PHP 8.3, MySQL 8.0)
   ok   Syntax check of every PHP file
   ok   Automation scenarios (the quality loop end to end)           58 passed  0 failed
   ok   Connectors, semester cycle, accounts, e-mail, SSO tokens     96 passed  0 failed
-  ok   Every page for every role, authorization, CSRF, lockout     118 passed  0 failed
+  ok   Every page for every role, authorization, CSRF, lockout     126 passed  0 failed
   ok   University sign-in (OpenID Connect) end to end               29 passed  0 failed
   ok   Sections, import, evidence, Word, 2-step, alerts, Arabic     91 passed  0 failed
   ok   Plain wording, whole numbers, Arabic course content          31 passed  0 failed
+  ok   Go-live readiness, data pack, access review, security proof   58 passed  0 failed
   ok   Database migrations are idempotent (upgrade path)
-Total: 423 checks passed, 0 failed.
+Total: 489 checks passed, 0 failed.
 ```
 
 The same suites pass inside the Docker image (Apache, PHP 8.3, MySQL 8.0), and GitHub runs them on every push, together with HTTPS, encrypted-backup and restore checks of the Docker stack.
