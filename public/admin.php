@@ -517,7 +517,7 @@ if ($tab === 'health'):
     if ($f['object'] !== '') { $where[] = 'object_type = ?'; $params[] = $f['object']; }
     if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $f['from'])) { $where[] = 'occurred_at >= ?'; $params[] = $f['from']; }
     if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $f['to'])) { $where[] = 'occurred_at < DATE_ADD(?, INTERVAL 1 DAY)'; $params[] = $f['to']; }
-    $page = max(1, (int) ($_GET['page'] ?? 1));
+    $page = min(100000, max(1, (int) ($_GET['page'] ?? 1))); // bounded: a huge value would overflow the OFFSET
     $rows = Db::all('SELECT * FROM audit_log WHERE ' . implode(' AND ', $where) . ' ORDER BY id DESC LIMIT 100 OFFSET ' . (($page - 1) * 100), $params);
     $objects = Db::col('SELECT DISTINCT object_type FROM audit_log ORDER BY object_type');
 ?>

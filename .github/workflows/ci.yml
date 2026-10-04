@@ -66,6 +66,8 @@ jobs:
         run: php bin/install.php --demo --fresh && php tests/closeout_test.php
       - name: Passkeys (WebAuthn) - hostile vectors and the sign-in flow
         run: php bin/install.php --demo --fresh && php tests/passkey_test.php
+      - name: Injection and output-encoding probes (XSS, SQL, headers, redirects)
+        run: php bin/install.php --demo --fresh && php tests/injection_test.php
       - name: Upgrade path (migrations are idempotent)
         run: php bin/migrate.php && php bin/migrate.php --status
 
