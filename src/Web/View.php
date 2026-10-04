@@ -234,7 +234,7 @@ final class View
         echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
         echo '<title>' . self::h($title) . ' · SAQF</title><link rel="icon" href="' . self::url('assets/favicon.png') . '">';
         echo '<link rel="stylesheet" href="' . self::url('assets/app.css') . '?v=' . SAQF_VERSION . '">';
-        echo '<meta name="csrf" content="' . self::h(Csrf::token()) . '"></head><body class="role-' . self::h($user['role']) . '">';
+        echo '<meta name="csrf" content="' . self::h(Csrf::token()) . '"><meta name="saqf-idle" content="' . (int) \Saqf\Core\Policy::get('session.idle_minutes') * 60 . '"></head><body class="role-' . self::h($user['role']) . '">';
         echo '<a class="skip" href="#main">Skip to content</a><div class="shell"><aside class="side" id="side">';
         echo '<div class="brand"><img src="' . self::url('assets/yu-logo.png') . '" alt="Al Yamamah University"><div class="brand-name">SAQF <span>Academic Quality Automation</span></div></div>';
         echo '<nav class="nav" aria-label="Main">';
@@ -251,6 +251,7 @@ final class View
         if ($term) {
             echo '<div class="termchip" title="Active term from the SIS">' . self::h($term['name']) . ($week && $week <= 18 ? ' · week ' . $week : '') . '</div>';
         }
+        echo '<a class="helpbtn" href="' . self::url('help.php') . '" title="Help and keyboard shortcuts (press ?)" aria-label="Help">?</a>';
         echo '<a class="bell" href="' . self::url('notifications.php') . '" title="Notifications (only things that need you)">' . self::icon('bell') . ($unread ? '<span class="dot">' . $unread . '</span>' : '') . '</a>';
         echo '<div class="scope" title="Your data scope">' . self::h($scope) . '</div>' . \Saqf\Web\I18n::switchLink() . '</header>';
         if (Config::demoMode()) {
@@ -267,13 +268,40 @@ final class View
 
     public static function footer(): void
     {
-        echo '</main><footer class="foot">SAQF ' . SAQF_VERSION . ' · Al Yamamah University · Supports NCAAA-oriented academic quality workflows (not a compliance certification)</footer></div></div>';
-        // Words the page script shows (toasts, the live weight total): rendered here so the Arabic
-        // interface translates them like any other text.
-        echo '<div id="ui-text" hidden><span data-k="saved">Saved</span><span data-k="cleared">Cleared automatically:</span><span data-k="opened">New check:</span>'
-            . '<span data-k="failed">Could not save</span><span data-k="network">Network error — nothing was changed.</span><span data-k="total">Total</span>'
-            . '<span data-k="must">must be</span><span data-k="nomatch">No matches</span></div>';
-        echo '<script src="' . self::url('assets/app.js') . '?v=' . SAQF_VERSION . '"></script></body></html>';
+        echo '</main><footer class="foot">SAQF ' . SAQF_VERSION . ' · Al Yamamah University · Supports NCAAA-oriented academic quality workflows (not a compliance certification)<span aria-hidden="true"> · </span><a href="' . self::url('help.php') . '">Help</a></footer></div></div>';
+        // Before the idle timeout signs the person out, the page warns and offers to stay signed in.
+        echo '<div class="session-warn" id="sessionWarn" hidden role="alertdialog" aria-labelledby="sessionWarnTitle"><div><strong id="sessionWarnTitle">You will be signed out soon</strong>'
+            . '<div class="small">For your security, SAQF signs you out after ' . (int) \Saqf\Core\Policy::get('session.idle_minutes') . ' minutes without activity. Time left: <b class="mono" data-countdown>2:00</b></div></div>'
+            . '<div class="row"><button type="button" class="btn btn-sm btn-primary" data-stay>Stay signed in</button><form method="post" action="' . self::url('logout.php') . '">' . Csrf::field() . '<button class="btn btn-sm" type="submit">Sign out now</button></form></div></div>';
+        echo '<div class="kbd-help" id="kbdHelp" hidden role="dialog" aria-modal="true" aria-labelledby="kbdTitle"><div class="kbd-card"><div class="row between"><h2 id="kbdTitle">Keyboard shortcuts</h2><button type="button" class="btn btn-sm" data-close>Close</button></div><table><tbody>'
+            . '<tr><td><kbd>/</kbd></td><td>Search</td></tr><tr><td><kbd>g</kbd> <kbd>h</kbd></td><td>Go to your home page</td></tr><tr><td><kbd>g</kbd> <kbd>n</kbd></td><td>Go to notifications</td></tr>'
+            . '<tr><td><kbd>g</kbd> <kbd>a</kbd></td><td>Go to Account & security</td></tr><tr><td><kbd>?</kbd></td><td>Show this list</td></tr><tr><td><kbd>Esc</kbd></td><td>Close this list or the search results</td></tr>'
+            . '</tbody></table><p class="small"><a href="' . self::url('help.php') . '">Open the help page</a></p></div></div>';
+        echo self::uiText() . '<script src="' . self::url('assets/app.js') . '?v=' . SAQF_VERSION . '"></script></body></html>';
+    }
+
+    /**
+     * Words the page script shows (toasts, the live weight total, password tips, the robot check):
+     * rendered in the page so the Arabic interface translates them like any other text.
+     */
+    public static function uiText(): string
+    {
+        $k = ['saved' => 'Saved', 'cleared' => 'Cleared automatically:', 'opened' => 'New check:', 'failed' => 'Could not save', 'network' => 'Network error — nothing was changed.',
+            'total' => 'Total', 'must' => 'must be', 'nomatch' => 'No matches', 'show' => 'Show', 'hide' => 'Hide', 'showpw' => 'Show password', 'hidepw' => 'Hide password',
+            'caps' => 'Caps Lock is on', 'weak' => 'Weak', 'fair' => 'Fair', 'good' => 'Good', 'strong' => 'Strong', 'len' => 'At least 10 characters',
+            'mix' => 'Letters and numbers', 'long' => '14 or more characters, or a passphrase', 'common' => 'Not a common password or keyboard run',
+            'working' => 'Please wait…', 'robot' => 'Please confirm you are not a robot first.', 'dismiss' => 'Dismiss', 'stayed' => 'You are still signed in.'];
+        $out = '<div id="ui-text" hidden>';
+        foreach ($k as $key => $text) {
+            $out .= '<span data-k="' . $key . '">' . self::h($text) . '</span>';
+        }
+        return $out . '</div>';
+    }
+
+    /** End of the stand-alone sign-in pages (sign-in, two-step, password reset): page script and its words. */
+    public static function authFoot(): string
+    {
+        return self::uiText() . '<script src="' . self::url('assets/app.js') . '?v=' . SAQF_VERSION . '"></script>';
     }
 
     /** Tabs component. $tabs: key => label. */

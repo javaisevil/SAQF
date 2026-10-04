@@ -4,9 +4,9 @@ Each row is one thing SAQF does, how to see it yourself in the demo, and what yo
 
 **Start:** `docker compose up -d --build`, open http://localhost:8080. To start again from a clean story at any time: `docker compose exec app php bin/install.php --demo --fresh`.
 **Signing in:** use the one-click buttons on the sign-in page, or **Switch role** in the yellow demo bar. Every demo password is `Yamamah@2026`.
-**Run every automated test:** `docker compose exec app sh bin/test_all.sh` → *Total: 489 checks passed, 0 failed.*
+**Run every automated test:** `docker compose exec app sh bin/test_all.sh` → *Total: 539 checks passed, 0 failed.*
 
-Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.php`, **H** = `tests/http_smoke.php`, **S** = `tests/sso_test.php`, **F** = `tests/features_test.php`, **W** = `tests/wording_test.php`, **R** = `tests/readiness_test.php`.
+Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.php`, **H** = `tests/http_smoke.php`, **S** = `tests/sso_test.php`, **F** = `tests/features_test.php`, **W** = `tests/wording_test.php`, **R** = `tests/readiness_test.php`, **G** = `tests/signin_test.php`.
 
 ---
 
@@ -80,9 +80,12 @@ Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.
 
 | # | Test case | How to show it | You should see | Test |
 |---|---|---|---|---|
-| 7.1 | Two-step verification for administrators | On the sign-in page type `it.admin` / `Yamamah@2026` | SAQF asks for the authenticator code (shown under the form in demo mode only) | F §5, S |
-| 7.2 | Wrong code refused | Enter `000000` | "That code is not right" | F §5 |
-| 7.3 | Anyone can turn on two-step verification | **Account & security → Set up two-step verification** | A QR code to scan, then 10 one-time recovery codes | F §5 |
+| 7.1 | Robot check | Open the sign-in page and click into the form | The box ticks itself: "Checking that you are human…", then "Verified: you are human" | G §1–2 |
+| 7.1b | Two-step code for everyone | On the sign-in page press **Use this account → Faculty Member**, then **Sign in** | The code screen: "We sent a 6-digit code to f•••@…"; the demo mailbox shows the e-mail; the code signs in | G §3 |
+| 7.1c | Trusted browser | Tick **Don't ask again on this browser**; sign out and in again | The password is enough on this browser; another browser still needs a code | G §3 |
+| 7.1d | Administrators use an app | Sign in as `it.admin` | Asked for the authenticator code (shown under the form in demo mode only); no e-mail option, no "trust this browser" | F §5, S, G §4 |
+| 7.2 | Wrong code refused | Enter `000000` | "That code is not right"; after 5 wrong codes the sign-in starts again | F §5, G §3 |
+| 7.3 | Anyone can add an authenticator app | **Account & security → Add an authenticator app** | A QR code to scan, then 10 one-time recovery codes | F §5 |
 | 7.4 | Strong passwords | **Account & security → Change password**, try `Password2026` | Refused (common word); a passphrase is accepted | F §5 |
 | 7.5 | Sign out other devices | **Account & security → Sign out all other sessions** | The other browser is signed out | F §5 |
 | 7.6 | Account lockout | Enter a wrong password 5 times | The account locks for 15 minutes | H |
@@ -96,6 +99,11 @@ Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.
 | 7.14 | Security evidence report | **Security center → Security evidence report** | Printable page: controls, self-test, audit chain, how the system stays secure, fingerprint; generating it is entered in the activity log | R |
 | 7.15 | Access review | **System administration → Access review** | Three accounts due; tick and confirm; own row says another administrator reviews you; a role change makes the review due again; removing access disables and signs the person out | R |
 | 7.16 | Nightly proof and alerts | (automated) | The self-test runs nightly; a failure or an overdue review raises an IT alert (visible under IT alerts) | — |
+| 7.17 | Security checkup | **Account & security** | "Security checkup": two-step verification, recovery codes, e-mail, password age, failed attempts, each with a ✓ or ! | G §5 |
+| 7.18 | "This wasn't me" | **Account & security → Recent sign-in activity → This wasn't me** | Every other session signed out, every trusted browser forgotten, IT alerted | G §5 |
+| 7.19 | Session warning | Leave a page open for 28 minutes | "You will be signed out soon" with a countdown; **Stay signed in** keeps the session | G §6 |
+| 7.20 | Password comfort | Any password field | **Show** reveals the password, a Caps Lock warning, and a strength meter with tips on new passwords | G §6 (browser) |
+| 7.21 | Help and shortcuts | Press **?** (or the ? button at the top) | Keyboard shortcuts: / search, g h home, g n notifications, g a account; the Help page answers each role's common questions | G §6 |
 
 ## 8. IT operations
 
@@ -139,8 +147,9 @@ SAQF test suites (PHP 8.3, MySQL 8.0)
   ok   Sections, import, evidence, Word, 2-step, alerts, Arabic     91 passed  0 failed
   ok   Plain wording, whole numbers, Arabic course content          31 passed  0 failed
   ok   Go-live readiness, data pack, access review, security proof   58 passed  0 failed
+  ok   Robot check, two-step codes, trusted browsers, session, help   50 passed  0 failed
   ok   Database migrations are idempotent (upgrade path)
-Total: 489 checks passed, 0 failed.
+Total: 539 checks passed, 0 failed.
 ```
 
 The same suites pass inside the Docker image (Apache, PHP 8.3, MySQL 8.0), and GitHub runs them on every push, together with HTTPS, encrypted-backup and restore checks of the Docker stack.

@@ -9,6 +9,7 @@ declare(strict_types=1);
  */
 
 require __DIR__ . '/../src/bootstrap.php';
+require __DIR__ . '/signin_helpers.php';
 
 use Saqf\Core\Db;
 use Saqf\Demo\Story;
@@ -57,12 +58,14 @@ function login(string $base, string $user, string $password = Story::PASSWORD): 
 {
     $c = client();
     [, $html] = req($c, "$base/login.php");
-    [$code, , $loc] = req($c, "$base/login.php", ['_csrf' => csrf($html), 'username' => $user, 'password' => $password]);
+    // The real form: robot check solved the way a browser does.
+    [$code, , $loc] = req($c, "$base/login.php", ['_csrf' => csrf($html), 'username' => $user, 'password' => $password] + bot_fields($html));
     if ($code === 302 && str_contains($loc, 'mfa.php')) {
-        // Two-step verification (required for administrators): answer with the authenticator code.
-        $secret = (string) \Saqf\Core\Secrets::decrypt((string) Db::val('SELECT mfa_secret FROM users WHERE username = ?', [$user]));
+        // Two-step verification: the authenticator code (administrators), else the e-mailed code from the demo mailbox.
+        $stored = (string) Db::val('SELECT mfa_secret FROM users WHERE username = ?', [$user]);
         [, $html] = req($c, "$base/mfa.php");
-        [$code, , $loc] = req($c, "$base/mfa.php", ['_csrf' => csrf($html), 'code' => \Saqf\Security\Totp::code($secret)]);
+        $answer = $stored !== '' ? \Saqf\Security\Totp::code((string) \Saqf\Core\Secrets::decrypt($stored)) : (string) demo_mail_code($html);
+        [$code, , $loc] = req($c, "$base/mfa.php", ['_csrf' => csrf($html), 'code' => $answer]);
         // the same code cannot be used twice: later sign-ins in this run wait for the next 30-second step
         Db::exec('UPDATE users SET mfa_last_step = NULL WHERE username = ?', [$user]);
     }

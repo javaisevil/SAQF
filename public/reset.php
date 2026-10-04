@@ -32,7 +32,7 @@ $user = PasswordReset::find($token);
 <?php else: ?>
   <p class="muted">Account: <strong><?= V::h($user['username']) ?></strong></p>
   <form method="post"><?= Csrf::field() ?><input type="hidden" name="token" value="<?= V::h($token) ?>">
-    <div class="field"><label for="new">New password</label><input type="password" id="new" name="new" required minlength="<?= (int) Policy::get('auth.min_password_length') ?>" autocomplete="new-password" autofocus></div>
+    <div class="field"><label for="new">New password</label><input type="password" id="new" name="new" required minlength="<?= (int) Policy::get('auth.min_password_length') ?>" autocomplete="new-password" autofocus data-strength></div>
     <div class="field"><label for="confirm">Confirm new password</label><input type="password" id="confirm" name="confirm" required autocomplete="new-password"></div>
     <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center;padding:10px">Set password</button></form>
-<?php endif; ?></section></div></body></html>
+<?php endif; ?></section></div><?= V::authFoot() ?></body></html>

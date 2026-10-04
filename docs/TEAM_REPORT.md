@@ -1,4 +1,4 @@
-# SAQF 2.3: what we built, in plain words
+# SAQF 2.4: what we built, in plain words
 
 *For every teammate, technical or not. Read time: about 15 minutes.*
 
@@ -27,7 +27,7 @@ Our rule for every screen was: *if the university already knows it, nobody types
 
 ## 2. Before and after, side by side
 
-| Topic | AQMS (before) | SAQF 2.3 (now) |
+| Topic | AQMS (before) | SAQF 2.4 (now) |
 |---|---|---|
 | University data | 63 courses typed into a PHP file. Programs were a plain list with no link to courses | 14 YU programs, 366 courses, 735 study-plan entries and 488 prerequisite links, all connected |
 | Starting a course | Professor creates the course and types code, credits, program and so on | Created automatically from the teaching assignment. Nothing to type |
@@ -116,7 +116,7 @@ The cast is small on purpose: one person per role plus two colleagues, eight in 
 
 **Everyone:** an *Account & security* page to change the password, turn on two-step verification with any authenticator app, see where they are signed in and sign out other devices, and choose English or Arabic.
 
-**Screenshots** of each role are in [`docs/screenshots/`](screenshots/) (taken before the plain-wording update of 2.2, so some labels differ): sign-in, faculty action center, workspace with issues, change diff, improvement effectiveness, HoD department, QA Exception Center, dean, leadership, generated report, MBA study plan, admin health and audit log. New in 2.3: Security center with the live self-test (`13-…`), Go-live readiness (`14-…`), Access review (`15-…`) and the security evidence report (`16-…`).
+**Screenshots** of each role are in [`docs/screenshots/`](screenshots/) (taken before the plain-wording update of 2.2, so some labels differ): sign-in, faculty action center, workspace with issues, change diff, improvement effectiveness, HoD department, QA Exception Center, dean, leadership, generated report, MBA study plan, admin health and audit log. New in 2.3: Security center with the live self-test (`13-…`), Go-live readiness (`14-…`), Access review (`15-…`) and the security evidence report (`16-…`). New in 2.4: the sign-in with the robot check (`17-`, `18-`, Arabic `24-`), the two-step code screen with the demo mailbox (`19-`, Arabic `25-`), the account security checkup (`20-`), keyboard shortcuts (`21-`), help (`22-`) and the session warning (`23-`).
 
 ---
 
@@ -174,7 +174,10 @@ We went through the public study-plan PDFs on yu.edu.sa (sources listed in `data
 ## 7. Security and maintenance (simple version)
 
 - **Sign-in:** university single sign-on in production. Passwords stored with Argon2id (the current best practice). Account **locks after 5 wrong tries** for 15 minutes, and too many attempts from one network are blocked (and IT is alerted). Passwords need at least 10 characters with letters and numbers, and common words, keyboard runs ("qwerty"), the person's name and the university's name are refused. Admin resets force a password change.
-- **Two-step verification:** anyone can turn it on with Microsoft or Google Authenticator; it is **required for administrators**. A stolen password alone does not open the account. Ten one-time recovery codes cover a lost phone.
+- **Robot check:** the sign-in and password-reset forms carry an "I'm not a robot" box that the browser ticks by itself in under a second (it solves a small puzzle). A script trying passwords has to solve a new puzzle for every attempt, puzzles get 16 times harder after 3 failures, and a hidden trap field catches simple bots. It runs on SAQF's own server: no Google, no tracking.
+- **Two-step verification for everyone:** after the password, a 6-digit code arrives by e-mail (nothing to install), or comes from Microsoft or Google Authenticator. Administrators must use the app. A stolen password alone does not open any account. *Don't ask again on this browser* skips the code on a personal computer for 30 days (never for administrators). Ten one-time recovery codes cover a lost phone.
+- **People see their own security:** after signing in, "Welcome back, your last sign-in was on … from …"; *Account & security* has a security checkup, the sign-in history in plain words, the trusted browsers and a *This wasn't me* button that signs out every other session and alerts IT.
+- **Comfort:** show/hide password, Caps Lock warning, a password strength meter, a warning two minutes before the idle sign-out with *Stay signed in*, a help page per role, keyboard shortcuts (press ?), and buttons that cannot be pressed twice.
 - **Sessions:** logged out after 30 minutes idle or 8 hours total. Cookies are protected (HttpOnly, SameSite=Strict, Secure on HTTPS). Everyone can see where they are signed in and sign out other devices; changing the password signs out everywhere else; a sign-in from a new device is notified.
 - **Administrators** can be limited to the campus network, and must re-enter their password and code before changing accounts if they signed in more than 15 minutes ago.
 - **HTTPS** is built into the Docker stack (one setting: the domain name).
@@ -221,7 +224,7 @@ Our current 2-minute video script compared with what exists now:
 |---|---|
 | Idea & evolution (41%) | Clear evolution from a digital form (AQMS) to automating the quality cycle (SAQF). Before/after documented in `docs/AUDIT_BEFORE.md`. Differentiation: exception-based QA and the change-based workflow, not a file repository |
 | Solution & prototype (27%) | A complete, deployable solution across 6 roles, in English and Arabic, shown in 5 minutes through a guided tour (`docs/JUDGES_DEMO.md`). Event-driven automation is shown live through the simulator |
-| Feasibility & execution (17%) | Standard PHP/MySQL that any university can host. Working connectors for the SIS, Moodle/Blackboard, university SSO and e-mail. Docker stack with HTTPS, encrypted off-site backups with a tested restore, health checks and IT alerts; two-step verification and a Security center; seven automated test suites (489 checks) in CI; database upgrades; an operations runbook and an IT integration guide. Next step: pilot with one department |
+| Feasibility & execution (17%) | Standard PHP/MySQL that any university can host. Working connectors for the SIS, Moodle/Blackboard, university SSO and e-mail. Docker stack with HTTPS, encrypted off-site backups with a tested restore, health checks and IT alerts; two-step verification and a Security center; eight automated test suites (539 checks) in CI; database upgrades; an operations runbook and an IT integration guide. Next step: pilot with one department |
 | Impact & sustainability (10%) | Factual automation counts: in the demo scenario SAQF populated 5,991 fields, ran 7,948 checks, inherited 308 records, made 152 calculations and auto-cleared 139 issues, while only 12 issues ever needed a person above faculty level. Policies are configurable, so other universities could adopt it |
 | Presentation (5%) | The 5-minute script and Q&A sheet (`docs/JUDGES_DEMO.md`), the guided tour in the app, a plain test-case list (`docs/TEST_CASES.md`), screenshots in `docs/screenshots/` and an updated video plan (section 8) |
 
@@ -239,13 +242,13 @@ The full script with timings, what to say, what to highlight and a Q&A sheet is 
 4. **Head of Department** (2:15): only what needs a decision.
 5. **Quality** (2:45): allow the CIS 491 exception with a reason; *Import specifications*; *Arabic wording*.
 6. **IT** (3:30): *Publish now* (grades → early warning), *Publish assignment* (new instructor → account + workspace), *Security center*.
-7. **Vice President** (4:30): the whole university. Close with "not a prototype: 489 automated checks, HTTPS, encrypted backups, SSO, two-step verification, Arabic throughout".
+7. **Vice President** (4:30): the whole university. Close with "not a prototype: 539 automated checks, HTTPS, encrypted backups, SSO, two-step verification, Arabic throughout".
 
 ---
 
 ## 11. What was tested
 
-Everything runs with one command: `sh bin/test_all.sh` (or `docker compose exec app sh bin/test_all.sh`) — **489 checks, 0 failures**. The plain-language list of what each feature does and how to see it is [`TEST_CASES.md`](TEST_CASES.md).
+Everything runs with one command: `sh bin/test_all.sh` (or `docker compose exec app sh bin/test_all.sh`) — **539 checks, 0 failures**. The plain-language list of what each feature does and how to see it is [`TEST_CASES.md`](TEST_CASES.md).
 
 - **58 automation scenario checks** (`tests/automation_test.php`), including: assignment creates a workspace, editing an outcome re-validates everything, grades trigger achievement, a missed target triggers a finding and a draft action, recurring gaps escalate, the semester rollover inherits structure, improvement effectiveness is evaluated, a PLO change shows its impact, the override lifecycle works, data conflicts are resolved, and a forged audit entry is detected.
 - **118 page and security checks** (`tests/http_smoke.php`), including: every page for every role, plus over 20 deliberate break-in attempts (professor opening another professor's course, a section instructor editing the coordinator's specification, a HoD from another department, faculty calling QA actions, missing CSRF token, anonymous access). Also account lockout, error-log lookup, audit verification from the console, and maintenance mode.
