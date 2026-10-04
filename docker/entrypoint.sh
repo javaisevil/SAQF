@@ -26,7 +26,13 @@ evidence="${SAQF_STORAGE_DIR:-/var/www/saqf/storage/evidence}"
 mkdir -p "$evidence" && chown -R www-data:www-data "$evidence" && chmod 700 "$evidence"
 
 if [ "${SAQF_SCHEDULER:-on}" = "on" ]; then
-  ( while true; do php bin/tick.php || true; sleep 300; done ) &
+  # The scheduler needs no privileges: run it as the web server user when the container starts as root.
+  if [ "$(id -u)" = 0 ] && command -v setpriv >/dev/null 2>&1; then
+    tick() { setpriv --reuid=www-data --regid=www-data --init-groups php bin/tick.php; }
+  else
+    tick() { php bin/tick.php; }
+  fi
+  ( while true; do tick || true; sleep 300; done ) &
 fi
 
 exec "$@"

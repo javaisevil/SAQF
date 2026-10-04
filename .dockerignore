@@ -14,3 +14,4 @@ storage/inbox/catalog/*
 storage/evidence
 storage/backups
 tests/output
+secrets

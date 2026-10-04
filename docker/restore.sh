@@ -6,6 +6,11 @@
 # A saqf-files-*.tar.gz[.enc] archive with the same timestamp is restored into the evidence store too.
 # Needs the same settings as the backup service (SAQF_DB_*, SAQF_BACKUP_PASSPHRASE for encrypted files).
 set -eu
+# Secrets may be supplied as files (Docker secrets): SAQF_DB_PASS_FILE, SAQF_BACKUP_PASSPHRASE_FILE.
+for v in SAQF_DB_PASS SAQF_BACKUP_PASSPHRASE; do
+  eval "cur=\${$v:-}"; eval "file=\${${v}_FILE:-}"
+  if [ -z "$cur" ] && [ -n "$file" ] && [ -f "$file" ]; then eval "$v=\$(cat \"$file\")"; export "$v"; fi
+done
 dir="${SAQF_BACKUP_DIR:-/backups}"
 files_dir="${SAQF_BACKUP_FILES_DIR:-/evidence}"
 [ $# -eq 1 ] || { echo "usage: saqf-restore <saqf-YYYYmmdd-HHMMSS.sql.gz[.enc]>"; ls -1 "$dir" | grep '^saqf-[0-9].*\.sql\.gz' | tail -5; exit 1; }

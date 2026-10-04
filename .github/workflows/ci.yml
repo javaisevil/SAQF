@@ -111,3 +111,67 @@ jobs:
       - name: Logs on failure
         if: failure()
         run: docker compose logs
+
+  hardened:
+    name: Hardened production stack (secret files, read-only, capabilities dropped)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate secret files and production settings
+        run: |
+          sh bin/make_secrets.sh
+          printf 'APP_ENV=production\nSAQF_DEMO=false\nSAQF_AUTO_INSTALL=production\nSAQF_BASE_URL=https://localhost\nSAQF_DOMAIN=localhost\nSAQF_BACKUP_START_DELAY=99999\n' > .env
+      - name: Start with the production overrides and the HTTPS proxy
+        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile https up -d --build
+      - name: Wait until healthy
+        run: |
+          for i in $(seq 1 60); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q app)")" = healthy ] && exit 0
+            sleep 5
+          done
+          docker compose logs app
+          exit 1
+      - name: Health reports an application key that came from a file
+        run: |
+          curl -fsS http://127.0.0.1:8080/health.php | tee /tmp/health.json
+          grep -q '"app_key":"ok"' /tmp/health.json
+      - name: Hardening is really applied
+        run: |
+          app=$(docker compose ps -q app)
+          [ "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' "$app")" = true ]
+          docker inspect -f '{{.HostConfig.SecurityOpt}}' "$app" | grep -q 'no-new-privileges'
+          docker inspect -f '{{.HostConfig.CapDrop}}' "$app" | grep -q 'ALL'
+          if docker compose exec -T app sh -c 'touch /var/www/saqf/should-fail' 2>/dev/null; then echo "root file system is writable"; exit 1; fi
+          echo "read-only root file system, no-new-privileges and dropped capabilities confirmed"
+      - name: No secret value is visible in the container configuration
+        run: |
+          key=$(cat secrets/saqf_app_key); dbp=$(cat secrets/saqf_db_pass)
+          docker inspect "$(docker compose ps -q app)" "$(docker compose ps -q db)" > /tmp/inspect.json
+          if grep -qF "$key" /tmp/inspect.json || grep -qF "$dbp" /tmp/inspect.json; then echo "a secret leaked into docker inspect"; exit 1; fi
+          echo "secrets are not in docker inspect output"
+      - name: The scheduler does not run as root
+        run: |
+          sleep 10
+          docker compose exec -T app sh -c 'ps -eo user,args | grep "[b]in/tick.php" || true' | tee /tmp/ps.txt
+          if grep -q '^root' /tmp/ps.txt; then echo "scheduler runs as root"; exit 1; fi
+      - name: HTTPS, secure cookie and HSTS through the proxy
+        run: |
+          for i in $(seq 1 30); do curl -skfI https://localhost/login.php > /tmp/https.txt && break; sleep 2; done
+          cat /tmp/https.txt
+          grep -qi '^strict-transport-security' /tmp/https.txt
+          grep -qi 'set-cookie: SAQFSESSID=.*secure' /tmp/https.txt
+      - name: Production preflight runs inside the container
+        run: |
+          docker compose exec -T app php bin/preflight.php | tee /tmp/preflight.txt || true
+          grep -q 'Application key from the environment' /tmp/preflight.txt
+          grep -A1 'BLOCK.*Application key' /tmp/preflight.txt && exit 1 || true
+          grep -q 'No account uses the published demo password' /tmp/preflight.txt
+      - name: Backup with the passphrase from a file is encrypted and verified
+        run: |
+          docker compose exec -T backup sh /usr/local/bin/saqf-backup
+          ls backups | grep -q 'sql.gz.enc$'
+          docker compose exec -T app cat storage/backups/last-backup.json | tee /tmp/status.json
+          grep -q '"status":"ok"' /tmp/status.json && grep -q '"encrypted":true' /tmp/status.json
+      - name: Logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml logs

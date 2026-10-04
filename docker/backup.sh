@@ -18,6 +18,11 @@
 #   SAQF_BACKUP_KEEP_DAYS (14), SAQF_BACKUP_INTERVAL_HOURS (24), SAQF_BACKUP_START_DELAY (900 s, --loop only)
 # Restore: docker/restore.sh (decrypts when needed, restores the database and the evidence files).
 set -u
+# Secrets may be supplied as files (Docker secrets): SAQF_DB_PASS_FILE, SAQF_BACKUP_PASSPHRASE_FILE.
+for v in SAQF_DB_PASS SAQF_BACKUP_PASSPHRASE; do
+  eval "cur=\${$v:-}"; eval "file=\${${v}_FILE:-}"
+  if [ -z "$cur" ] && [ -n "$file" ] && [ -f "$file" ]; then eval "$v=\$(cat \"$file\")"; export "$v"; fi
+done
 umask 077   # backups contain every record: readable by the owner only
 dir="${SAQF_BACKUP_DIR:-/backups}"
 files_dir="${SAQF_BACKUP_FILES_DIR:-/evidence}"

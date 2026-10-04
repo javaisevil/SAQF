@@ -160,6 +160,17 @@ final class SecurityCenter
      * verified second copy is not healthy either; elsewhere that is reported as a note (null).
      * Everything is judged from what the backup run recorded, never from the configuration alone.
      */
+    /** Last restore drill written by docker/restore_drill.sh into the backup status folder (null when none). */
+    public static function restoreDrill(): ?array
+    {
+        $file = rtrim((string) (Config::get('SAQF_BACKUP_MONITOR_DIR') ?: SAQF_ROOT . '/storage/backups'), '/') . '/last-restore-drill.json';
+        if (!is_file($file)) {
+            return null;
+        }
+        $s = json_decode((string) file_get_contents($file), true);
+        return is_array($s) ? $s : null;
+    }
+
     public static function backupOk(): ?bool
     {
         $s = self::backupStatus();

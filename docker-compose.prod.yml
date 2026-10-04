@@ -1,0 +1,86 @@
+# Hardened production layer. Use together with the base file:
+#   sh bin/make_secrets.sh
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile https up -d --build
+# What it changes (docs/DEPLOY.md explains each line):
+#   * secrets come from files under ./secrets (SAQF_APP_KEY_FILE, SAQF_DB_PASS_FILE …), not from environment variables
+#   * production mode, demo off, installs the production schema (never the demo) on first start
+#   * read-only root file system, no new privileges, all Linux capabilities dropped except those Apache/MySQL need
+#   * only the HTTPS proxy is reachable from outside; the plain-http port is bound to the server itself
+#   * process, memory and log-size limits so one fault cannot take the whole server down
+# It does not make SAQF "secure" by itself: the host, firewall, backups and identity provider are still IT's to run.
+services:
+  app:
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      SAQF_DEMO: "false"
+      SAQF_AUTO_INSTALL: production
+      SAQF_APP_KEY: ""
+      SAQF_APP_KEY_FILE: /run/secrets/saqf_app_key
+      SAQF_DB_PASS: ""
+      SAQF_DB_PASS_FILE: /run/secrets/saqf_db_pass
+    secrets: [saqf_app_key, saqf_db_pass]
+    ports: !override
+      - "127.0.0.1:${SAQF_LOCAL_PORT:-8080}:80"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /var/run/apache2:size=1m
+      - /var/lock/apache2:size=1m
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID, NET_BIND_SERVICE]
+    pids_limit: 256
+    mem_limit: 1g
+    logging: {driver: json-file, options: {max-size: "10m", max-file: "5"}}
+
+  db:
+    environment:
+      MYSQL_PASSWORD: ""
+      MYSQL_PASSWORD_FILE: /run/secrets/saqf_db_pass
+      MYSQL_ROOT_PASSWORD: ""
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/saqf_db_root_pass
+    secrets: [saqf_db_pass, saqf_db_root_pass]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$(cat /run/secrets/saqf_db_root_pass)\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID]
+    pids_limit: 512
+    mem_limit: 2g
+    logging: {driver: json-file, options: {max-size: "10m", max-file: "5"}}
+
+  backup:
+    environment:
+      SAQF_DB_PASS: ""
+      SAQF_DB_PASS_FILE: /run/secrets/saqf_db_pass
+      SAQF_BACKUP_PASSPHRASE: ""
+      SAQF_BACKUP_PASSPHRASE_FILE: /run/secrets/saqf_backup_passphrase
+    secrets: [saqf_db_pass, saqf_backup_passphrase]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 128
+    mem_limit: 512m
+    logging: {driver: json-file, options: {max-size: "10m", max-file: "5"}}
+
+  proxy:
+    read_only: true
+    tmpfs: ["/tmp:size=16m"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    pids_limit: 128
+    mem_limit: 256m
+    logging: {driver: json-file, options: {max-size: "10m", max-file: "5"}}
+
+secrets:
+  saqf_app_key:
+    file: ./secrets/saqf_app_key
+  saqf_db_pass:
+    file: ./secrets/saqf_db_pass
+  saqf_db_root_pass:
+    file: ./secrets/saqf_db_root_pass
+  saqf_backup_passphrase:
+    file: ./secrets/saqf_backup_passphrase
