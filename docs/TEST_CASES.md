@@ -165,6 +165,8 @@ Test files: **A** = `tests/automation_test.php`, **P** = `tests/production_test.
 | 11.11 | Go-live preflight | **Administration → Go-live** or `php bin/preflight.php` | In the demo it blocks go-live (demo accounts use a published password, demo mode on) and names each fix | R, X |
 | 11.12 | Audit-chain witness | **Administration → Activity log → Take a checkpoint now** | A `SAQF-WITNESS/1 …` line, sent by e-mail or webhook when configured; pasting it back checks history up to that point | X |
 | 11.13 | Security incidents | **Security incidents** in the sidebar (administrator) | A register; a personal-data incident shows a 72-hour clock from detection; decisions are recorded by people and SAQF contacts no one | X |
+| 11.14 | JSON endpoints keep the page gates | (automated) | A password sign-in that still owes a new password or two-step set-up is refused by `api.php` (403) and gets no search suggestions, exactly as every page sends it to *Account & security*; an administrator with only a passkey still owes the authenticator app | G §9 |
+| 11.15 | A faulty catalogue on first install | (automated) | The installer stops before creating anything and lists the problems; once the export is fixed, the next start installs normally with its administrator account | R |
 
 ---
 

@@ -52,6 +52,20 @@ if ($exists && !$fresh) {
         exit(1);
     }
 }
+// The catalogue is checked before anything is written or dropped. Otherwise a faulty Registrar export would stop the
+// install after the schema but before the administrator account, and later starts would skip that database
+// as "already installed", leaving SAQF with nobody who can sign in.
+$catalogue = \Saqf\Integration\CatalogFileSource::defaultDir();
+$pack = \Saqf\Integration\DataPack::inspect($catalogue);
+if (!$pack['ok']) {
+    fwrite(STDERR, "The institutional catalogue in $catalogue cannot be used, so nothing was installed.\n");
+    foreach (array_slice($pack['errors'], 0, 5) as $e) {
+        fwrite(STDERR, "  PROBLEM  $e\n");
+    }
+    fwrite(STDERR, "Fix the export (php bin/pack.php validate lists every problem) and start again.\n");
+    exit(1);
+}
+
 if ($fresh && $exists) {
     if (Config::env() === 'production') {
         fwrite(STDERR, "--fresh is disabled when APP_ENV=production.\n");

@@ -35,6 +35,9 @@ $user = Auth::user();
 if (!$user) {
     out(['ok' => false, 'error' => 'Your session has expired. Sign in again.'], 401);
 }
+if ($why = Auth::apiRefusal($user)) {
+    out(['ok' => false, 'error' => $why], 403);
+}
 if (!Csrf::valid()) {
     out(['ok' => false, 'error' => 'Security token expired. Reload the page.'], 403);
 }

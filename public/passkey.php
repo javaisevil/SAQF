@@ -54,6 +54,9 @@ try {
             if (!$user) {
                 pk_out(['ok' => false, 'error' => 'Your session has expired. Sign in again.'], 401);
             }
+            if ($why = Auth::apiRefusal($user, true)) {
+                pk_out(['ok' => false, 'error' => $why], 403);
+            }
             if (!Auth::recentlyVerified()) {
                 pk_out(['ok' => false, 'error' => 'For your security, sign out and sign in again before changing passkeys (your last confirmation is too old).'], 403);
             }

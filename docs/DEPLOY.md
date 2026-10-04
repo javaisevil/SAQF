@@ -1,14 +1,14 @@
 # SAQF deployment guide
 
-For the university IT team that will host SAQF. It goes from an empty Linux server to a monitored installation and ends with a go-live checklist in which every row can be proven with one command or one screen.
+For the university IT team that will host SAQF. It goes from an empty Linux server to a monitored installation and ends with a go-live checklist in which each row names the command, screen or record that shows it.
 
 > **Read this first**
 >
-> - SAQF is a Docker-deployable demo with an integration-ready handoff. This guide describes the production configuration the repository ships and how to run it. It does not turn the demo into an approved or independently reviewed system. The open prerequisites (identity-provider MFA confirmed in writing, an approved Edugate and LMS contract, retention and privacy policy, an independent security review, a department pilot) are listed in [READINESS.md](READINESS.md).
+> - SAQF is a Docker-deployable demo with documented integration interfaces. This guide describes the production configuration the repository ships and how to run it. It does not turn the demo into an approved or independently reviewed system. The open prerequisites (identity-provider MFA confirmed in writing, an approved Edugate and LMS contract, retention and privacy policy, an independent security review, a department pilot) are listed in [READINESS.md](READINESS.md).
 > - Nothing has been connected to YU's real Edugate, LMS or identity provider. The connectors have been exercised against local stand-in servers (`tests/mock/`) only, and the sample integrations are simulated. The bundled data is a snapshot of YU's public study plans (`data/yu/SOURCES.md`) plus fictional people and synthetic, pseudonymous results.
 > - The preflight and the security self-test are self-checks. Neither is a penetration test or an independent review. The passkey code (`src/Security/WebAuthn.php`, `src/Security/Cbor.php`) is hand-written and has not been independently reviewed. The audit log is tamper-evident, not tamper-proof.
 > - There is no AI or LLM API inside the product, and nothing in this guide needs a paid service. The stack is PHP, MySQL, Apache, Caddy and, optionally, ClamAV ([TECH_STACK.md](../TECH_STACK.md)).
-> - Every file and command named below exists in this repository. Where a step is not covered by a test, the guide says so (section 14 collects those gaps).
+> - Every script and configuration file named below exists in this repository (files such as `.env`, `secrets/*` and `docker-compose.override.yml` are created during deployment; `findmnt`, `ss` and `curl` are host tools). Where a step is not covered by a test, the guide says so (section 14 collects those gaps).
 
 ## Order of work
 
@@ -46,12 +46,12 @@ Browser --443--> proxy (Caddy) --> app (Apache + PHP 8.3) --> db (MySQL 8.0)
 | Service | Image | Reachable from | Holds | Role |
 |---|---|---|---|---|
 | `proxy` (profile `https`) | `caddy:2` | everywhere, ports 80 and 443 (`SAQF_HTTP_PORT`, `SAQF_HTTPS_PORT`) | volumes `saqf_caddy_data`, `saqf_caddy_config` | Ends TLS, redirects HTTP to HTTPS, forwards to `app:80` (`docker/Caddyfile`; request bodies up to 32 MB) |
-| `app` | built from `Dockerfile` (`php:8.3-apache`) | the host only (`127.0.0.1:8080`) and the compose network | volume `saqf_evidence`; read-only mounts of `./storage/inbox` and of the backup status | Serves `public/` only, runs the scheduler loop, installs and migrates at start (`docker/entrypoint.sh`) |
+| `app` | built from `Dockerfile` (`php:8.3-apache`) | the host only (`127.0.0.1:8080`) and the compose network | volume `saqf_evidence`; read-only mounts of `./storage/inbox`, `./config/mappings` and the backup status | Serves `public/` only, runs the scheduler loop, installs and migrates at start (`docker/entrypoint.sh`) |
 | `db` | `mysql:8.0` | the compose network only (no published port) | volume `saqf_mysql` | The only database; UTF-8 (`utf8mb4`); started with `--log-bin-trust-function-creators=1` so the audit-log triggers can be created |
-| `backup` | `mysql:8.0` running `docker/backup.sh --loop` | nothing connects to it | `./backups`, the off-site path, `saqf_evidence`, `saqf_backup_status` | Nightly verified backups and the monthly restore drill (section 10) |
+| `backup` | `mysql:8.0` running `docker/backup.sh --loop` | nothing connects to it | `./backups`, the off-site path, `saqf_evidence`, `saqf_backup_status` | Verified backups every `SAQF_BACKUP_INTERVAL_HOURS` (24) and a restore drill every `SAQF_DRILL_EVERY_DAYS` (30) (section 10) |
 | `clamav` (profile `antivirus`) | `clamav/clamav:stable` | the compose network | none | Optional virus scanning of evidence uploads |
 
-The compose network is `172.28.250.0/24`; the proxy has the fixed address `172.28.250.10`, and `SAQF_TRUSTED_PROXIES` defaults to that address, so only the bundled proxy may tell SAQF a visitor's address (`src/Core/Request.php`). If that range clashes with your network, change the subnet, the proxy's `ipv4_address` and `SAQF_TRUSTED_PROXIES` together in `docker-compose.yml` and `.env`. Containers use the Riyadh time zone (`TZ`, `APP_TIMEZONE`), so backup file names are in Riyadh time.
+The compose network is `172.28.250.0/24`; the proxy has the fixed address `172.28.250.10`, and `SAQF_TRUSTED_PROXIES` defaults to that address, so only the bundled proxy may tell SAQF a visitor's address (`src/Core/Request.php`). If that range clashes with your network, change `subnet`, `ip_range`, the proxy's `ipv4_address` and `SAQF_TRUSTED_PROXIES` together in `docker-compose.yml` and `.env`. The db and backup containers use the Riyadh time zone (`TZ`), so backup file names are in Riyadh time; the app uses `APP_TIMEZONE` and the `docker/php.ini` time zone.
 
 ## 2. Prerequisites
 
@@ -63,7 +63,7 @@ The compose network is `172.28.250.0/24`; the proxy has the fixed address `172.2
 | Second backup location | A mounted network share, NAS or second disk **on another machine**, mounted on the Docker host (for example `/mnt/saqf-offsite`). SAQF can verify the copy; it cannot tell where the share physically is. |
 | Password vault | For the application key, the backup passphrase and the database passwords. Two of these cannot be recreated (section 4). |
 | Accurate server clock | Authenticator codes (RFC 6238, `src/Security/Totp.php`) and the "backup is older than 26 hours" check depend on it. |
-| Outbound HTTPS | From the server to the identity provider, the SIS and LMS addresses, the SMTP server and the alert webhook. Production refuses plain `http://` for these (`src/Integration/Http.php`). |
+| Outbound connections | HTTPS (443) to the identity provider, the SIS and LMS addresses and the alert webhook; production refuses plain `http://` for these (`src/Integration/Http.php`). SMTP (587 with STARTTLS, or 465) to the mail server, with `SAQF_MAIL_ENCRYPTION=tls` or `ssl`. |
 | People | Two named administrators (the preflight warns about a single one), a security-contact mailbox, an IT change log, and the university's data-protection contact for the incident register (section 12.5). |
 | From other offices (not needed to start) | Identity-provider app registration, SMTP account, SIS and LMS access: see [INTEGRATIONS.md](INTEGRATIONS.md). |
 
@@ -144,7 +144,7 @@ The overlay forces `APP_ENV=production`, `APP_DEBUG=false`, `SAQF_DEMO=false` an
 
 ### 5.2 Variables the compose file passes
 
-`.env` only feeds the compose files: a variable reaches the app container only if `docker-compose.yml` lists it under `environment:`. Every setting the code reads through `Config::get` or `Config::bool` is listed there, including the security contact (`SAQF_SECURITY_CONTACT`), the MFA requirement for university sign-in (`SAQF_OIDC_REQUIRE_MFA`), extra audit-witness recipients (`SAQF_WITNESS_EMAIL`), the robot check (`SAQF_BOT_CHECK`) and the mapped connectors (`SAQF_SIS_MAPPING`, `SAQF_SIS_CLIENT_ID`, `SAQF_SIS_CLIENT_SECRET`, `SAQF_LMS_MAPPING`, `SAQF_LMS_URL`, `SAQF_LMS_TOKEN`, `SAQF_LMS_CLIENT_ID`, `SAQF_LMS_CLIENT_SECRET`). The backup service also receives `SAQF_DRILL_EVERY_DAYS` (default 30; 0 = never). The only ones left out are fixed inside the container (`SAQF_SIS_DIR`, `SAQF_LMS_DIR`: the read-only `./storage/inbox` mount) or are for development (`SAQF_DB_WAIT`, `SAQF_I18N_REPORT`).
+`.env` only feeds the compose files: a variable reaches the app container only if `docker-compose.yml` lists it under `environment:`. Every setting the code reads through `Config::get` or `Config::bool` is listed there, including the security contact (`SAQF_SECURITY_CONTACT`), the MFA requirement for university sign-in (`SAQF_OIDC_REQUIRE_MFA`), extra audit-witness recipients (`SAQF_WITNESS_EMAIL`), the robot check (`SAQF_BOT_CHECK`) and the mapped connectors (`SAQF_SIS_MAPPING`, `SAQF_SIS_CLIENT_ID`, `SAQF_SIS_CLIENT_SECRET`, `SAQF_LMS_MAPPING`, `SAQF_LMS_URL`, `SAQF_LMS_TOKEN`, `SAQF_LMS_CLIENT_ID`, `SAQF_LMS_CLIENT_SECRET`). The backup service also receives `SAQF_DRILL_EVERY_DAYS` (default 30; 0 = never). The only ones left out are fixed inside the container (`SAQF_SIS_DIR`, `SAQF_LMS_DIR`: the read-only `./storage/inbox` mount), are for development (`SAQF_DB_WAIT`, `SAQF_I18N_REPORT`) or are ignored by the code (`SAQF_LMS_PSEUDONYMIZE`: pseudonymisation cannot be switched off).
 
 Mapping files for the mapped connectors go in `./config/mappings` on the host, which is mounted read-only into the app container; name them as `SAQF_SIS_MAPPING=config/mappings/sis.json` (see `config/mappings/README.md`).
 
@@ -155,6 +155,8 @@ grep -rhoE "Config::(get|bool)\('SAQF_[A-Z0-9_]+" src public bin | sed -E "s/.*'
 grep -oE "^ +SAQF_[A-Z0-9_]+" docker-compose.yml | tr -d ' ' | sort -u > /tmp/passed.txt
 comm -23 /tmp/read.txt /tmp/passed.txt
 ```
+
+Expected output: the five names above. The command sees only literal names: the mapped connectors build theirs at run time (`SAQF_SIS_*` / `SAQF_LMS_*` with `_MAPPING`, `_URL`, `_TOKEN`, `_CLIENT_ID`, `_CLIENT_SECRET` in `src/Integration/MappedApi.php`) and some are held in key lists (`Http::URL_SETTINGS`, `Config::SECRET_KEYS`), so check those files too after an upgrade.
 
 ### 5.3 Local override file
 
@@ -191,7 +193,7 @@ The default is Caddy's automatic certificate for `SAQF_DOMAIN`. To use a certifi
 | `APP_ENV: production`, `APP_DEBUG: "false"`, `SAQF_DEMO: "false"` | app | Production mode: no demo accounts, no one-click demo sign-in, no `install --fresh`, no error details shown to users | The preflight runs in the container and must report no account using the published demo password |
 | `SAQF_AUTO_INSTALL: production` | app | On the first start with an empty database, `bin/install.php` creates the production schema (never the demo scenario) and one `admin` account; later starts skip it (`--skip-if-installed`) | The stack starts and reports healthy |
 | `SAQF_APP_KEY_FILE`, `SAQF_DB_PASS_FILE` and the empty plain variables | app | Values are read from `/run/secrets/...`, not from the process environment. The plain variables are blanked because an environment value would win over a file (`src/Core/Config.php`) | Health reports `app_key: ok` from a file; no secret value appears in `docker inspect` of app and db |
-| `MYSQL_PASSWORD_FILE`, `MYSQL_ROOT_PASSWORD_FILE` | db | The MySQL image reads its passwords from the secret files | Same as above |
+| `MYSQL_PASSWORD_FILE`, `MYSQL_ROOT_PASSWORD_FILE` | db | The MySQL image reads its passwords from the secret files | Partly: CI confirms the `saqf_db_pass` value is absent from `docker inspect` of db; the root password is not checked |
 | `SAQF_DB_PASS_FILE`, `SAQF_BACKUP_PASSPHRASE_FILE` | backup | The backup service reads the database password and encrypts every backup with the passphrase from the file | An encrypted backup is written and reported as `"encrypted":true` |
 | `ports: !override` to `127.0.0.1:${SAQF_LOCAL_PORT:-8080}:80` | app | Replaces the base file's all-interfaces `${SAQF_PORT:-8080}:80`. Apache is then reachable only from the host; the proxy is the only published web entry | Not checked (CI calls the port from the host itself) |
 | `read_only: true` and `tmpfs` (`/tmp` 64 MB, `/var/run/apache2` and `/var/lock/apache2` 1 MB) | app | The root file system cannot be written, so the code in the image cannot be altered at run time. Only the tmpfs paths and the evidence volume accept writes; anything PHP stages in `/tmp` (uploads in progress) is in memory and lost when the container is recreated | Yes: read-only root confirmed and a write attempt fails |
@@ -227,7 +229,7 @@ rm -f /tmp/inspect.json
 ## 7. First start and the first administrator
 
 1. **Check the files.** `ls -l secrets` shows the four files; `$DC config > /dev/null && echo accepted` prints `accepted`.
-2. **Optional, before the first start:** put the Registrar's catalogue export into `storage/inbox/catalog/` (or set `SAQF_INSTITUTION_DIR`). SAQF checks it completely before use and falls back to the bundled snapshot of YU's public study plans otherwise (`src/Integration/SeededSources.php`). The files must be readable by the web-server user inside the container.
+2. **Optional, before the first start:** put the Registrar's catalogue export into `storage/inbox/catalog/` (or set `SAQF_INSTITUTION_DIR`). When a catalogue is present SAQF uses it and refuses it as a whole if it fails validation; it falls back to the bundled snapshot of YU's public study plans only when no `institution.json` is present (`src/Integration/SeededSources.php`). On the first start a faulty catalogue stops the installer before anything is written (nothing to clean up: fix it and start again); check it beforehand with `php bin/pack.php validate <folder>`. The files must be readable by the web-server user, and `SAQF_INSTITUTION_DIR` must be a path inside the container.
 3. **Start.**
    ```sh
    $DC up -d --build
@@ -293,7 +295,7 @@ The same list appears in the app: *Administration → Go-live*, card **Productio
 
 **Warnings**, to fix or to accept in writing: a second administrator exists; two-step verification required for everyone using a password; university single sign-on configured; password sign-in restricted when SSO is on; a restore drill passed in the last 100 days; the scheduler ran in the last 20 minutes; IT alerts reach people outside SAQF; audit-chain witnesses leave the server; evidence uploads are malware-scanned; the access review is current; the security self-test passes; secret files are not world-readable; a security contact is published. Three more lines are information only: secrets supplied from files, and whether the SIS and the LMS are not the demo feed.
 
-On day one, expect two blockers to be open: the administrator's two-step setup until step 7, and the backup until the first complete backup with an off-site copy exists (steps 8 and 9 and `SAQF_BACKUP_OFFSITE_PATH`). Several warnings also stay open until you configure SSO, alerting and run the first drill. The nightly scheduler runs the self-test, or press *Security center → Run security self-test*.
+On day one, expect two blockers to be open: the administrator's two-step setup until step 7, and the backup until the first complete backup with an off-site copy exists (step 9 and `SAQF_BACKUP_OFFSITE_PATH`). Several warnings also stay open until you configure SSO, alerting and run the first drill. The nightly scheduler runs the self-test, or press *Security center → Run security self-test*.
 
 A clean preflight means none of these known pre-conditions is missing. It does not mean the installation has been reviewed or approved.
 
@@ -325,7 +327,7 @@ Exit code 0 means every row is clean, 1 that some rows need attention, 2 that th
 
 ### 10.1 What runs
 
-The `backup` service runs `docker/backup.sh --loop`: it waits `SAQF_BACKUP_START_DELAY` seconds (900), then repeats every `SAQF_BACKUP_INTERVAL_HOURS` (24) hours, counted from the start, not at a fixed clock time. Each run:
+The `backup` service runs `docker/backup.sh --loop`: it waits `SAQF_BACKUP_START_DELAY` seconds (900), then sleeps `SAQF_BACKUP_INTERVAL_HOURS` (24) hours after each run (and any drill) finishes, so the time of day drifts later; it is not a fixed clock time. Each run:
 
 1. dumps the database with its triggers and routines (`saqf-YYYYmmdd-HHMMSS.sql.gz`) and archives the evidence volume (`saqf-files-....tar.gz`);
 2. under the overlay, encrypts each file with AES-256 and PBKDF2 using the passphrase from `secrets/saqf_backup_passphrase` (`.enc`);
@@ -347,7 +349,8 @@ findmnt /mnt/saqf-offsite       # the SOURCE column names the NAS, share or othe
 A path that is not mounted is not an error to Docker: the files would land on the local disk and still be reported as copied. SAQF verifies that the copy exists and matches its checksum; it cannot see where the share lives. Verify the copy from the share side:
 
 ```sh
-cd /mnt/saqf-offsite && for f in saqf-*.sha256; do sha256sum -c "$f"; done
+# the backup files are root-owned with mode 0600 (umask 077), so run this as root
+sudo sh -c 'cd /mnt/saqf-offsite && for f in saqf-*.sha256; do sha256sum -c "$f"; done'
 ```
 
 ### 10.3 What is not in the backup
@@ -363,7 +366,7 @@ $DC exec -T backup sh /usr/local/bin/saqf-restore-drill
 $DC exec -T app cat storage/backups/last-restore-drill.json     # expect "ok":true and "audit_head":"match"
 ```
 
-The backup loop also runs the drill by itself when the last one is older than 30 days. The preflight warns when no drill passed in the last 100 days. The drill runs inside the backup container, which the overlay limits to 512 MiB and 128 processes; CI shows that this fits the demo data, so confirm it with your own data.
+The backup loop also runs the drill by itself when none has been recorded yet (so the first one follows the first loop backup) or the last one is older than `SAQF_DRILL_EVERY_DAYS` (30; 0 = never). The preflight warns when no drill passed in the last 100 days. The drill runs inside the backup container, which the overlay limits to 512 MiB and 128 processes; CI shows that this fits the demo data, so confirm it with your own data.
 
 What the drill does **not** prove (it says so itself): the recovery time on real hardware, that the live server could be rebuilt from scratch, or the full hash-chain verification (run `php bin/verify_audit.php` after a real restore). It is not a substitute for restoring onto a separate staging server and recording the result in the IT change log.
 
@@ -379,7 +382,7 @@ $DC start app
 $DC exec -T app php bin/verify_audit.php       # exit code 0 = chain intact
 ```
 
-The restore script checks the checksum, decrypts, loads the database, and restores the evidence archive with the same timestamp. A broken chain after a restore means the dump is incomplete or was altered. The script and the follow-up check run in CI job `docker` on a throw-away demo stack; your own backups, share and hardware are not covered.
+The restore script checks the checksum, decrypts, loads the database, and restores the evidence archive with the same timestamp. A broken chain after a restore means the dump is incomplete or was altered. CI job `docker` runs the restore script and the follow-up check on a throw-away demo stack without the overlay (passphrase from the environment); the overlay form with secret files is not exercised by CI (the `hardened` job runs only the restore drill), and your own backups, share and hardware are not covered.
 
 On a **new server** the order is: put the vaulted `secrets/saqf_app_key` and `secrets/saqf_backup_passphrase` (and the database files) in place **before** running `bin/make_secrets.sh`, which keeps files that exist; copy the backup files into `./backups`; `$DC up -d db`; run the restore command above; then `$DC up -d --build`. The installer skips a database that already has tables. This sequence is derived from the scripts and has not been run end to end by CI, so rehearse it on staging.
 
@@ -444,7 +447,7 @@ A minimal external check: `curl -fsS https://saqf.example.edu/health.php | grep 
 
 ### 12.2 Scheduler
 
-The app container runs `php bin/tick.php` every 5 minutes as the web-server user (`docker/entrypoint.sh`). One scheduler runs at a time (database lock). It does the SIS sync and automatic term start, the LMS imports, the daily catalogue re-sync and rule re-checks, the nightly audit verification, witness, self-test and access-review alert, e-mail digests and the mail queue. Each run prints a line to the container log (`$DC logs app`); exit code 2 means a step failed and the *Error log* has the detail. In production an IT alert opens if it has not run for 30 minutes.
+The app container runs `php bin/tick.php` every 5 minutes as the web-server user (`docker/entrypoint.sh`). One scheduler runs at a time (database lock). It does the SIS sync and automatic term start, the LMS imports, the daily catalogue re-sync and rule re-checks, the nightly audit verification, witness, self-test and access-review alert, e-mail digests and the mail queue. Each run prints a line to the container log (`$DC logs app`); exit code 2 means a step failed and the *Error log* has the detail. When a page is requested and the scheduler has not run for 30 minutes, an IT alert opens (and the page runs the scheduler itself after 15 minutes). With no visitors nothing raises that alert, so monitor `"scheduler"` in `/health.php` from outside (section 12.1).
 
 ### 12.3 IT alerts
 
@@ -456,7 +459,7 @@ The hash chain shows that a row was edited or deleted. Someone with database adm
 
 - Keep the messages: a mailbox rule or a channel with retention. SAQF cannot see whether they are kept, and witnesses only protect history up to their checkpoint. They do not prevent tampering.
 - Verify a witness later: `php bin/verify_audit.php --witness "SAQF-WITNESS/1 ..."` (exit 0 unchanged, 2 history differs), or *Administration → Activity log → Witnessed checkpoints*.
-- Nightly chain check: `php bin/verify_audit.php` exits 0 for an intact chain and 2 for tampering. Each run adds an `audit.verified` entry to the log.
+- Chain check: `php bin/verify_audit.php` exits 0 for an intact chain and 2 when the chain does not verify (tampering, corruption or an incomplete restore); each command-line run adds an `audit.verified` entry. The scheduler also verifies the chain nightly by itself (without adding that entry) and raises an IT alert when it breaks.
 - If you need evidence that survives loss of the server, also export the log (*Activity log → Export CSV*) to a location outside it.
 
 ### 12.5 Incident register
@@ -517,7 +520,7 @@ The README lists Apache or Nginx, PHP 8.3 and MySQL 8 as requirements, so a hand
 | 8 | The database is not published | `$DC ps db` | The ports column shows no `->` mapping |
 | 9 | HTTPS with a trusted certificate | `curl -sI https://saqf.example.edu/login.php` (no `-k`) | The request succeeds; the headers include `strict-transport-security` and a `set-cookie: SAQFSESSID=...` that carries `secure` |
 | 10 | HTTP redirects to HTTPS | `curl -sI http://saqf.example.edu/login.php` | A `location: https://...` header |
-| 11 | The application key is in place | `$DC exec -T app php bin/app_key.php status`; the vault | `Status: ready`; the vault owner confirms the entries and the offline copy |
+| 11 | The application key is in place | `$DC exec -T app php bin/app_key.php status`; the vault | `Status:` followed by `ready`; the vault owner confirms the entries and the offline copy |
 | 12 | The health probe is green | `curl -fsS https://saqf.example.edu/health.php` | `"status":"ok"`, `"database":"ok"`, `"scheduler":"ok"`, `"app_key":"ok"` |
 | 13 | Administrators use two-step verification | Preflight line; screen *Security center* | "Password-using administrators have two-step verification" is `ok` |
 | 14 | A second administrator exists, with e-mail | Screen *Users & access*; screen *Access review* | Two administrators with addresses; preflight "A second administrator exists" is `ok` |
@@ -525,7 +528,7 @@ The README lists Apache or Nginx, PHP 8.3 and MySQL 8 as requirements, so a hand
 | 16 | The security contact is published | `curl -s https://saqf.example.edu/.well-known/security.txt` | A `Contact:` line (set `SAQF_SECURITY_CONTACT`) |
 | 17 | Administrator network restriction (if chosen) | Screen *Security center*; try an administrator sign-in from an unlisted network | The row names your ranges; the sign-in is refused |
 | 18 | A complete backup exists | `$DC exec -T backup sh /usr/local/bin/saqf-backup`; `$DC exec -T app cat storage/backups/last-backup.json` | Exit code 0; `"status":"ok"`, `"verified":true`, `"encrypted":true`, `"offsite":true`, `"files":true` |
-| 19 | The off-site copy is on another machine and intact | `findmnt /mnt/saqf-offsite`; `cd /mnt/saqf-offsite && for f in saqf-*.sha256; do sha256sum -c "$f"; done` | The source is not a local disk of this server; every file reports `OK` |
+| 19 | The off-site copy is on another machine and intact | `findmnt /mnt/saqf-offsite`; `sudo sh -c 'cd /mnt/saqf-offsite && for f in saqf-*.sha256; do sha256sum -c "$f"; done'` | The source is not a local disk of this server; every file reports `OK` |
 | 20 | The restore drill passes | `$DC exec -T backup sh /usr/local/bin/saqf-restore-drill` | Ends with `ok=true`; `last-restore-drill.json` has `"ok":true` and `"audit_head":"match"`; the preflight "A restore drill passed in the last 100 days" is `ok` |
 | 21 | A real restore was rehearsed on staging | On staging, `php bin/verify_audit.php; echo $?` after section 10.5; the IT change log | Exit code 0; a log entry with date, backup file and person |
 | 22 | The audit chain and its triggers are intact | `$DC exec -T app php bin/verify_audit.php; echo $?`; preflight line | Exit code 0; "Audit log protected by append-only triggers" is `ok` |

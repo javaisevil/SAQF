@@ -377,17 +377,45 @@ final class Auth
             self::logout('administrator network restriction');
             Authz::deny('administration from an untrusted network');
         }
-        $page = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
-        $passwordSession = in_array($_SESSION['auth'] ?? 'password', ['password', 'password+mfa', 'password+email', 'password+passkey', 'password+trusted'], true);
-        if ($user['must_change_password'] && $passwordSession && $page !== 'account.php') {
-            header('Location: ' . Request::url('account.php?required=1'));
-            exit;
-        }
-        if ($passwordSession && Mfa::required($user) && !Mfa::hasFactor($user) && $page !== 'account.php') {
-            header('Location: ' . Request::url('account.php?mfa=required'));
+        $step = self::pendingStep($user);
+        if ($step !== null && basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) !== 'account.php') {
+            header('Location: ' . Request::url($step));
             exit;
         }
         return $user;
+    }
+
+    /**
+     * What a password sign-in still owes before anything else may be used: a new password after an
+     * administrator's reset, or setting up two-step verification when policy requires it. Null when nothing
+     * is owed. Pages redirect there (require()); JSON endpoints refuse (apiRefusal()).
+     */
+    public static function pendingStep(array $user): ?string
+    {
+        if (!in_array($_SESSION['auth'] ?? 'password', ['password', 'password+mfa', 'password+email', 'password+passkey', 'password+trusted'], true)) {
+            return null;
+        }
+        if ($user['must_change_password']) {
+            return 'account.php?required=1';
+        }
+        return Mfa::required($user) && !Mfa::hasFactor($user) ? 'account.php?mfa=required' : null;
+    }
+
+    /**
+     * The same gates as require(), for JSON endpoints: why the signed-in person may not use one, or null.
+     * $setup = true allows the account set-up steps themselves (adding a second step while one is owed).
+     */
+    public static function apiRefusal(array $user, bool $setup = false): ?string
+    {
+        if ($user['role'] === 'admin' && !self::adminNetworkAllowed()) {
+            Audit::record('security.access_denied', 'access', null, 'Access denied to administration from an untrusted network (API)', null, ['uri' => mb_substr((string) ($_SERVER['REQUEST_URI'] ?? ''), 0, 300), 'user_id' => $user['id']]);
+            self::logout('administrator network restriction');
+            return 'Administrator access is only allowed from the university network.';
+        }
+        if (!$setup && self::pendingStep($user) !== null) {
+            return 'Finish setting up your account first (Account & security): a new password or two-step verification is still needed.';
+        }
+        return null;
     }
 
     public static function passwordLoginMode(): string

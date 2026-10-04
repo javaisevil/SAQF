@@ -212,4 +212,33 @@ http($ar, "$app/mfa.php", ['_csrf' => csrf_of($mfa), 'code' => (string) demo_mai
 [, $acc] = http($ar, "$app/account.php");
 ok(str_contains($acc, 'فحص الأمان') && str_contains($acc, 'لم أكن أنا') && str_contains($acc, 'سيُسجَّل خروجك قريباً'), 'the security checkup, "This wasn\'t me" and the session warning read in Arabic');
 
+section('9. JSON endpoints apply the same gates as pages');
+// A password sign-in that still owes a new password (after an administrator's reset) is sent to Account & security
+// by every page; the JSON endpoints must refuse it too, not serve data around the redirect.
+Policy::set('auth.mfa_required', 'admins', 'test');
+$noura = Db::one('SELECT * FROM users WHERE username = "f.noura"');
+Db::exec('UPDATE users SET must_change_password = 1 WHERE id = ?', [$noura['id']]);
+$g = jar();
+password_step($app, $g, 'f.noura');
+[$code, , $loc] = http($g, "$app/faculty.php");
+ok($code === 302 && str_contains($loc, 'account.php?required=1'), 'a page sends a person who owes a new password to Account & security');
+[, $acc] = http($g, "$app/account.php");
+[$code, $body] = http($g, "$app/api.php", ['action' => 'save_clo', 'offering' => 0, 'statement' => 'x'], ['X-CSRF-Token: ' . csrf_of($acc)]);
+ok($code === 403 && str_contains($body, 'Finish setting up your account first'), 'the API refuses the same session (403) instead of acting');
+[, $json] = http($g, "$app/search.php?format=json&q=CIS");
+ok(trim($json) === '[]', 'search suggestions return nothing to it');
+Db::exec('UPDATE users SET must_change_password = 0 WHERE id = ?', [$noura['id']]);
+[$code, $body] = http($g, "$app/api.php", ['action' => 'save_clo', 'offering' => 0, 'statement' => 'x'], ['X-CSRF-Token: ' . csrf_of($acc)]);
+[, $json] = http($g, "$app/search.php?format=json&q=CIS");
+ok(!str_contains($body, 'Finish setting up') && $code !== 401 && count((array) json_decode($json, true)) > 0, 'once the password is changed, the same session reaches the API (its own access checks answer) and search again');
+Policy::set('auth.mfa_required', 'all', 'test');
+// Administrators may add a passkey, but it never replaces the authenticator app: with only a passkey they still owe it.
+$itAdmin = Db::one('SELECT * FROM users WHERE username = "it.admin"');
+Db::exec('INSERT INTO passkeys (user_id, credential_id, public_key, sign_count, label, created_at) VALUES (?,?,?,?,?,NOW())', [$itAdmin['id'], 'cred-admin-' . bin2hex(random_bytes(6)), 'pk', 0, 'admin key']);
+$noApp = ['mfa_enabled_at' => null, 'mfa_secret' => null] + $itAdmin;
+$_SESSION['auth'] = 'password+passkey';
+ok(!Mfa::hasFactor($noApp) && \Saqf\Security\Auth::pendingStep($noApp) === 'account.php?mfa=required', 'an administrator whose only second step is a passkey must still set up the authenticator app before any page or API call');
+unset($_SESSION['auth']);
+Db::exec('DELETE FROM passkeys WHERE user_id = ? AND label = "admin key"', [$itAdmin['id']]);
+
 finish();

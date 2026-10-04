@@ -8,6 +8,9 @@ use Saqf\Security\Auth;
 use Saqf\Web\View as V;
 
 $user = Auth::user();
+if ($user && Auth::apiRefusal($user) !== null) {
+    $user = null;
+}
 $q = trim((string) ($_GET['q'] ?? ''));
 if (($_GET['format'] ?? '') === 'json') {
     header('Content-Type: application/json; charset=utf-8');

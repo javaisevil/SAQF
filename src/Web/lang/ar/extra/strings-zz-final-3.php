@@ -82,4 +82,5 @@ return [
     'Type of problem' => 'نوع المشكلة',
     'Who has to act' => 'من عليه التصرف',
     'Change the status of this improvement action' => 'تغيير حالة إجراء التحسين هذا',
+    'Finish setting up your account first (Account & security): a new password or two-step verification is still needed.' => 'أكمل إعداد حسابك أولاً (الحساب والأمان): ما زال مطلوباً تعيين كلمة مرور جديدة أو إعداد التحقق بخطوتين.',
 ];

@@ -166,10 +166,9 @@ foreach (['login.php', 'forgot.php', 'reset.php', 'mfa.php', 'help.php', 'tour.p
     }
 }
 ok(!$reflected, "$checked pages answered with every parameter set to the hostile text: no error, nothing reflected unescaped" . ($reflected ? ': ' . implode('; ', array_slice($reflected, 0, 4)) : ''));
-[, $json] = http($omar, "$app/search.php?format=json&q=" . urlencode(PAYLOAD));
-[, , $hd] = http($omar, "$app/search.php?format=json&q=x");
-ok(stripos($hd, 'application/json') !== false && !str_contains($json, '<script>') || stripos($hd, 'application/json') !== false, 'JSON responses are served as application/json');
-ok(stripos($hd, 'X-Content-Type-Options: nosniff') !== false, 'every response says nosniff, so a browser never guesses a content type');
+[$jcode, $json, $hd] = http($omar, "$app/search.php?format=json&q=" . urlencode(PAYLOAD));
+ok($jcode === 200 && is_array(json_decode($json, true)) && stripos($hd, 'application/json') !== false, 'search suggestions for the hostile text answer with valid JSON served as application/json');
+ok(stripos($hd, 'X-Content-Type-Options: nosniff') !== false, 'with nosniff, so a browser never renders that JSON as a page');
 
 section('4. SQL meta-characters');
 $users = (int) Db::val('SELECT COUNT(*) FROM users');
@@ -211,9 +210,21 @@ ok($code === 200 && !preg_match('/^X-Injected:/mi', $hd) && stripos($hd, 'Conten
 ok(!preg_match('/^X-Injected:/mi', $hd), 'a hostile language parameter injects no header');
 [, , $hd] = http(jar(), "$app/login.php", null, ['Host: evil.example']);
 ok(!preg_match('/^(Location|Set-Cookie|Link|Refresh):.*evil\.example/mi', $hd), 'a forged Host header is not echoed into a redirect, link or cookie (PHP\'s development server itself echoes a Host line; Apache does not)');
-[, $body] = http(jar(), "$app/forgot.php", ['email' => 'f.omar@yu.edu.sa'], ['Host: evil.example']);
-$mail = (string) Db::val('SELECT body FROM mail_outbox ORDER BY id DESC LIMIT 1');
-ok(!str_contains($mail, 'evil.example'), 'password-reset links never use the request\'s Host header');
+// Reset-link poisoning: run in this process, because the HTTP form also needs the robot check and a mail server.
+// With an address configured, the e-mailed link uses it whatever Host the request claimed.
+putenv('SAQF_BASE_URL=https://saqf.example.edu');
+putenv('SAQF_MAIL_TRANSPORT=log');
+$prevLog = ini_set('error_log', '/dev/null');
+$_SERVER['HTTP_HOST'] = $_SERVER['SERVER_NAME'] = 'evil.example';
+$_SERVER['REMOTE_ADDR'] = '192.0.2.77';
+$lastMail = (int) Db::val('SELECT COALESCE(MAX(id), 0) FROM mail_outbox');
+\Saqf\Security\PasswordReset::request('f.omar');
+$mail = (string) Db::val('SELECT body FROM mail_outbox WHERE id > ? AND purpose = "password_reset" ORDER BY id DESC LIMIT 1', [$lastMail]);
+ini_set('error_log', (string) $prevLog);
+putenv('SAQF_BASE_URL');
+putenv('SAQF_MAIL_TRANSPORT');
+unset($_SERVER['HTTP_HOST'], $_SERVER['SERVER_NAME'], $_SERVER['REMOTE_ADDR']);
+ok(str_contains($mail, 'https://saqf.example.edu/reset.php?token=') && !str_contains($mail, 'evil.example'), 'a password-reset link uses the configured SAQF_BASE_URL even when the request carries a forged Host header');
 
 // ---------------------------------------------------------------------------------------------
 section('6. Browser policy violation reports (public/csp_report.php)');

@@ -103,6 +103,18 @@ $stub = new class($snap) implements InstitutionSource {
 throws(static fn() => Sync::institution($stub), 'the sync refuses the export as a whole', RuntimeException::class);
 ok((int) Db::val('SELECT COUNT(*) FROM courses') === $courses, 'nothing was changed in the database');
 ok(Db::val('SELECT status FROM sync_runs ORDER BY id DESC LIMIT 1') === 'failed' && str_contains((string) Db::val('SELECT message FROM sync_runs ORDER BY id DESC LIMIT 1'), 'nothing was changed'), 'the failed run is recorded with a plain reason (it raises the IT alert)');
+// First installation with a faulty export: refused before anything is written, so the next start installs
+// cleanly instead of skipping a half-made database that has no administrator.
+$badDir = tempdir('saqf-badcat');
+file_put_contents("$badDir/institution.json", '{"programs": ');
+$scratchDb = 'saqf_badcat_' . bin2hex(random_bytes(3));
+$installOut = [];
+exec(sprintf('SAQF_DB_NAME=%s SAQF_INSTITUTION_DIR=%s %s %s --skip-if-installed 2>&1', $scratchDb, escapeshellarg($badDir), escapeshellarg(PHP_BINARY), escapeshellarg(dirname(__DIR__) . '/bin/install.php')), $installOut, $installExit);
+$created = (int) Db::val('SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = ?', [$scratchDb]);
+if ($created) {
+    Db::pdo()->exec("DROP DATABASE `$scratchDb`");
+}
+ok($installExit === 1 && !$created && str_contains(implode("\n", $installOut), 'nothing was installed'), 'a first installation with a faulty catalogue stops before creating the database, and says why');
 
 section('Replaceable by the Registrar: a drop-in folder and an environment setting');
 ok((new CatalogFileSource())->dir() === $yu, 'by default the bundled YU data is used');

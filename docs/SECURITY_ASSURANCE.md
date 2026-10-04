@@ -1,13 +1,13 @@
 # SAQF security assurance
 
-Applies to SAQF 2.5.0 (`SAQF_VERSION` in `src/bootstrap.php`).
+Applies to SAQF 2.6.0 (`SAQF_VERSION` in `src/bootstrap.php`).
 
 **What this file is.** An inventory of the security controls in this repository: what each one does, where the code
 is, which test or CI job exercises it, and where its limits are. It was written from the source files,
 `.github/workflows/ci.yml` and the test suites in `tests/`. It quotes no test counts or pass rates, because they change
 with every commit: run the commands in [How to reproduce](#7-how-to-reproduce) or open the repository's Actions tab.
 
-**What it is not.** SAQF is a demo with an integration-ready handoff. It has had no penetration test and no independent
+**What it is not.** SAQF is a demo with documented integration interfaces (no adapter for the university's own systems exists yet). It has had no penetration test and no independent
 security review, and nothing in this file is a certification or an approval by any body. The built-in security
 self-test and security evidence report are the project checking its own work. See
 [What this does not prove](#6-what-this-does-not-prove). The vulnerability reporting process is in
@@ -23,7 +23,7 @@ configuration on purpose:
 |---|---|
 | `public/demo.php` signs anyone in as any of the fictional people, including the administrator, with no password and no second step | answers 404 and records `security.demo_refused`; `public/tour.php` redirects to the sign-in page |
 | Every demo account has the same published password (`Story::PASSWORD` in `src/Demo/Story.php`) and the e-mailed or authenticator code is shown on screen | no demo accounts; `bin/preflight.php` names any active account that still uses the published password |
-| Plain `http://` is accepted for connectors (the stand-in servers in `tests/mock/` need it) | `https://` only, for every outbound request |
+| Plain `http://` is accepted for connectors (the stand-in servers in `tests/mock/` need it) | `https://` only, for every outbound HTTP request (connectors, identity provider, webhook) |
 | A development application key is generated and kept in the database | the key must come from the environment or a secret file; SAQF refuses to create one |
 | `docker-compose.yml` publishes the app port on all interfaces and falls back to placeholder database passwords | `docker-compose.prod.yml` applies the hardening in [section 4.14](#414-hardened-container-deployment-https-and-outbound-connections) |
 
@@ -50,7 +50,7 @@ same branch cancels a run in progress.
 | `tests`: "Tests (PHP 8.3, MySQL 8.0)" | `php -l` on every PHP file; then each suite in `tests/` against a freshly installed demo database on MySQL 8.0 (several start PHP's built-in web server); then `php bin/migrate.php` followed by `--status` | The control logic behaves as the tests assert, on fictional data, against stand-in servers from `tests/mock/` for the identity provider, SIS, LMS, ClamAV, SMTP and webhook; migrations apply |
 | `docker`: "Docker stack (HTTPS, encrypted backups)" | Builds the image; starts the compose stack with the HTTPS proxy; waits for the container health check; runs `tests/http_smoke.php` against Apache; requests the sign-in page over HTTPS and checks HSTS, the `Secure` session cookie and the HTTP-to-HTTPS redirect; takes an encrypted backup and checks its status file; runs the restore drill; restores the database and evidence files into the running stack and runs `php bin/verify_audit.php` | The scripts, Apache and the proxy work together in the demo stack |
 | `hardened`: "Hardened production stack" | Generates secret files with `bin/make_secrets.sh`; starts with `docker-compose.prod.yml` and the HTTPS proxy; checks that `/health.php` reports the application key as `ok`; checks on the `app` container a read-only root file system, `no-new-privileges`, all capabilities dropped, and that a write to the code directory fails; checks that neither the application key nor the database password appears in `docker inspect` of the app and db containers; checks the scheduler does not run as root; checks HTTPS, the `Secure` cookie and HSTS; runs `bin/preflight.php` in the container; takes an encrypted backup and runs the restore drill with the passphrase supplied as a secret file; checks the preflight now sees the drill | The production overlay applies what its comments say, for those items |
-| `scan`: "Image and configuration scan (informational)" | Builds the image and runs Trivy over the working tree (secrets and misconfigurations) and over the image (known vulnerabilities). `continue-on-error: true` and `|| true` on each command | Findings appear in the job log for a person to read. It never blocks a change |
+| `scan`: "Image and configuration scan (informational)" | Builds the image and runs Trivy over the working tree (secrets and misconfigurations) and over the image (known vulnerabilities). `continue-on-error: true`, and `|| true` on the Trivy commands | Findings appear in the job log for a person to read. It never blocks a change |
 
 **Not run by CI:** the real-browser tests in `tests/e2e/` (they need Playwright; see their header comments); a real
 ClamAV (the suites use `tests/mock/clamd.php`); a real identity provider, SIS, LMS or mail server; any load or
@@ -136,10 +136,15 @@ availability test; any test against the university's systems or data.
   digits, 30-second steps, one step of drift either side, a step already used is refused); one of ten single-use recovery
   codes (stored as SHA-256 hashes); or a six-digit code e-mailed to the person (valid 10 minutes, single use, five tries,
   at most five e-mails per sign-in with 30 seconds between them; only an HMAC of the code is kept, in the server-side
-  session). Administrators must use the app: no e-mailed codes and no trusted browser. A person may trust a browser for
+  session). Administrators cannot use e-mailed codes or trusted browsers and must have the app; they may also add a
+  passkey (4.1.4) and use it at the second step. A person may trust a browser for
   `auth.trusted_device_days` (default 30; an HttpOnly, SameSite=Strict cookie holds a random token and only its hash is
   stored); a password change forgets every trusted browser. A pending second step expires after five minutes and five
   wrong codes end it. Until the second step is done the session holds no signed-in user, so nothing else is reachable.
+  A person who has no usable second step yet (an administrator before enrolling the app, or anyone when mail is off and
+  no app is set up) is signed in with the password alone and owes the set-up: every page redirects to *Account &
+  security*, and the JSON endpoints (`api.php`, search suggestions) refuse until it is done (`Auth::pendingStep`,
+  `Auth::apiRefusal`; `tests/signin_test.php` §9).
   Authenticator secrets are stored encrypted (4.10).
 - **Where.** `src/Security/Mfa.php`, `src/Security/Totp.php`, `src/Security/TrustedDevices.php`,
   `src/Security/Auth.php` (`completeMfa`), `public/mfa.php`, `public/account.php`.
@@ -162,7 +167,8 @@ availability test; any test against the university's systems or data.
   origin and relying-party id, user presence **and** user verification (device PIN or biometric), ES256 (P-256) keys only,
   attestation `none` only, and a signature counter that must move forward when the authenticator uses one. A small strict
   CBOR decoder refuses tags, floats, indefinite lengths, duplicate map keys and deep nesting. Registering and removing a
-  passkey need a recent password confirmation (`security.reauth_minutes`); registration and sign-in are rate limited per
+  passkey need a recent sign-in or identity confirmation (`security.reauth_minutes`; in demo mode the one-click demo
+  sign-in counts); registration and sign-in are rate limited per
   person; at most ten passkeys per person; additions, removals and refusals are audited. Passkeys are offered only over
   HTTPS or on `localhost`, never on an IP-address URL.
 - **Where.** `src/Security/WebAuthn.php`, `src/Security/Cbor.php`, `src/Security/Passkeys.php`, `public/passkey.php`,
@@ -177,8 +183,10 @@ availability test; any test against the university's systems or data.
   university should have it reviewed, or replace it with a maintained library, before relying on it for administrators.
   Any authenticator is accepted (no attestation trust). A passkey does not remove the weaker option: non-administrators
   with a university e-mail can still choose "E-mail me a code instead" on the second-step page (`public/mfa.php`).
-  Administrators must still enrol the authenticator app, and no test covers whether an administrator's passkey would be
-  accepted instead of the app code at sign-in (`tests/passkey_test.php` signs in as a faculty account only).
+  Administrators may add a passkey and use it at the second step, but it never replaces the authenticator app: an
+  administrator with only a passkey still owes the app before any page or API call (`Mfa::hasFactor` does not count a
+  passkey for administrators; `tests/signin_test.php` §9). The HTTP sign-in flow in `tests/passkey_test.php` uses a faculty
+  account; the administrator rule is checked at the function level.
 
 #### 4.1.5 University sign-in (OpenID Connect)
 
@@ -186,8 +194,8 @@ availability test; any test against the university's systems or data.
   `sso_transactions`, and the attempt is bound to the browser with an HttpOnly, SameSite=Lax cookie (`SAQF_SSO`); a
   transaction lives ten minutes. The ID token is verified: signature against the provider's published keys (RS256, RS384,
   RS512, ES256, ES384 only; `none` and HMAC algorithms are refused; the key set is refreshed once when the key id is
-  unknown), issuer, audience (and `azp` when there are several), expiry (60 seconds of clock skew), an issued-at time not
-  in the future, and the nonce. The discovery document must name the configured issuer. Production accepts `https://`
+  unknown), issuer, audience (and `azp` when there are several), expiry (60 seconds of clock skew), an issued-at time no
+  more than five minutes in the future, and the nonce. The discovery document must name the configured issuer. Production accepts `https://`
   endpoints only. Roles can follow a provider claim (`SAQF_OIDC_ROLE_CLAIM`, `SAQF_OIDC_ROLE_MAP`); disabled accounts are
   refused. `SAQF_PASSWORD_LOGIN=admins` leaves passwords to administrators only (break-glass). With
   `SAQF_OIDC_REQUIRE_MFA=true` SAQF refuses ID tokens whose `amr` claim does not contain `mfa`; the last observation of
@@ -209,13 +217,15 @@ availability test; any test against the university's systems or data.
 #### 4.1.6 Password reset and invitations
 
 - **What it does.** Tokens are 256-bit random values, stored only as SHA-256 hashes, single use, valid 30 minutes for a
-  reset and 72 hours for an invitation. The request form gives the same answer whatever the account; requests are
-  throttled (5 per address per 15 minutes, 3 per account per hour). Links are built from `SAQF_BASE_URL`, never from the
+  reset and 72 hours for an invitation. The request form gives the same answer whatever the account; reset e-mails are
+  limited to 5 per network address per 15 minutes and 3 per account per hour (requests for unknown accounts send nothing
+  and are not counted). Links are built from `SAQF_BASE_URL`, never from the
   request's Host header. Completing a reset ends the person's other sessions. The feature is off unless mail is
   configured and password sign-in is not switched off.
 - **Where.** `src/Security/PasswordReset.php`, `public/forgot.php`, `public/reset.php`.
-- **Exercised by.** CI tests: `tests/production_test.php` §10; `tests/injection_test.php` §5 (a forged Host header never
-  appears in a reset link).
+- **Exercised by.** CI tests: `tests/production_test.php` §10; `tests/injection_test.php` §5 (with `SAQF_BASE_URL` set, a
+  reset requested under a forged Host header e-mails a link to the configured address; run in-process because the form
+  also needs the robot check and a mail server).
 - **Limits.** For people who do not use university sign-in, control of the mailbox is control of the account.
 
 ### 4.2 Sessions
@@ -234,8 +244,8 @@ availability test; any test against the university's systems or data.
 - **Where.** `src/Core/Session.php`, `src/Security/Sessions.php`, `src/Security/Auth.php` (`login`, `user`, `logout`),
   `docker/php.ini`, `public/logout.php`, `public/ping.php`.
 - **Exercised by.** CI tests: `tests/features_test.php` §5 ("Sign out all other sessions" ends the other browser and keeps
-  this one; the step-up window); `tests/signin_test.php` §5–6 ("This wasn't me", a password change forgets trusted
-  browsers, the last-sign-in notice, the idle warning, the keep-alive needs the token); `tests/hardening_test.php` §8
+  this one; the step-up window); `tests/signin_test.php` §3 (the last-sign-in notice) and §5–6 ("This wasn't me", a password change forgets
+  trusted browsers, the idle warning, the keep-alive needs the token); `tests/hardening_test.php` §8
   (`no-store`, `Clear-Site-Data`); the self-test item "Sessions are protected" (the three PHP session settings, in the web
   process). CI jobs `docker` and `hardened` check the `Secure` flag behind the HTTPS proxy.
 - **Limits.** **No test found** that the idle or absolute limit ends a session, for the User-Agent binding
@@ -247,8 +257,8 @@ availability test; any test against the university's systems or data.
 
 - **What it does.** A random per-session token (32 random bytes, hex) is required on every state-changing form and API
   call, as the `_csrf` field or the `X-CSRF-Token` header, compared with `hash_equals`. `saqf_require_post()` in
-  `public/_init.php` is the shared gate; `login.php`, `mfa.php`, `passkey.php`, `demo.php`, `ping.php` and `api.php` call
-  `Csrf::valid()` themselves. Sign-out is POST-only. Cookies are SameSite=Strict as a second layer. The one POST endpoint
+  `public/_init.php` is the shared gate; `login.php`, `mfa.php`, `passkey.php`, `demo.php`, `ping.php`, `api.php`,
+  `reset.php` and `logout.php` call `Csrf::valid()` themselves. Sign-out is POST-only. Cookies are SameSite=Strict as a second layer. The one POST endpoint
   without a token is `public/csp_report.php`, by design (4.5).
 - **Where.** `src/Core/Csrf.php`, `public/_init.php`.
 - **Exercised by.** CI tests: `tests/http_smoke.php` (an API call without the token is refused; an anonymous API call is
@@ -279,8 +289,8 @@ availability test; any test against the university's systems or data.
   `docker/Caddyfile`, `.htaccess`, `public/assets/`.
 - **Exercised by.** CI tests: `tests/features_test.php` §5 (script-src is exactly `'self'`, `object-src 'none'`,
   `frame-ancestors 'none'`; no `<script>` without `src` and no inline `on…=` handler on a sample of pages seen by three
-  roles; `Cross-Origin-Opener-Policy` and `X-Frame-Options`); `tests/injection_test.php` §3 (`nosniff` and JSON content
-  type on the responses it fetches) and §6 (the `report-uri`); `tests/hardening_test.php` §8 (`Cache-Control: no-store`;
+  roles; `Cross-Origin-Opener-Policy` and `X-Frame-Options`); `tests/injection_test.php` §3 (`nosniff` and the JSON content
+  type on one JSON response; the headers come from `src/bootstrap.php` for every response) and §6 (the `report-uri`); `tests/hardening_test.php` §8 (`Cache-Control: no-store`;
   `Clear-Site-Data` on sign-out). CI jobs `docker` and `hardened` check HSTS and the `Secure` cookie through the proxy.
 - **Limits.** `style-src 'unsafe-inline'` is allowed (several templates use inline `style` attributes), so the policy does
   not stop CSS injection. `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Resource-Policy` and
@@ -351,9 +361,10 @@ availability test; any test against the university's systems or data.
 - **Where.** `src/Core/Db.php`, `src/Web/View.php`, `src/Core/Request.php`, `src/Core/ErrorLog.php`,
   `src/Quality/Closeout.php`, `public/api.php`, `public/demo.php`.
 - **Exercised by.** CI test `tests/injection_test.php` §1–5: hostile text (script and markup, quotes, template syntax) is
-  stored through outcome statements, report narratives, evidence titles and file names, incident reports, names, policy
-  reasons and passkey names; every page that can show it is then fetched in English and Arabic as several roles and must
-  show it escaped; every query parameter of every page is set to the hostile text; SQL meta-characters, including a
+  stored through outcome statements, report narratives, evidence titles and file names, incident reports and policy
+  reasons (user names and passkey labels are written straight into the database); a fixed list of pages that show it is
+  then fetched in English and Arabic as several roles and must show it escaped; 22 named query parameters on the listed
+  pages are set to the hostile text; SQL meta-characters, including a
   `SLEEP()` probe, are sent as identifiers and filters and must cause no server error, no schema change and no delay;
   redirect targets and response headers are checked for injection. CSV neutralisation: `tests/usability_test.php` §5 and
   `tests/closeout_test.php` §6. `tests/hardening_test.php` §1 checks that student numbers do not reach the web server's
@@ -379,7 +390,7 @@ availability test; any test against the university's systems or data.
   as attachments with `nosniff` and `default-src 'none'; sandbox`. Removal hides the file and keeps it on disk for the
   audit trail.
 - **Where.** `src/Quality/Evidence.php`, `public/workspace.php`, `public/evidence.php`, `docker/entrypoint.sh`,
-  `docker/php.ini`, `docker-compose.yml` (`clamav` profile).
+  `docker/php.ini`, `docker-compose.yml` (`antivirus` profile, `clamav` service).
 - **Exercised by.** CI tests: `tests/features_test.php` §3 (random name outside the web root; SHA-256 recorded; a fake PDF,
   a macro-carrying Word file and a program file refused; with the stand-in scanner a clean file is accepted and the EICAR
   test string refused with a critical alert; with the scanner down uploads pause and IT is alerted; download allowed for
@@ -439,8 +450,8 @@ availability test; any test against the university's systems or data.
   `docker-compose.prod.yml`, `Dockerfile`, `.gitignore`, `.dockerignore`.
 - **Exercised by.** CI tests: `tests/features_test.php` §5 (authenticator secrets stored encrypted and round-tripping);
   `tests/hardening_test.php` §2 (key from the environment; weak, short and placeholder keys refused; production without a
-  key refuses to create one and the installer refuses to start; health answers 503; `bin/app_key.php` never prints the
-  key) and §8 (`*_FILE` secrets, an explicit value wins, only the named settings accept a file, an oversized file is
+  key refuses to create one and the installer refuses to start; health answers 503; `bin/app_key.php status` never prints
+  the key; `export-stored`, which moves a stored demo key out, prints it by design) and §8 (`*_FILE` secrets, an explicit value wins, only the named settings accept a file, an oversized file is
   ignored); the self-test item "Stored secrets are encrypted and modifications detected" (flips one bit and expects a
   refusal). CI job `hardened`: secret files, `/health.php` says the key is `ok`, no secret value in `docker inspect` of
   the app and db containers.
@@ -490,11 +501,11 @@ availability test; any test against the university's systems or data.
 - **What it does.** Administrators register an incident (kind, severity, when it was detected, what happened, whether
   personal data was involved). For a personal-data incident SAQF starts a notification clock of `Incidents::NOTIFY_HOURS`
   (72) from the detection time, raises an IT alert when 24 hours or less remain and a critical alert when it has passed,
-  and shows the deadline. Recording that an authority or affected people were notified requires saying who did it and how;
+  and shows the deadline. Recording that an authority or affected people were notified requires a note;
   closing an incident requires saying how it ended, and a personal-data incident closed with no recorded notification
   needs a longer explanation; a closed incident cannot be changed; every step is in the incident timeline and the audit
   log. **SAQF never decides whether a notification is needed and never contacts any authority or person.** The 72-hour
-  figure is a setting taken from sources the authors reviewed; whether and when it applies to an incident is for the
+  figure is a fixed value in the code (`Incidents::NOTIFY_HOURS`), taken from sources the authors reviewed; whether and when it applies to an incident is for the
   university's data protection officer and legal counsel.
 - **Where.** `src/Security/Incidents.php`, `public/incidents.php`, `src/Quality/Scheduler.php` (`Incidents::watch`).
 - **Exercised by.** CI test `tests/hardening_test.php` §11 (the page states that decisions stay with people; no other role
@@ -553,10 +564,12 @@ availability test; any test against the university's systems or data.
   check calls `/health.php`, which answers without a session and reports status, version, database, scheduler,
   maintenance and the application-key state (never the key). The `https` profile adds Caddy (automatic certificates for a
   public `SAQF_DOMAIN`, a local certificate authority for `localhost`, HTTP redirected to HTTPS). SAQF trusts the
-  forwarded client address and protocol only from `SAQF_TRUSTED_PROXIES` (the compose network gives the proxy the fixed
+  forwarded client address and protocol only from `SAQF_TRUSTED_PROXIES` (or from anyone when the legacy
+  `SAQF_TRUST_PROXY=true` is set; leave it `false`) (the compose network gives the proxy the fixed
   address `172.28.250.10`). Outbound requests (SIS, LMS, identity provider and its discovery endpoints, alert webhook) go
   through one client that verifies TLS certificates, does not follow redirects, caps an answer at 32 MiB and, in
-  production, accepts `https://` only; the SMTP client verifies the peer and requires TLS 1.2 or later when TLS is on.
+  production, accepts `https://` only; the SMTP client verifies the peer and requires TLS 1.2 or later
+  with STARTTLS (implicit TLS on port 465 uses PHP's defaults). ClamAV is reached over plain TCP inside the compose network.
   `php bin/preflight.php` judges an installation against the production rules in any mode: blockers (for example demo
   accounts still using the published password, a base address that is not https, a missing or weak application key, plain
   http outbound addresses, missing audit triggers or a broken chain, pending migrations, administrators without a second
@@ -586,13 +599,13 @@ availability test; any test against the university's systems or data.
 ### 4.15 Supply chain
 
 - **What it does.** The repository has no package manifests (no `composer.json`, `package.json` or `requirements.txt`).
-  The PHP application uses only PHP's own extensions (`pdo_mysql`, `mbstring`, `curl`, `openssl`); the browser code is
+  The PHP application uses only PHP's own extensions (`pdo_mysql`, `mbstring`, `curl`, `openssl`, `zlib`); the browser code is
   local files in `public/assets/` with no external addresses, fonts or CDN; Word and ZIP files, QR codes, TOTP, ID-token
   verification and the SMTP client are written in this repository. What remains third party: PHP, Apache, MySQL, Caddy and
   ClamAV (container images) and, in CI only, GitHub Actions and Trivy. `.github/dependabot.yml` asks Dependabot for weekly
   updates of GitHub Actions and of the Docker ecosystem at the repository root (the `Dockerfile` base image). The CI
   `scan` job runs Trivy over the working tree (secrets and misconfigurations, HIGH and CRITICAL) and over the built image
-  (known vulnerabilities, HIGH and CRITICAL, unfixed ones ignored). It is `continue-on-error: true` and every command ends
+  (known vulnerabilities, HIGH and CRITICAL, unfixed ones ignored). It is `continue-on-error: true` and the Trivy commands end
   in `|| true`, so it informs a person and never blocks a release.
 - **Where.** `.github/dependabot.yml`, `.github/workflows/ci.yml` (`scan`), `Dockerfile`, `TECH_STACK.md`.
 - **Exercised by.** CI job `scan` (informational) and the Dependabot configuration. The "no manifests" and "no external
@@ -654,8 +667,8 @@ Set in `.env`, the process environment or `config.local.php`. Settings marked *f
 `auth.lockout_minutes`, `auth.ip_max_attempts_15min`, `auth.min_password_length`, `auth.trusted_device_days`,
 `session.idle_minutes`, `session.absolute_hours`, `security.reauth_minutes`, `security.new_device_alert`,
 `security.access_review_days`, `auth.dormant_days` and `evidence.max_mb` (defaults in `src/Core/Policy.php`). Only the
-Quality role can change them (`public/policies.php`, `policy_set` in `public/api.php`); administrators and Heads of
-Department see them read-only. `Policy::set` checks types and ranges but not security sense: Quality could set
+Quality role can change them (`public/policies.php`, `policy_set` in `public/api.php`); administrators, Heads of
+Department, deans and leadership see them read-only. `Policy::set` checks types and ranges but not security sense: Quality could set
 `auth.mfa_required` to `off`, and the Security center would then show it as needing attention, nothing more.
 
 ## 6. What this does not prove
@@ -677,8 +690,9 @@ Department see them read-only. `Policy::set` checks types and ranges but not sec
 - **No certification and no conformity assessment.** SAQF has not been assessed against any security or privacy standard
   or regulation, for example ISO/IEC 27001 or the Saudi Personal Data Protection Law. The incident register supports the
   university's own process; it makes no statement about the law. No NCAAA report is approved by anything in SAQF.
-- **Nothing has run against the university's real systems.** The identity provider, Edugate, the LMS and the mail server
-  are simulated by stand-in servers in `tests/mock/`, and the demo uses a snapshot of Yamamah University's public study
+- **Nothing has run against the university's real systems.** The identity provider, the SIS (a generic stand-in; no
+  Edugate adapter exists and its API was not available), the LMS and the mail server are simulated by stand-in servers in
+  `tests/mock/`, and the demo uses a snapshot of Al Yamamah University's public study
   plans with fictional people and synthetic pseudonymous results. Real data, real formats and real scale have not been
   exercised ([`INTEGRATIONS.md`](INTEGRATIONS.md#edugate-and-lms-integration-contract-awaiting-university-it)).
 - **No load, availability or denial-of-service testing.** Rate limits exist on specific actions (uploads, exports,
