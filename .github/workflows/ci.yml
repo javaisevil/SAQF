@@ -31,7 +31,7 @@ jobs:
       SAQF_DB_USER: root
       SAQF_DB_PASS: root
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
@@ -82,7 +82,7 @@ jobs:
       SAQF_BACKUP_PASSPHRASE: ci-only-backup-passphrase
       SAQF_BACKUP_START_DELAY: "99999"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build and start (demo, with the HTTPS proxy)
         run: docker compose --profile https up -d --build
       - name: Wait until healthy
@@ -129,7 +129,7 @@ jobs:
     name: Hardened production stack (secret files, read-only, capabilities dropped)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Generate secret files and production settings
         run: |
           sh bin/make_secrets.sh
@@ -205,7 +205,7 @@ jobs:
     # a release: findings are read by a person. Not a penetration test.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build the application image
         run: docker build -t saqf-app:scan .
       - name: Scan the repository for secrets and configuration problems
