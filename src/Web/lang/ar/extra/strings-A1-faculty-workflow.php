@@ -3,7 +3,7 @@
 // Arabic wording, area A1 (faculty workflow): API messages, closeout board, My courses, the course workspace (results import, report facts, evidence, closeout), Closeout / Evidence / Facts / Scheduler / Gradebook wording.
 // Whole sentences only; sentences with numbers, dates and names are patterns in patterns-A1-faculty-workflow.php. Terms follow the existing dictionary (NCAAA usage).
 
-return [
+$strings = [
     // ------------------------------------------------------------------ API messages (toasts and errors)
     'Your session has expired. Sign in again.' => 'انتهت جلستك. سجّل الدخول مرة أخرى.',
     'Security token expired. Reload the page.' => 'انتهت صلاحية رمز الأمان. أعد تحميل الصفحة.',
@@ -122,6 +122,29 @@ return [
     'Say what is missing or needs changing (at least 10 characters), so the instructor knows what to do.' => 'اذكر ما هو ناقص أو يحتاج إلى تعديل (10 أحرف على الأقل) ليعرف عضو هيئة التدريس ما عليه فعله.',
     'There is no evidence in the course file to review yet.' => 'لا توجد شواهد في ملف المقرر لمراجعتها بعد.',
 
+    'in the file. Student numbers were already replaced by codes: neither this page nor the database shows them.' => 'في الملف. استُبدلت الأرقام الجامعية برموز بالفعل: فلا تعرضها هذه الصفحة ولا قاعدة البيانات.',
+    'with HOD' => 'لدى رئيس القسم',
+    'with QA' => 'لدى الجودة',
+    'with DEAN' => 'لدى العميد',
+    'with FACULTY' => 'لدى عضو هيئة التدريس',
+    'with ADMIN' => 'لدى تقنية المعلومات',
+    'with LEADERSHIP' => 'لدى قيادة الجامعة',
+
+    // ------------------------------------------------------------------ Arabic wording page: the kind names inside activity-log summaries ("5 Arabic wording(s) saved (catalogue)")
+    'content' => 'محتوى المقررات',
+    'catalogue' => 'الدليل',
+    'people' => 'الأشخاص',
+
+    // ------------------------------------------------------------------ Evidence refusals as they appear inside "Not added: file (reason)": the same sentences without their final full stop
+    'The file is larger than the server allows' => 'الملف أكبر مما يسمح به الخادم',
+    'Choose a file to upload' => 'اختر ملفاً لرفعه',
+    'Choose what kind of evidence this is' => 'اختر نوع هذا الشاهد',
+    'Upload a PDF, Word, Excel, PowerPoint, PNG, JPEG or text file (macro-enabled Office files are not accepted)' => 'ارفع ملف PDF أو Word أو Excel أو PowerPoint أو PNG أو JPEG أو نصاً (لا تُقبل ملفات Office التي تحتوي وحدات ماكرو)',
+    "That assessment is not part of this course's specification" => 'هذا التقييم ليس جزءاً من توصيف المقرر',
+    'The virus scanner is not available, so uploads are paused. IT has been alerted; please try again later' => 'فاحص الفيروسات غير متاح، لذا أُوقف الرفع مؤقتاً. وأُبلغت تقنية المعلومات؛ يرجى المحاولة لاحقاً',
+    'The file was refused by the virus scanner. IT security has been notified' => 'رفض فاحص الفيروسات الملف، وأُبلغ أمن تقنية المعلومات',
+    'Too many uploads in the last hour. Please try again later' => 'عمليات رفع كثيرة جداً خلال الساعة الماضية. يرجى المحاولة لاحقاً',
+
     // ------------------------------------------------------------------ Evidence (kinds written in lower case inside sentences)
     'assessment paper / brief' => 'ورقة التقييم / وصفه',
     'marking rubric' => 'أداة التصحيح (Rubric)',
@@ -148,4 +171,33 @@ return [
     'Access review overdue' => 'مراجعة الصلاحيات متأخرة',
     'Backup missing, failed or incomplete' => 'النسخة الاحتياطية مفقودة أو فاشلة أو غير مكتملة',
     'Background scheduler has stopped' => 'توقف المُجدوِل الذي يعمل في الخلفية',
+
+    // ------------------------------------------------------------------ Lines of the demo scenario that older, broader patterns would take first (their prefix swallows "2 open: …")
+    '2 open: SWE 401 CLO1: section 02 is 16 points below section 01; SWE 401 CLO2: section 02 is 16 points below section 01' => 'مشكلات مفتوحة (2): SWE 401 CLO1: الشعبة 02 أقل بـ 16 نقطة من الشعبة 01؛ SWE 401 CLO2: الشعبة 02 أقل بـ 16 نقطة من الشعبة 01',
+    '1 waiting for a decision: CIS 491 "Proposal and design report" carries 70% of the grade' => 'بانتظار القرار (1): CIS 491 "تقرير المقترح والتصميم" يحمل 70% من الدرجة',
 ];
+
+// A reminder lists the checklist items still missing ("Approved course specification; Grades for every assessment"). An older pattern
+// "Approved …" would take every list that starts with the first item, so each such list is spelled out here (the items come in a fixed order).
+$items = [
+    'No open problems' => 'لا توجد مشكلات مفتوحة',
+    'Grades for every assessment' => 'درجات لكل تقييم',
+    'Evidence for every assessment, reviewed' => 'شواهد لكل تقييم، تمت مراجعتها',
+    'A plan for every missed goal' => 'خطة لكل هدف لم يتحقق',
+    "The instructor's reading of the results" => 'قراءة عضو هيئة التدريس للنتائج',
+    'Suggestions for next time' => 'مقترحات للمرة القادمة',
+];
+$keys = array_keys($items);
+for ($mask = 1; $mask < (1 << count($keys)); $mask++) {
+    $en = ['Approved course specification'];
+    $ar = ['توصيف مقرر معتمد'];
+    foreach ($keys as $i => $k) {
+        if ($mask & (1 << $i)) {
+            $en[] = $k;
+            $ar[] = $items[$k];
+        }
+    }
+    $strings[implode('; ', $en)] = implode('؛ ', $ar);
+}
+
+return $strings;
